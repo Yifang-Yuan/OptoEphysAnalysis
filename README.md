@@ -1,4 +1,4 @@
-PACKAGE THAT NEED FOR THIS ANALYSIS
+# PACKAGE THAT NEED FOR THIS ANALYSIS
 https://github.com/open-ephys/open-ephys-python-tools
 
 https://github.com/pynapple-org/pynapple
