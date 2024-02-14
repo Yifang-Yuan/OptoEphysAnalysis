@@ -6,12 +6,10 @@ Before conducting analysis in this package, optical recordings should already be
 Behaviour data should also be analysed saved as .csv files with animals' coordinates in each camera frame.
 
 ### Analysing optical data
-For pyPhotometry, I use 
-https://github.com/katemartian/Photometry_data_processing
-to save normalised signal, reference traces, and th zscore.
+I've put codes for processing both pyPhotometry and SPAD in the same repository:
+https://github.com/Yifang-Yuan/SPADPhotometryAnalysis
 
-For SPAD data analysis, please refer to SPAD analysis (I'll make a new cleaner repository)
-https://github.com/Yifang-Yuan/SPAD_in_vivo/tree/main/SPAD_Python
+With zscore signal data saved as a .csv file, and saved in the same folder as ephys results, you'll be able to proceed this analysis.
 
 ### Analysing behviour data
 Bonsai tracking and DeepLabCut are used for my analysis. 
