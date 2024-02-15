@@ -147,6 +147,41 @@ def SPAD_sync_mask (SPAD_Sync, start_lim, end_lim):
     mask_array_bool = np.array(SPAD_mask, dtype=bool)
     return mask_array_bool
 
+def py_sync_mask (Sync_line, start_lim, end_lim):
+    '''
+
+    '''
+    py_mask=np.zeros(len(Sync_line),dtype=np.int)
+    py_mask[np.where(Sync_line >15000)[0]]=1
+    rising_edge_index = None
+    falling_edge_index = None
+    py_mask[0:start_lim]=0
+    py_mask[end_lim:]=0
+    py_mask[np.where(Sync_line >15000)[0]]=1
+    # Iterate through the data array
+    for i in range(len(py_mask) - 1):
+        # Check for rising edge (transition from low to high)
+        if py_mask[i] == 0 and py_mask[i + 1] == 1:
+            rising_edge_index = i
+            break  # Exit loop once the first rising edge is found
+
+    # Iterate through the data array in reverse to find the falling edge
+    for i in range(len(py_mask) - 1, 0, -1):
+        # Check for falling edge (transition from high to low)
+        if py_mask[i] == 1 and py_mask[i - 1] == 0:
+            falling_edge_index = i
+            break  # Exit loop once the last falling edge is found
+    py_mask_final=np.zeros(len(Sync_line),dtype=np.int)
+    print (rising_edge_index)
+    py_mask_final[rising_edge_index:falling_edge_index]=1
+    fig, ax = plt.subplots(figsize=(15,5))
+    ax.plot(py_mask)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    plot_trace_in_seconds(py_mask,30000)
+    mask_array_bool = np.array(py_mask_final, dtype=bool)
+    return mask_array_bool
+
 def check_SPAD_mask_length(data):
     filtered_series = data[data == 1]
     length_of_filtered_series = len(filtered_series)

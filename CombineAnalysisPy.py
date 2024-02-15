@@ -9,12 +9,12 @@ import os
 import numpy as np
 import pandas as pd
 #from open_ephys.analysis import Session
-from SyncOESPADSessionClass import SyncOESPADSession
+from SyncOECPySessionClass import SyncOEpyPhotometrySession
 import OpenEphysTools as OE
 #%%
 dpath="C:/SPAD/SPADData/20240214_Day3/SyncRecording10/"
 #dpath="G:/SPAD/SPADData/20230722_SPADOE/SyncRecording0/"
-Recording1=SyncOESPADSession(dpath,IsTracking=False,read_aligned_data_from_file=False) 
+Recording1=SyncOEpyPhotometrySession(dpath,IsTracking=False,read_aligned_data_from_file=False) 
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
 LFP_channel='LFP_3'
 #%%
@@ -25,10 +25,10 @@ LFP_channel='LFP_3'
 # data=Recording1.reset_index_data()
 #%%
 '''separate the theta and non-theta parts'''
-theta_part,non_theta_part=Recording1.separate_theta (LFP_channel,80,20)
+theta_part,non_theta_part=Recording1.separate_theta (LFP_channel,90,50)
 #%%
-start_time=0
-end_time=90
+start_time=30
+end_time=40
 Recording1.plot_segment_feature (LFP_channel,start_time,end_time,SPAD_cutoff=50,lfp_cutoff=500)
 # Recording1.plot_theta_feature (LFP_channel,start_time,end_time,True)
 # Recording1.plot_ripple_feature (LFP_channel,start_time,end_time)
@@ -43,11 +43,12 @@ for i in range(20):
     Recording1.plot_theta_feature (LFP_channel,start_time=5*i,end_time=5*(i+1))
 #%%
 '''Here for the spectrum, I used a 0.5Hz high pass filter to process both signals'''
-for i in range(2):
-    Recording1.plot_segment_feature (LFP_channel=LFP_channel,start_time=1*i,end_time=1*(i+1),SPAD_cutoff=50,lfp_cutoff=500)
+for i in range(10):
+    Recording1.plot_segment_feature (LFP_channel=LFP_channel,start_time=1*i,end_time=1*(i+5),SPAD_cutoff=50,lfp_cutoff=500)
 #%%
 silced_recording=Recording1.slicing_pd_data (Recording1.Ephys_tracking_spad_aligned,start_time=0, end_time=3)
 #%%
+silced_recording=theta_part
 '''Calculate the cross correlation between two power spectrun over time at a specific frequency'''
 sst_spad,frequency_spad,power_spad,global_ws_spad=OE.Calculate_wavelet(silced_recording['zscore_raw'],lowpassCutoff=500,Fs=10000)
 sst_lfp,frequency_lfp,power_lfp,global_ws_lfp=OE.Calculate_wavelet(silced_recording[LFP_channel],lowpassCutoff=500,Fs=10000)

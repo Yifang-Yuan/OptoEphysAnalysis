@@ -476,8 +476,8 @@ class SyncOEpyPhotometrySession:
     
     def pynappleAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,Low_thres=1,High_thres=10,plot_ripple_ep=True):
         'This is the LFP data that need to be saved for the sync ananlysis'
-        data_segment=self.Ephys_tracking_spad_aligned
-        #data_segment=self.non_theta_part
+        #data_segment=self.Ephys_tracking_spad_aligned
+        data_segment=self.non_theta_part
         timestamps=data_segment['timestamps'].copy()
         timestamps=timestamps.to_numpy()
         timestamps=timestamps-timestamps[0]
