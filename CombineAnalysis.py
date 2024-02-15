@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Jul 27 22:30:19 2023
+This is the main file to perform a comparison analysis between LFP and optical signal.
+This code will create a Class for the recording session you want to analyse.
 @author: Yifang
 """
 import os

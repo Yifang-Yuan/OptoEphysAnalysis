@@ -2,7 +2,8 @@
 """
 Created on Thu Jul 27 12:03:35 2023
 This is the Class that used to form a synchronised dataset including LFP channel signals, 
-SPAD recorded optical signal as zscore, and animal position.
+pyPhotometry recorded optical signal as zscore, and animal position.
+
 @author: Yifang
 """
 import os
@@ -18,8 +19,8 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import pynapple as nap
 import pynacollada as pyna
 
-class SyncOESPADSession:
-    def __init__(self, dpath,IsTracking,read_aligned_data_from_file):
+class SyncOEpyPhotometrySession:
+    def __init__(self, dpath,duration=100,IsTracking=False,read_aligned_data_from_file=False):
         '''
         Parameters
         ----------
@@ -28,12 +29,13 @@ class SyncOESPADSession:
         EphysData : TYPE:pandas, readout from open-ephys recording, with SPAD mask
 
         '''
-        self.Spad_fs = 9938.4
+        self.pyPhotometry_fs = 130
         self.ephys_fs = 30000
         self.tracking_fs = 15
         self.fs = 10000.0
         self.dpath=dpath
         self.IsTracking=IsTracking
+        self.duration=duration
 
         self.Ephys_data=self.read_open_ephys_data() #read ephys data that we pre-processed from dpath
         if IsTracking:
@@ -42,7 +44,7 @@ class SyncOESPADSession:
         
         # #self.Format_tracking_data_index () ## this is to change the index to timedelta index, for resampling
         if (read_aligned_data_from_file):
-            filepath=os.path.join(self.dpath, "Ephys_tracking_spad_aligned.pkl")
+            filepath=os.path.join(self.dpath, "Ephys_tracking_photometry_aligned.pkl")
             self.Ephys_tracking_spad_aligned = pd.read_pickle(filepath)
         else:
             self.Sync_ephys_with_spad() #output self.spad_align, self.ephys_align
@@ -51,15 +53,35 @@ class SyncOESPADSession:
         if self.IsTracking:
            self.Ephys_data = pd.concat([self.Ephys_data, self.trackingdata_extent], axis=1)
            
-        self.form_ephys_spad_sync_data() # find the spad sync part
+        self.form_ephys_sync_data() # find the spad sync part
         self.Format_ephys_data_index () # this is to change the index to timedelta index, for resampling
-        self.SPADdata=self.Read_SPAD_data() #read spad data
-        self.resample_spad()
+        self.PhotometryData=self.Read_photometry_data() #read spad data
+        self.photometry_sync_data=self.form_photometry_sync_data ()
+        self.resample_photometry()
         self.resample_ephys()
         self.slice_ephys_to_align_with_spad()
-        self.Ephys_tracking_spad_aligned=pd.concat([self.ephys_align, self.spad_align], axis=1)  
-        self.save_data(self.Ephys_tracking_spad_aligned, 'Ephys_tracking_spad_aligned.pkl')
+        self.Ephys_tracking_spad_aligned=pd.concat([self.ephys_align, self.photometry_align], axis=1)  
+        self.save_data(self.Ephys_tracking_spad_aligned, 'Ephys_tracking_photometry_aligned.pkl')
         return self.Ephys_tracking_spad_aligned
+    
+    def read_open_ephys_data (self):
+        filepath=os.path.join(self.dpath, "open_ephys_read_pd.pkl")
+        self.Ephys_data = pd.read_pickle(filepath)  
+        return self.Ephys_data
+    
+    def form_ephys_sync_data (self):
+        mask = self.Ephys_data['py_mask'] 
+        self.Ehpys_sync_data=self.Ephys_data[mask]
+        OE.plot_two_raw_traces (mask,self.Ehpys_sync_data['LFP_2'], spad_label='Cam_mask',lfp_label='LFP_raw_within_mask') 
+        return self.Ehpys_sync_data         
+
+    def Format_ephys_data_index (self):
+        time_interval = 1.0 / self.ephys_fs
+        total_duration = len(self.Ehpys_sync_data) * time_interval
+        timestamps = np.arange(0, total_duration, time_interval)
+        timedeltas_index = pd.to_timedelta(timestamps, unit='s')            
+        self.Ehpys_sync_data.index = timedeltas_index
+        return self.Ehpys_sync_data
         
     def remove_noise(self,start_time,end_time):
         time_interval = 1 / self.fs  # Time interval in seconds
@@ -80,7 +102,7 @@ class SyncOESPADSession:
         self.save_data(self.Ephys_tracking_spad_aligned, 'Ephys_tracking_spad_aligned.pkl')
         return self.Ephys_tracking_spad_aligned
     
-    def Read_SPAD_data (self):
+    def Read_photometry_data (self):
         '''
         SPAD has sampling rate of 9938.4 Hz.
         But if we use 500Hz time division photometry recording, the effective sampling rate for sig_raw and ref_raw is 500Hz.
@@ -89,54 +111,64 @@ class SyncOESPADSession:
         self.sig_csv_filename=os.path.join(self.dpath, "Green_traceAll.csv")
         self.ref_csv_filename=os.path.join(self.dpath, "Red_traceAll.csv")
         self.zscore_csv_filename=os.path.join(self.dpath, "Zscore_traceAll.csv")
+        self.CamSync_photometry_filename=os.path.join(self.dpath, "CamSync_photometry.csv")
         sig_data = np.genfromtxt(self.sig_csv_filename, delimiter=',')
         ref_data = np.genfromtxt(self.ref_csv_filename, delimiter=',')
         zscore_data = np.genfromtxt(self.zscore_csv_filename, delimiter=',')
-        time_interval = 1.0 / self.Spad_fs
-        total_duration = len(sig_data) * time_interval
-        timestamps = np.arange(0, total_duration, time_interval)
-        timestamps_time = pd.to_timedelta(timestamps, unit='s')
-        sig_raw = pd.Series(sig_data, index=timestamps_time)
-        ref_raw = pd.Series(ref_data, index=timestamps_time)
-        zscore_raw = pd.Series(zscore_data, index=timestamps_time)
+        CamSync_photometry_data=np.genfromtxt(self.CamSync_photometry_filename, delimiter=',')
+        # time_interval = 1.0 / self.pyPhotometry_fs
+        # total_duration = len(sig_data) * time_interval
+        # timestamps = np.arange(0, total_duration, time_interval)
+        # timestamps_time = pd.to_timedelta(timestamps, unit='s')
+        sig_raw = pd.Series(sig_data)
+        ref_raw = pd.Series(ref_data)
+        zscore_raw = pd.Series(zscore_data)
+        CamSync_photometry=pd.Series(CamSync_photometry_data)
         'Zscore data is obtained by Kate Martian method, smoothed to 250Hz effective sampling rate'
-        self.SPADdata = pd.DataFrame({
+        self.PhotometryData = pd.DataFrame({
             'sig_raw': sig_raw,
             'ref_raw': ref_raw,
             'zscore_raw': zscore_raw,
+            'Cam_Sync':CamSync_photometry
         })
-        return self.SPADdata
+        return self.PhotometryData
     
-    def read_open_ephys_data (self):
-        filepath=os.path.join(self.dpath, "open_ephys_read_pd.pkl")
-        self.Ephys_data = pd.read_pickle(filepath)  
-        return self.Ephys_data
-    
-    def form_ephys_spad_sync_data (self):
-        mask = self.Ephys_data['SPAD_mask'] 
-        self.Ehpys_sync_data=self.Ephys_data[mask]
-        OE.plot_two_raw_traces (mask,self.Ehpys_sync_data['LFP_2'], spad_label='spad_mask',lfp_label='LFP_raw') 
-        return self.Ehpys_sync_data   
-       
-
-    def Format_ephys_data_index (self):
-        time_interval = 1.0 / self.ephys_fs
-        total_duration = len(self.Ehpys_sync_data) * time_interval
+    def form_photometry_sync_data (self):
+        CamSync=self.PhotometryData['Cam_Sync']
+        py_mask=np.zeros(len(CamSync),dtype=np.int)
+        indices = np.where(CamSync > 0.5)[0]
+        end_index=indices[0]+self.duration*self.pyPhotometry_fs
+        if len(indices) > 0:
+            py_mask[indices[0]:] = 1
+            
+        py_mask[end_index:] = 0 
+        fig, ax = plt.subplots(figsize=(15,5))
+        ax.plot(py_mask)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        OE.plot_trace_in_seconds(py_mask,self.pyPhotometry_fs)
+        mask_array_bool = np.array(py_mask, dtype=bool)
+        self.PhotometryData['mask']=mask_array_bool
+        self.photometry_sync_data=self.PhotometryData[mask_array_bool]
+        
+        time_interval = 1.0 / self.pyPhotometry_fs
+        total_duration = len(self.photometry_sync_data) * time_interval
         timestamps = np.arange(0, total_duration, time_interval)
-        timedeltas_index = pd.to_timedelta(timestamps, unit='s')            
-        self.Ehpys_sync_data.index = timedeltas_index
-        return self.Ehpys_sync_data
+        timestamps_time = pd.to_timedelta(timestamps, unit='s')
+        self.photometry_sync_data.index = timestamps_time
+        OE.plot_two_raw_traces (self.PhotometryData['mask'],self.photometry_sync_data['zscore_raw'], spad_label='Cam_mask',lfp_label='zScore_raw_within_mask') 
+        return self.photometry_sync_data
     
-    def resample_spad (self):
+    def resample_photometry (self):
         time_interval_common = 1.0 / self.fs
-        self.spad_resampled = self.SPADdata.resample(f'{time_interval_common:.9f}S').mean()
-        self.spad_resampled = self.spad_resampled.fillna(method='ffill')
-        return self.spad_resampled
+        self.py_resampled = self.photometry_sync_data.resample(f'{time_interval_common:.9f}S').mean()
+        self.py_resampled = self.py_resampled.fillna(method='bfill')
+        return self.py_resampled
     
     def resample_ephys (self):
         time_interval_common = 1.0 / self.fs
         self.ephys_resampled = self.Ehpys_sync_data.resample(f'{time_interval_common:.9f}S').mean()
-        self.ephys_resampled = self.ephys_resampled.fillna(method='ffill')
+        self.ephys_resampled = self.ephys_resampled.interpolate()
         return self.ephys_resampled                     
     
     def slice_ephys_to_align_with_spad (self):
@@ -144,10 +176,10 @@ class SyncOESPADSession:
         This is important because sometimes the effective SPAD recording is shorter than the real recording time due to deadtime. 
         E.g, I recorded 10 blocks 10s data, should be about 100s recording, but in most cases, there's no data in the last block.
         '''
-        self.ephys_align = self.ephys_resampled[:len(self.spad_resampled)]
-        self.spad_align=self.spad_resampled
+        self.ephys_align = self.ephys_resampled[:len(self.py_resampled)]
+        self.photometry_align=self.py_resampled
         # Create the plot 
-        return self.spad_align, self.ephys_align
+        return self.photometry_align, self.ephys_align
     
     def read_tracking_data (self, correctTrackingFrameRate=True):
         keyword='AnimalTracking'
@@ -271,7 +303,7 @@ class SyncOESPADSession:
         #plt.show()
         return -1
     
-    def plot_two_traces_noSpeed (self, spad_data,lfp_data, spad_label='spad',lfp_label='LFP',Spectro_ylim=20,AddColorbar=False):
+    def plot_two_traces_noSpeed (self, spad_data,lfp_data, spad_label='photometry',lfp_label='LFP',Spectro_ylim=20,AddColorbar=False):
         '''This will plot both SPAD and LFP signal with their wavelet spectrum'''
         lfp_data=lfp_data/1000
         
@@ -463,7 +495,8 @@ class SyncOESPADSession:
             speed=nap.Tsd(t = timestamps, d = data_segment['speed_abs'].to_numpy(), time_units = 's')
         
         'To detect ripple'
-        ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd = OE.getRippleEvents (LFP,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)    
+        ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd = OE.getRippleEvents (LFP,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
+        SPAD_ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd = OE.getRippleEvents (SPAD,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
         'To plot the choosen segment'
         ex_ep = nap.IntervalSet(start = ep_start, end = ep_end, time_units = 's') 
         fig, ax = plt.subplots(6, 1, figsize=(10, 12))
@@ -526,11 +559,13 @@ class SyncOESPADSession:
                     LFP_ep=LFP.restrict(rip_long_ep)
                     SPAD_ep=SPAD.restrict(rip_long_ep)
                     ripple_band_filtered_ep=ripple_band_filtered.restrict(rip_long_ep)
+                    SPAD_ripple_band_filtered_ep=SPAD_ripple_band_filtered.restrict(rip_long_ep)
                     sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_ep,lowpassCutoff=1500,Fs=self.fs,scale=40)                
                     time = np.arange(-len(sst_ep)/2,len(sst_ep)/2) *(1/self.fs)
                     #Set the title of ripple feature
                     plot_title = f"Ripple Peak std:{ripple_std:.2f}, Ripple Duration:{ripple_duration:.2f} ms" 
-                    OE.plot_ripple_overlay (ax[2],LFP_ep,SPAD_ep,frequency,power,time,ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=True)
+                    OE.plot_ripple_overlay (ax[2],ripple_band_filtered_ep,SPAD_ep,frequency,power,time,SPAD_ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=True)
+                    #OE.plot_ripple_overlay (ax[2],LFP_ep,SPAD_ep,frequency,power,time,SPAD_ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=True)
                 ax[0].axvline(0, color='white',linewidth=2)
                 ax[1].axvline(0, color='white',linewidth=2)
                 ax[2].axvline(0, color='white',linewidth=2) 
