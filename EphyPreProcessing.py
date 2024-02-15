@@ -16,13 +16,17 @@ This part is for finding the SPAD recording mask, camera recording masks, and to
 The final output should be a pandas format EphysData with data recorded by open ephys, a SPAD_mask,and a synchronised behavior state data. 
 '''
 #%%
-directory = "G:/SPAD/SPADData/20231123_GCamp8fOECSync/2023-11-23_16-59-54/" #Indeed noisy
+'''Set the folder for the Open Ephys recording, defualt folder names are usually date and time'''
+directory = "G:/SPAD/SPADData/20231123_GCamp8fOECSync/2023-11-23_16-59-54/" 
+'''Set the folder your session data, this folder is used to save decoded LFP data, it should include optical signal data and animal tracking data as .csv;
+this folder is now manually created, but I want to make it automatic'''
 dpath="G:/SPAD/SPADData/20231123_GCamp8fOECSync/20231123G8f_SyncRecording2/"
 
-Ephys_fs=30000
-'''recordingNum is the index of recording from the OE recording'''
+Ephys_fs=30000 #Ephys sampling rate
+'''recordingNum is the index of recording from the OE recording, start from 0'''
 EphysData=OE.readEphysChannel (directory, recordingNum=0)
-#%%
+'EphysData is the LFP data that need to be saved for the sync ananlysis'
+#%% FOR SPAD SYNC RECORDINGS
 '''This is to check the SPAD mask range and to make sure SPAD sync is correctly recorded by the Open Ephys'''
 fig, ax = plt.subplots(figsize=(15,5))
 ax.plot(EphysData['SPADSync'])
@@ -34,13 +38,14 @@ Change the start_lim and end_lim to generate the SPAD mask.
 '''
 SPAD_mask = OE.SPAD_sync_mask (EphysData['SPADSync'], start_lim=1150000, end_lim=4500000)
 #%%
+'''To double check the SPAD mask'''
 fig, ax = plt.subplots(figsize=(15,5))
 ax.plot(SPAD_mask)
 ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
-#%%
+'''To double check the SPAD mask'''
 OE.check_SPAD_mask_length(SPAD_mask)
-#%% Save spad mask
+#%% If the SPAD mask is correct, save spad mask
 EphysData['SPAD_mask'] = SPAD_mask
 #%%
 '''Check the Cam sync is correct and the threshold for deciding the Cam mask is 29000.
@@ -48,10 +53,14 @@ If not, add a number to EphysData['CamSync']
 '''
 #EphysData['CamSync']=EphysData['CamSync'].add(42000)
 OE.plot_trace_in_seconds(EphysData['CamSync'],Ephys_fs)
-#%%
+#%% SAVE THE open ephys data as .pkl file.
 OE.save_open_ephys_data (dpath,EphysData)
 
 #%%
+'''YOU DON'T NEED TO RUN ANYTHING FROM HERE,
+but these are simple visualisation and analysis for the LFP we just decoded and saved above,
+they are already integrated in functions. Running this part helps you get an idea what LFP looks like'''
+
 'This is the LFP data that need to be saved for the sync ananlysis'
 LFP_data=EphysData['LFP_2']
 timestamps=EphysData['timestamps'].copy()
@@ -95,7 +104,9 @@ plt.show()
 fig, ax = plt.subplots(4, 1, figsize=(15, 8))
 OE.plotRippleSpectrogram (ax, LFP, ripple_band_filtered, rip_ep, rip_tsd, ex_ep, nSS, nSS3, Low_thres, y_lim=30, Fs=Ephys_fs)
 
+
 #%%
+'''Wavelet spectrum ananlysis'''
 import matplotlib.pylab as plt
 import matplotlib.ticker as ticker
 from matplotlib.gridspec import GridSpec
