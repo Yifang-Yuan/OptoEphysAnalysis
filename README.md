@@ -27,7 +27,7 @@ Before conducting analysis in this package, optical recordings should already be
 I've put codes for processing both pyPhotometry and SPAD in this repository:
 https://github.com/Yifang-Yuan/OptoEphysAnalysis/tree/main/SPADPhotometryAnalysis
 
-With zscore signal data saved as a .csv file, and saved in the same folder as ephys results, you'll be able to proceed this analysis.
+With optical signal saved as a .csv file in the same folder as ephys results, you'll be able to proceed with the `CombineAnalysis.py`.
 
 ### Analysing behviour data
 Behaviour data should also be analysed saved as .csv files with animals' coordinates in each camera frame.
@@ -36,10 +36,10 @@ Bonsai tracking and DeepLabCut can both be used to provide animal's coordinates.
 
 
 ## Run order
-`EphyPreProcessing.py`---use this file to call 'OpenEphysTools.py' to analysis Open Ephys data, adjust SPAD sync and save pickle file for each recording session.
+`EphyPreProcessing.py`---use this file to call 'OpenEphysTools.py' to analysis Open Ephys data, using sync line to generate SPAD_mask and py_mask, save pickle file for each recording session.
 
-`CombineAnalysis.py`---to create a class (call SyncOESPADSessionClass.py) and analyse a session of data.  
+`CombineAnalysis.py`---to create a class (`SyncOESPADSessionClass.py` or `SyncOECPySessionClass.py`) and analyse a session of data.  
 
-`SyncOESPADSessionClass.py`--- a class with synchronised LFP,SPAD,cam data, no need to run, but it might need to be modified to achieve new functions and analysis. 
+`SyncOESPADSessionClass.py``SyncOECPySessionClass.py`--- Class with synchronised LFP,SPAD,cam data, no need to run, but it might need to be modified to achieve new functions and analysis. 
 
 `OpenEphysTools.py`---including functions to decode the Open Ephys binary data, analysis LFP data and ripple detection, no need to run and change, unless you want to change the Open Ephys channels, band-pass filters for pre-processing, Sync pulse channels or other output signal channels. 
