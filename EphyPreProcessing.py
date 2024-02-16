@@ -18,18 +18,20 @@ The final output should be a pandas format EphysData with data recorded by open 
 #%%
 '''Set the folder for the Open Ephys recording, defualt folder names are usually date and time'''
 
-directory = "C:/SPAD/SPADData/20240214_Day3/OpenEphys/2024-02-14_14-23-29" 
+directory = "E:/YYFstudy/20240214_Day3/OpenEphys/2024-02-14_14-23-29" 
 
 '''Set the folder your session data, this folder is used to save decoded LFP data, it should include optical signal data and animal tracking data as .csv;
 this folder is now manually created, but I want to make it automatic'''
 
-dpath="C:/SPAD/SPADData/20240214_Day3/SyncRecording10/"
+dpath="E:/YYFstudy/20240214_Day3/SyncRecording10/"
 
 Ephys_fs=30000 #Ephys sampling rate
 '''recordingNum is the index of recording from the OE recording, start from 0'''
-EphysData=OE.readEphysChannel (directory, recordingNum=9)
 'EphysData is the LFP data that need to be saved for the sync ananlysis'
-# #%% FOR SPAD SYNC RECORDINGS
+EphysData=OE.readEphysChannel (directory, recordingNum=9)
+
+#%% 
+'''FOR SPAD SYNC RECORDINGS'''
 # '''This is to check the SPAD mask range and to make sure SPAD sync is correctly recorded by the Open Ephys'''
 # fig, ax = plt.subplots(figsize=(15,5))
 # ax.plot(EphysData['SPADSync'])
@@ -51,23 +53,28 @@ EphysData=OE.readEphysChannel (directory, recordingNum=9)
 # #%% If the SPAD mask is correct, save spad mask
 # EphysData['SPAD_mask'] = SPAD_mask
 #%%
-'''Check the Cam sync is correct and the threshold for deciding the Cam mask is 29000.
+'''
+Check the Cam sync is correct and the threshold for deciding the Cam mask is 29000.
 If not, add a number to EphysData['CamSync'] 
 '''
 #EphysData['CamSync']=EphysData['CamSync'].add(42000)
 OE.plot_trace_in_seconds(EphysData['CamSync'],Ephys_fs)
 #%% FOR pyPhotometry SYNC RECORDINGS
-'''This is to check the SPAD mask range and to make sure SPAD sync is correctly recorded by the Open Ephys'''
+'''This is to plot a segment of the Cam-Sync, which is the same as the py_photometry sync pulse'''
 fig, ax = plt.subplots(figsize=(15,5))
-ax.plot(EphysData['CamSync'][0:150000])
+ax.plot(EphysData['CamSync'][0:9000000]) # Change the number here to view a segment.
 ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
 #%%
-'''Start time lim and end time lim are usually no needed to be changed for py_mask.
+'''Start_lim and end_lim is to set a range to the mask, this is an option when the sync pulse goes wrong. 
+The function will set before-start_lim and after-end_lim to 0.
+For pyPhotometry this setting should be fine: start_lim=0, end_lim >> your pulse ends frame.
 '''
 py_mask = OE.py_sync_mask (EphysData['CamSync'], start_lim=0, end_lim=9000000)
 #%%
-'''To double check the SPAD mask'''
+'''To double check the sync mask: e.g. eyeball if the mask is with the same length as the Sync_pulse.
+It will also print the time duration of the mask in the command box'''
+
 fig, ax = plt.subplots(figsize=(15,5))
 ax.plot(py_mask)
 ax.spines['top'].set_visible(False)
@@ -76,8 +83,12 @@ ax.spines['right'].set_visible(False)
 OE.check_SPAD_mask_length(py_mask)
 #%% If the py mask is correct, save spad mask
 EphysData['py_mask']=py_mask
-#%% SAVE THE open ephys data as .pkl file.
+'SAVE THE open ephys data as .pkl file.'
 OE.save_open_ephys_data (dpath,EphysData)
+
+
+
+
 
 #%%
 '''YOU DON'T NEED TO RUN ANYTHING FROM HERE,
@@ -126,8 +137,6 @@ plt.show()
 #%%
 fig, ax = plt.subplots(4, 1, figsize=(15, 8))
 OE.plotRippleSpectrogram (ax, LFP, ripple_band_filtered, rip_ep, rip_tsd, ex_ep, nSS, nSS3, Low_thres, y_lim=30, Fs=Ephys_fs)
-
-
 #%%
 '''Wavelet spectrum ananlysis'''
 import matplotlib.pylab as plt
