@@ -1,6 +1,8 @@
 **Trouble 1**
 
-`BinaryRecording.py` in this package, https://github.com/open-ephys/open-ephys-python-tools
+Replace `BinaryRecording.py` in this package, https://github.com/open-ephys/open-ephys-python-tools.
+
+Another option is to replace the following function in the orginal package.
 
 It uses `enumerate` to read recording* folders, which is in an order of : 1,10,2,3,...
 
