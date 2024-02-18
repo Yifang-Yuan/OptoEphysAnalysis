@@ -287,27 +287,27 @@ class BinaryRecording(Recording):
             return False
     
     @staticmethod
-    def detect_recordings(directory):
+    # def detect_recordings(directory):
         
-        recordings = []
-        experiment_directories = glob.glob(os.path.join(directory, 'experiment*'))
-        experiment_directories.sort()
+    #     recordings = []
+    #     experiment_directories = glob.glob(os.path.join(directory, 'experiment*'))
+    #     experiment_directories.sort()
 
-        for experiment_index, experiment_directory in enumerate(experiment_directories):
+    #     for experiment_index, experiment_directory in enumerate(experiment_directories):
              
-            recording_directories = glob.glob(os.path.join(experiment_directory, 'recording*'))
-            recording_directories.sort()
-            print (experiment_index,'---')
+    #         recording_directories = glob.glob(os.path.join(experiment_directory, 'recording*'))
+    #         recording_directories.sort()
+    #         print (experiment_index,'---')
             
-            for recording_index, recording_directory in enumerate(recording_directories):
+    #         for recording_index, recording_directory in enumerate(recording_directories):
             
-                recordings.append(BinaryRecording(recording_directory, 
-                                                        experiment_index,
-                                                        recording_index))
-                print (recording_index)
-                print (recording_directory)
+    #             recordings.append(BinaryRecording(recording_directory, 
+    #                                                     experiment_index,
+    #                                                     recording_index))
+    #             print (recording_index)
+    #             print (recording_directory)
                 
-        return recordings
+    #     return recordings
     
     def detect_recordings(directory):
         recordings = []
