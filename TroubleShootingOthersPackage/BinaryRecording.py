@@ -326,7 +326,7 @@ class BinaryRecording(Recording):
         experiment_directories.sort(key=numeric_sort_key_exp)  # Sort experiment directories numerically
         
         for experiment_index, experiment_directory in enumerate(experiment_directories):
-            print(experiment_index, '---')
+            print('reading experimenet ---',experiment_index) # Debuglog
             
         # Custom sorting key function for recording directories
             def numeric_sort_key_recording(recording_directory):
@@ -344,8 +344,8 @@ class BinaryRecording(Recording):
             recording_directories.sort(key=numeric_sort_key_recording)  # Sort recording directories numerically
             for recording_index, recording_directory in enumerate(recording_directories):
                 recordings.append(BinaryRecording(recording_directory, experiment_index, recording_index))
-                print(recording_index)
-                print(recording_directory)
+                print(recording_index)  # Debuglog
+                print(recording_directory) # Debuglog
                 
         return recordings
 
