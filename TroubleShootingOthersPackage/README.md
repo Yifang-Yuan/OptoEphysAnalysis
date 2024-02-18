@@ -1,4 +1,4 @@
-**Trouble 1**
+**Trouble 1. Recording folders are read in alphabetical order: 1, 10, 11, 2,3...if you have more than 10 recordings**
 
 Replace `BinaryRecording.py` in this package, https://github.com/open-ephys/open-ephys-python-tools.
 
