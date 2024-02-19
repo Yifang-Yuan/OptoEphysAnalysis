@@ -12,11 +12,11 @@ import pandas as pd
 from SyncOECPySessionClass import SyncOEpyPhotometrySession
 import OpenEphysTools as OE
 #%%
-dpath="E:/YYFstudy/20240214_Day3/SyncRecording10/"
+dpath="E:/YYFstudy/20240214_Day3/SyncRecording9/"
 #dpath="G:/SPAD/SPADData/20230722_SPADOE/SyncRecording0/"
 Recording1=SyncOEpyPhotometrySession(dpath,IsTracking=False,read_aligned_data_from_file=False) 
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-LFP_channel='LFP_1'
+LFP_channel='LFP_2'
 #%%
 '''To remove noises from the LFP data and cut Matrix to only preserve clean parts'''
 # # Recording1.remove_noise(start_time=58,end_time=62)
@@ -27,11 +27,14 @@ LFP_channel='LFP_1'
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined as theta period.
 nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-theta_part,non_theta_part=Recording1.separate_theta (LFP_channel,theta_thres=80,nonthetha_thres=50)
+#theta_part,non_theta_part=Recording1.separate_theta (LFP_channel,theta_thres=70,nonthetha_thres=50)
 #%%
+silced_recording=Recording1.slicing_pd_data (Recording1.Ephys_tracking_spad_aligned,start_time=0, end_time=176)
+#%%
+
 '''To plot the feature of a part of the signal'''
-start_time=30
-end_time=40
+start_time=0
+end_time=176
 Recording1.plot_segment_feature (LFP_channel,start_time,end_time,SPAD_cutoff=50,lfp_cutoff=500)
 'To plot the feature of theta-part of the signal'
 #Recording1.plot_theta_feature (LFP_channel,start_time,end_time,LFP=True)
@@ -57,8 +60,8 @@ for i in range(viewNum):
 #%%
 '''sliced_recording:choose a segment or a part of your recording, this can be defined with start and end time,
 or just by theta_part, non_theta_part'''
-#silced_recording=Recording1.slicing_pd_data (Recording1.Ephys_tracking_spad_aligned,start_time=0, end_time=3)
-silced_recording=theta_part
+silced_recording=Recording1.slicing_pd_data (Recording1.Ephys_tracking_spad_aligned,start_time=0, end_time=176)
+#silced_recording=theta_part
 '''Calculate the cross correlation between two power spectrun over time at a specific frequency'''
 sst_spad,frequency_spad,power_spad,global_ws_spad=OE.Calculate_wavelet(silced_recording['zscore_raw'],lowpassCutoff=500,Fs=10000)
 sst_lfp,frequency_lfp,power_lfp,global_ws_lfp=OE.Calculate_wavelet(silced_recording[LFP_channel],lowpassCutoff=500,Fs=10000)

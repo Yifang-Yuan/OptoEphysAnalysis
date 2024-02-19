@@ -10,11 +10,11 @@ https://github.com/katemartian/Photometry_data_processing
 """
 import numpy as np
 import matplotlib.pyplot as plt
-import photometry_functions as fp
+from SPADPhotometryAnalysis import photometry_functions as fp
 import os
 # Folder with your files
-#folder = 'C:/SPAD/pyPhotometry_v0.3.1/data/' # Modify it depending on where your file is located
-folder ='C:/SPAD/SPADData/20240214_Day3/SyncRecording10/'
+# Modify it depending on where your file is located
+folder ="E:/YYFstudy/20240214_Day3/SyncRecording10/"
 # File name
 file_name = '1732333-2024-02-14-154153.csv'
 sampling_rate=130
@@ -97,7 +97,6 @@ n = len(z_reference)
 '''Need to change to numpy if previous smooth window is 1'''
 # z_signal=z_signal.to_numpy()
 # z_reference=z_reference.to_numpy()
-''
 lin.fit(z_reference.reshape(n,1), z_signal.reshape(n,1))
 
 z_reference_fitted = lin.predict(z_reference.reshape(n,1)).reshape(n,)

@@ -31,11 +31,10 @@ class SyncOEpyPhotometrySession:
         '''
         self.pyPhotometry_fs = 130
         self.ephys_fs = 30000
-        self.tracking_fs = 15
+        self.tracking_fs = 10
         self.fs = 10000.0
         self.dpath=dpath
         self.IsTracking=IsTracking
-        self.duration=duration
 
         self.Ephys_data=self.read_open_ephys_data() #read ephys data that we pre-processed from dpath
         if IsTracking:
@@ -59,7 +58,7 @@ class SyncOEpyPhotometrySession:
         self.photometry_sync_data=self.form_photometry_sync_data ()
         self.resample_photometry()
         self.resample_ephys()
-        self.slice_ephys_to_align_with_spad()
+        self.slice_to_align_with_min_len()
         self.Ephys_tracking_spad_aligned=pd.concat([self.ephys_align, self.photometry_align], axis=1)  
         self.save_data(self.Ephys_tracking_spad_aligned, 'Ephys_tracking_photometry_aligned.pkl')
         return self.Ephys_tracking_spad_aligned
@@ -72,7 +71,10 @@ class SyncOEpyPhotometrySession:
     def form_ephys_sync_data (self):
         mask = self.Ephys_data['py_mask'] 
         self.Ehpys_sync_data=self.Ephys_data[mask]
-        OE.plot_two_raw_traces (mask,self.Ehpys_sync_data['LFP_2'], spad_label='Cam_mask',lfp_label='LFP_raw_within_mask') 
+        OE.plot_two_traces_in_seconds (mask,self.ephys_fs,self.Ephys_data['LFP_1'],self.ephys_fs,
+                                       label1='Cam_mask',label2='LFP_raw_data') 
+        print ('Ephys data length', len(self.Ephys_data)/self.ephys_fs)
+        print ('Ephys synced part data length', len(self.Ehpys_sync_data)/self.ephys_fs)
         return self.Ehpys_sync_data         
 
     def Format_ephys_data_index (self):
@@ -104,9 +106,7 @@ class SyncOEpyPhotometrySession:
     
     def Read_photometry_data (self):
         '''
-        SPAD has sampling rate of 9938.4 Hz.
-        But if we use 500Hz time division photometry recording, the effective sampling rate for sig_raw and ref_raw is 500Hz.
-        In the pre-processing for SPAD data, I usually smooth it to 200Hz to obtain the z-score.
+        pyPhotometry has sampling rate of 130 Hz.
         '''
         self.sig_csv_filename=os.path.join(self.dpath, "Green_traceAll.csv")
         self.ref_csv_filename=os.path.join(self.dpath, "Red_traceAll.csv")
@@ -116,10 +116,6 @@ class SyncOEpyPhotometrySession:
         ref_data = np.genfromtxt(self.ref_csv_filename, delimiter=',')
         zscore_data = np.genfromtxt(self.zscore_csv_filename, delimiter=',')
         CamSync_photometry_data=np.genfromtxt(self.CamSync_photometry_filename, delimiter=',')
-        # time_interval = 1.0 / self.pyPhotometry_fs
-        # total_duration = len(sig_data) * time_interval
-        # timestamps = np.arange(0, total_duration, time_interval)
-        # timestamps_time = pd.to_timedelta(timestamps, unit='s')
         sig_raw = pd.Series(sig_data)
         ref_raw = pd.Series(ref_data)
         zscore_raw = pd.Series(zscore_data)
@@ -131,23 +127,34 @@ class SyncOEpyPhotometrySession:
             'zscore_raw': zscore_raw,
             'Cam_Sync':CamSync_photometry
         })
+
         return self.PhotometryData
     
     def form_photometry_sync_data (self):
         CamSync=self.PhotometryData['Cam_Sync']
         py_mask=np.zeros(len(CamSync),dtype=np.int)
-        indices = np.where(CamSync > 0.5)[0]
-        end_index=indices[0]+self.duration*self.pyPhotometry_fs
-        if len(indices) > 0:
-            py_mask[indices[0]:] = 1
-            
-        py_mask[end_index:] = 0 
-        fig, ax = plt.subplots(figsize=(15,5))
-        ax.plot(py_mask)
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        OE.plot_trace_in_seconds(py_mask,self.pyPhotometry_fs)
-        mask_array_bool = np.array(py_mask, dtype=bool)
+        #indices = np.where(CamSync > 0.5)[0]
+        py_mask[np.where(CamSync >0.5)[0]]=1
+        for i in range(len(py_mask) - 1):
+            # Check for rising edge (transition from low to high)
+            if py_mask[i] == 0 and py_mask[i + 1] == 1:
+                rising_edge_index = i
+                break  # Exit loop once the first rising edge is found
+
+        # Iterate through the data array in reverse to find the falling edge
+        for i in range(len(py_mask) - 1, 0, -1):
+            # Check for falling edge (transition from high to low)
+            if py_mask[i] == 1 and py_mask[i - 1] == 0:
+                falling_edge_index = i
+                break  # Exit loop once the last falling edge is found
+        py_mask_final=np.zeros(len(CamSync),dtype=np.int)        
+        py_mask_final[rising_edge_index:falling_edge_index]=1
+        # fig, ax = plt.subplots(figsize=(15,5))
+        # ax.plot(py_mask)
+        # ax.spines['top'].set_visible(False)
+        # ax.spines['right'].set_visible(False)
+        # OE.plot_trace_in_seconds(py_mask,self.pyPhotometry_fs)
+        mask_array_bool = np.array(py_mask_final, dtype=bool)
         self.PhotometryData['mask']=mask_array_bool
         self.photometry_sync_data=self.PhotometryData[mask_array_bool]
         
@@ -156,7 +163,17 @@ class SyncOEpyPhotometrySession:
         timestamps = np.arange(0, total_duration, time_interval)
         timestamps_time = pd.to_timedelta(timestamps, unit='s')
         self.photometry_sync_data.index = timestamps_time
-        OE.plot_two_raw_traces (self.PhotometryData['mask'],self.photometry_sync_data['zscore_raw'], spad_label='Cam_mask',lfp_label='zScore_raw_within_mask') 
+        #OE.plot_two_raw_traces (self.PhotometryData['mask'],self.photometry_sync_data['zscore_raw'], spad_label='Cam_mask',lfp_label='zScore_raw_within_mask')
+        OE.plot_two_traces_in_seconds (self.PhotometryData['mask'],self.pyPhotometry_fs,
+                                       self.PhotometryData['zscore_raw'],self.pyPhotometry_fs,
+                                       label1='Cam_mask',label2='zScore_raw_within_mask') 
+        
+        print ('pyPhotometry data length', len(self.PhotometryData)/self.pyPhotometry_fs)
+        print ('pyPhotometry synced part data length', len(self.photometry_sync_data)/self.pyPhotometry_fs)
+        absolute_difference = abs(len(self.photometry_sync_data)/self.pyPhotometry_fs - len(self.Ehpys_sync_data)/self.ephys_fs)
+        if absolute_difference>0.05:
+            print ('NOTE!!! Synchronised mask matched wrong! Detected a difference of the sync mask durations larger than 50ms.\
+                   Please make sure pyPhotometry data and ephys data are from the same trial.')
         return self.photometry_sync_data
     
     def resample_photometry (self):
@@ -171,13 +188,17 @@ class SyncOEpyPhotometrySession:
         self.ephys_resampled = self.ephys_resampled.interpolate()
         return self.ephys_resampled                     
     
-    def slice_ephys_to_align_with_spad (self):
+    def slice_to_align_with_min_len (self):
         '''
-        This is important because sometimes the effective SPAD recording is shorter than the real recording time due to deadtime. 
-        E.g, I recorded 10 blocks 10s data, should be about 100s recording, but in most cases, there's no data in the last block.
+        This is important with different sampling rate, the calculated durations might have a ~10ms difference.
+                
         '''
-        self.ephys_align = self.ephys_resampled[:len(self.py_resampled)]
-        self.photometry_align=self.py_resampled
+        if len(self.py_resampled)<len(self.ephys_resampled):
+            self.ephys_align = self.ephys_resampled[:len(self.py_resampled)]
+            self.photometry_align=self.py_resampled
+        else:
+            self.photometry_align = self.py_resampled[:len(self.ephys_resampled)]
+            self.ephys_align=self.ephys_resampled
         # Create the plot 
         return self.photometry_align, self.ephys_align
     
@@ -207,13 +228,6 @@ class SyncOEpyPhotometrySession:
             print ('No available Tracking data in the folder!')
         return self.trackingdata
     
-    # def Format_tracking_data_index (self):
-    #     time_interval = 1.0 / self.tracking_fs
-    #     total_duration = len(self.trackingdata) * time_interval
-    #     timestamps = np.arange(0, total_duration, time_interval)
-    #     timedeltas_index = pd.to_timedelta(timestamps, unit='s')            
-    #     self.trackingdata.index = timedeltas_index
-    #     return self.trackingdata
     
     def resample_tracking_to_ephys (self):
         time_interval_common = 1.0 / self.ephys_fs
@@ -379,11 +393,17 @@ class SyncOEpyPhotometrySession:
         return -1
    
     def separate_theta (self,LFP_channel,theta_thres,nonthetha_thres):
+        '''NOTE: 
+        This is not a good way to separate theta automatically
+        The threshold for spectrum power is highly depended on the recording quality, electrode position, etc.
+        A rigid threshold will also cut the recording into incontinuous pieces.
+        I changed to use the pynacollada method in function  
+        '''
         lfp_data=self.Ephys_tracking_spad_aligned[LFP_channel]/1000
         sst,frequency,power,global_ws=OE.Calculate_wavelet(lfp_data/1000,lowpassCutoff=500,Fs=self.fs)
         #set bound for theta band
-        lower_bound= 5
-        upper_bound = 10
+        lower_bound= 4
+        upper_bound = 12
         indices_between_range = np.where((frequency >= lower_bound) & (frequency <= upper_bound))
         
         power_band=power[indices_between_range[0]]
@@ -416,19 +436,7 @@ class SyncOEpyPhotometrySession:
         
         self.theta_part['timestamps'] = np.arange(0, total_duration, time_interval)
         self.theta_part['time_column'] = pd.to_timedelta(self.theta_part['timestamps'], unit='s') 
-        self.theta_part.set_index('time_column', inplace=True)
-        
-        #plot theta
-        sst,frequency,power,global_ws=OE.Calculate_wavelet(self.theta_part[LFP_channel]/1000,lowpassCutoff=500,Fs=self.fs)
-        time = np.arange(len(sst)) *(1/self.fs)
-        OE.plot_wavelet_feature(sst,frequency,power,global_ws,time,self.theta_part[LFP_channel])
-        self.plot_lowpass_two_trace (self.theta_part, LFP_channel,SPAD_cutoff=20,lfp_cutoff=20)
-        #plot non-theta
-        sst,frequency,power,global_ws=OE.Calculate_wavelet(self.non_theta_part[LFP_channel]/1000,lowpassCutoff=500,Fs=self.fs)
-        time = np.arange(len(sst)) *(1/self.fs)
-        OE.plot_wavelet_feature(sst,frequency,power,global_ws,time,self.non_theta_part[LFP_channel])
-        self.plot_lowpass_two_trace (self.non_theta_part, LFP_channel,SPAD_cutoff=20,lfp_cutoff=20)
-        
+        self.theta_part.set_index('time_column', inplace=True)            
         return self.theta_part,self.non_theta_part
          
     def get_mean_corr_two_traces (self, spad_data,lfp_data,corr_window):
@@ -476,8 +484,8 @@ class SyncOEpyPhotometrySession:
     
     def pynappleAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,Low_thres=1,High_thres=10,plot_ripple_ep=True):
         'This is the LFP data that need to be saved for the sync ananlysis'
-        #data_segment=self.Ephys_tracking_spad_aligned
-        data_segment=self.non_theta_part
+        data_segment=self.Ephys_tracking_spad_aligned
+        #data_segment=self.non_theta_part
         timestamps=data_segment['timestamps'].copy()
         timestamps=timestamps.to_numpy()
         timestamps=timestamps-timestamps[0]
@@ -496,7 +504,7 @@ class SyncOEpyPhotometrySession:
         
         'To detect ripple'
         ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd = OE.getRippleEvents (LFP,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
-        SPAD_ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd = OE.getRippleEvents (SPAD,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
+        #SPAD_ripple_band_filtered,nSS_1,nSS3_1,rip_ep_1,rip_tsd_1 = OE.getRippleEvents (SPAD,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
         'To plot the choosen segment'
         ex_ep = nap.IntervalSet(start = ep_start, end = ep_end, time_units = 's') 
         fig, ax = plt.subplots(6, 1, figsize=(10, 12))
@@ -559,13 +567,13 @@ class SyncOEpyPhotometrySession:
                     LFP_ep=LFP.restrict(rip_long_ep)
                     SPAD_ep=SPAD.restrict(rip_long_ep)
                     ripple_band_filtered_ep=ripple_band_filtered.restrict(rip_long_ep)
-                    SPAD_ripple_band_filtered_ep=SPAD_ripple_band_filtered.restrict(rip_long_ep)
+                    #SPAD_ripple_band_filtered_ep=SPAD_ripple_band_filtered.restrict(rip_long_ep)
                     sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_ep,lowpassCutoff=1500,Fs=self.fs,scale=40)                
                     time = np.arange(-len(sst_ep)/2,len(sst_ep)/2) *(1/self.fs)
                     #Set the title of ripple feature
                     plot_title = f"Ripple Peak std:{ripple_std:.2f}, Ripple Duration:{ripple_duration:.2f} ms" 
-                    OE.plot_ripple_overlay (ax[2],ripple_band_filtered_ep,SPAD_ep,frequency,power,time,SPAD_ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=True)
-                    #OE.plot_ripple_overlay (ax[2],LFP_ep,SPAD_ep,frequency,power,time,SPAD_ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=True)
+                    #OE.plot_ripple_overlay (ax[2],ripple_band_filtered_ep,SPAD_ep,frequency,power,time,SPAD_ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=True)
+                    OE.plot_ripple_overlay (ax[2],LFP_ep,SPAD_ep,frequency,power,time,ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=True)
                 ax[0].axvline(0, color='white',linewidth=2)
                 ax[1].axvline(0, color='white',linewidth=2)
                 ax[2].axvline(0, color='white',linewidth=2) 

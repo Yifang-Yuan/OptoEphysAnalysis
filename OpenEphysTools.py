@@ -77,7 +77,50 @@ def smooth_signal(data,Fs,cutoff,window='flat'):
     return y[(int(window_len/2)-1):-int(window_len/2)]
 
 def readEphysChannel (Directory,recordingNum,Fs=30000):
+    '''Read a single recording in a specific session or folder'''
     session = Session(Directory)
+    recording= session.recordnodes[0].recordings[recordingNum]
+    continuous=recording.continuous
+    continuous0=continuous[0]
+    samples=continuous0.samples
+    timestamps=continuous0.timestamps
+    events=recording.events
+    
+    '''Recording nodes that are effective'''
+    LFP1=samples[:,8]
+    LFP2=samples[:,9]
+    LFP3=samples[:,10]
+    LFP4=samples[:,11]
+    LFP5=samples[:,13]
+    '''ADC lines that recorded the analog input from SPAD PCB X10 pin'''
+    Sync1=samples[:,16] #Full pulsed aligned with X10 input
+    Sync2=samples[:,17]
+    Sync3=samples[:,18]
+    Sync4=samples[:,19]
+    
+    LFP_clean1= butter_filter(LFP1, btype='low', cutoff=2000, fs=Fs, order=5)
+    LFP_clean2= butter_filter(LFP2, btype='low', cutoff=2000, fs=Fs, order=5)
+    LFP_clean3= butter_filter(LFP3, btype='low', cutoff=2000, fs=Fs, order=5)
+    LFP_clean4= butter_filter(LFP4, btype='low', cutoff=2000, fs=Fs, order=5)
+    LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
+    LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
+    LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
+    LFP_clean4= notchfilter (LFP_clean4,f0=50,bw=5)
+    
+    EphysData = pd.DataFrame({
+        'timestamps': timestamps,
+        'CamSync': Sync1,
+        'SPADSync': Sync2,
+        'LFP_1': LFP_clean1,
+        'LFP_2': LFP_clean2,
+        'LFP_3': LFP_clean3,
+        'LFP_4': LFP_clean4,
+    })
+    
+    return EphysData
+
+def readEphysChannel_withSessionInput (session,recordingNum,Fs=30000):
+    '''Same as the above function but used for batch processing when we already read a session'''
     recording= session.recordnodes[0].recordings[recordingNum]
     continuous=recording.continuous
     continuous0=continuous[0]
@@ -147,16 +190,12 @@ def SPAD_sync_mask (SPAD_Sync, start_lim, end_lim):
     return mask_array_bool
 
 def py_sync_mask (Sync_line, start_lim, end_lim):
-    '''
-
-    '''
     py_mask=np.zeros(len(Sync_line),dtype=np.int)
     py_mask[np.where(Sync_line >15000)[0]]=1
     rising_edge_index = None
     falling_edge_index = None
     py_mask[0:start_lim]=0
     py_mask[end_lim:]=0
-    py_mask[np.where(Sync_line >15000)[0]]=1
     # Iterate through the data array
     for i in range(len(py_mask) - 1):
         # Check for rising edge (transition from low to high)
@@ -171,24 +210,19 @@ def py_sync_mask (Sync_line, start_lim, end_lim):
             falling_edge_index = i
             break  # Exit loop once the last falling edge is found
     py_mask_final=np.zeros(len(Sync_line),dtype=np.int)
-    print (rising_edge_index)
+    print ('The py_mask 1st index is: ',rising_edge_index)
     py_mask_final[rising_edge_index:falling_edge_index]=1
-    fig, ax = plt.subplots(figsize=(15,5))
-    ax.plot(py_mask)
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    plot_trace_in_seconds(py_mask,30000)
     mask_array_bool = np.array(py_mask_final, dtype=bool)
     return mask_array_bool
 
-def check_SPAD_mask_length(data):
+def check_Optical_mask_length(data):
     filtered_series = data[data == 1]
     length_of_filtered_series = len(filtered_series)
-    print('length in EphysSync:', length_of_filtered_series)
+    print('Mask length as Sample number in EphysSync:', length_of_filtered_series)
     Length_in_second=length_of_filtered_series/30000
-    print('length in Second:', Length_in_second)
+    print('Mask length in Second:', Length_in_second)
     spad_sample_num=Length_in_second*9938.4
-    print('SPAD sample numbers:', spad_sample_num)
+    print('Total optical sample number:', spad_sample_num)
     return -1
 
 def save_SPAD_mask (dpath,mask_data_array):
@@ -407,7 +441,7 @@ def plotRippleEvent (lfp_raw, ripple_band_filtered, restrict_interval,nSS,nSS3,L
 	plt.show()
 	return -1
 
-def plot_trace_in_seconds(data,Fs):
+def plot_trace_in_seconds(data,Fs,title='Trace in seconds'):
     fig, ax = plt.subplots(figsize=(15,5))
     num_samples = len(data)
     time_seconds = np.arange(num_samples) / Fs
@@ -415,6 +449,7 @@ def plot_trace_in_seconds(data,Fs):
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.set_xlabel('Time (s)')
+    ax.set_title(title)
     return -1
 
 def plot_timedelta_trace_in_seconds (data,ax,label='data',color='b',ylabel='z-score',xlabel=True):
@@ -448,6 +483,27 @@ def plot_animal_tracking (trackingdata):
     plt.title('Animal tracking Plot')
     plt.show()
     return -1
+
+def plot_two_traces_in_seconds (data1,Fs1, data2, Fs2, label1='optical',label2='LFP'):
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 6))
+    num_samples_1 = len(data1)
+    time_seconds_1 = np.arange(num_samples_1) / Fs1
+    num_samples_2 = len(data2)
+    time_seconds_2 = np.arange(num_samples_2) / Fs2
+    
+    sns.lineplot(x=time_seconds_1, y=data1.values, ax=ax1, label=label1, linewidth=1, color=sns.color_palette("husl", 8)[3])
+    #ax1.plot(spad_resampled, label='spad')
+    #ax1.set_ylabel('PhotonCount')
+    ax1.set_ylabel('z-score')
+    ax1.legend()
+    sns.lineplot(x=time_seconds_2, y=data2.values, ax=ax2, label=label2, linewidth=1, color=sns.color_palette("husl", 8)[5])
+    ax2.set_ylabel('Amplitude')
+    #ax2.set_title('LFP')
+    ax2.set_xlabel('Time (s)')
+    ax2.legend()
+    plt.tight_layout()
+    plt.show()
+    return fig
 
 def plot_two_raw_traces (data1,data2, spad_label='spad',lfp_label='LFP'):
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 6))
@@ -510,12 +566,12 @@ def Transient_during_LFP_event (rip_tsd,transient_trace,half_window,fs):
     std_z_score = np.std(z_score_values, axis=0)
     x = np.linspace(-half_window, half_window, len(mean_z_score))
     plt.figure(figsize=(10, 5))
-    plt.plot(x,mean_z_score, color='b', label='Mean z-score during ripple event')
+    plt.plot(x,mean_z_score, color='b', label='Mean z-score aligned with oscillation peaks')
     plt.fill_between(x,mean_z_score - std_z_score, mean_z_score + std_z_score, color='gray', alpha=0.3, label='Standard Deviation')
     [plt.axvline(x=0, color='green')]
     plt.xlabel('Time(seconds)')
     plt.ylabel('z-score')
-    plt.title('Mean z-score during ripple event')
+    plt.title('Mean z-score')
     plt.legend()
     plt.grid()
     plt.show()

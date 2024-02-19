@@ -365,6 +365,10 @@ def Plot_single_trial_PSTH(event_window_traces, trialIdx,timediff,before_window,
     return ax
 
 def read_all_photometry_files(folder_path, py_target_string,sync_target_string,CamFs,pyFs,COLD_folder,COLD_filename):
+    '''This is to read multiple photometry files for a cheeseboard session and sync with behaviour data,
+    py_target_string: a specific string in pyPhotometry data .csv file name
+    sync_target_string: a specific string in Bonsai sync file name .csv file name
+    you need to delete other non-csv files in the same folder.'''
     files = os.listdir(folder_path)
     filtered_files = [file for file in files if py_target_string in file]  
     cheeaseboard_session_data=read_cheeseboard_from_COLD (COLD_folder, COLD_filename)
