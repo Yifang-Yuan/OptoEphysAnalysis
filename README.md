@@ -33,7 +33,7 @@ https://paos.colorado.edu/research/wavelets/
 Functions are aleady included in my package so you don't need to install anything.
 
 ### Analysing optical data
-`pyPhotometryReadSession.py` will process all pyPhotometry .csv data files in the same folder with a temporal order, i.e. files that created first will be read first. For each recording trial, a new folder "SyncRecording*" will be created to save .csv results (* start from 1). 
+`pyPhotometryReadSession.py` will process all pyPhotometry .csv data files in the same folder with a temporal order, i.e. files that created first will be read first. For each recording trial, a new folder **SyncRecording*** will be created to save .csv results (* start from 1). 
 
 With optical signal saved as a .csv file in the same folder as ephys results, you'll be able to proceed with the `CombineAnalysis.py`.
 
@@ -51,9 +51,15 @@ Behaviour data should also be analysed saved as .csv files with animals' coordin
 Bonsai tracking and DeepLabCut can both be used to provide animal's coordinates. 
 
 ### Pre-processing Ephys data
+`EphysPreReadSession.py` will process all Open Ephys recordings in a same folder (usually named with data and time). If you've already processed optical data and saved them in **SyncRecording*** folders, and each optical recording is matched with an Open Ephys recording, results will be saved as `open_ephys_read_pd.pkl` in each folder with their paired optical results. 
 
+![image](https://github.com/Yifang-Yuan/OptoEphysAnalysis/assets/77569999/e8f9cce8-c825-4515-a27c-fd2896a3e8ec)
 
-`EphyPreProcessing.py`---use this file to call 'OpenEphysTools.py' to analysis Open Ephys data, using sync line to generate SPAD_mask and py_mask, save pickle file for each recording session.
+Note: 
+
+You can still use `EphyPreProcessingSingleTrialDemo.py` to call 'OpenEphysTools.py' to analysis Open Ephys data of a single recording, it uses sync line to generate SPAD_mask and py_mask, save pickle file for each recording session.
+
+## Combine analysis for Optical signal and LFP
 
 `CombineAnalysis.py`---to create a class (`SyncOESPADSessionClass.py` or `SyncOECPySessionClass.py`) and analyse a session of data.  
 
