@@ -53,7 +53,7 @@ Bonsai tracking and DeepLabCut can both be used to provide animal's coordinates.
 ### Pre-processing Ephys data
 `EphysPreReadSession.py` will process all Open Ephys recordings in a same folder (usually named with data and time). If you've already processed optical data and saved them in **SyncRecording*** folders, and each optical recording is matched with an Open Ephys recording, results will be saved as `open_ephys_read_pd.pkl` in each folder with their paired optical results. 
 
-![image](https://github.com/Yifang-Yuan/OptoEphysAnalysis/assets/77569999/e8f9cce8-c825-4515-a27c-fd2896a3e8ec)
+![image](https://github.com/Yifang-Yuan/OptoEphysAnalysis/assets/77569999/da1b83da-75c0-4f4a-9795-a453dbf18017)
 
 Note: 
 
