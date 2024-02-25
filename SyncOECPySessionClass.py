@@ -56,8 +56,11 @@ class SyncOEpyPhotometrySession:
         self.savepath = os.path.join(dpath, "Results")
         if not os.path.exists(self.savepath):
             os.makedirs(self.savepath)
+            
         self.ripple_numbers = {}
         self.ripple_freq ={}
+        self.ripple_std_mean = {}
+        self.ripple_duration_mean ={}
                		
     def Sync_ephys_with_spad(self):
         'Main function to read all saved decoded ephys and optical data and save them as a signal Pandas dataFrame'
@@ -526,6 +529,9 @@ class SyncOEpyPhotometrySession:
 
         '''To calculate cross-correlation'''
         cross_corr_values = []
+        ripple_std_values=[]
+        ripple_duration_values=[]
+
         if plot_ripple_ep:
             save_ripple_path = os.path.join(self.savepath, self.recordingName+'_Ripples_'+lfp_channel)
             if not os.path.exists(save_ripple_path):
@@ -536,6 +542,9 @@ class SyncOEpyPhotometrySession:
                 fig, ax = plt.subplots(3, 1, figsize=(6, 9))
                 ripple_std=rip_tsd.iloc[i]
                 ripple_duration=((rip_ep.iloc[[i]]['end']-rip_ep.iloc[[i]]['start'])*1000)[0]  
+                ripple_std_values.append(ripple_std)
+                ripple_duration_values.append(ripple_duration)
+                
                 if event_peak_times[i]>0.25:
                     start_time=event_peak_times[i]-0.25
                     end_time=event_peak_times[i]+0.25
@@ -584,6 +593,10 @@ class SyncOEpyPhotometrySession:
                 figName=self.recordingName+'_Ripple'+str(i)+'.png'
                 fig.savefig(os.path.join(save_ripple_path,figName))
 
+            
+            self.ripple_std_mean [lfp_channel]= sum(ripple_std_values) / len(ripple_std_values)
+            self.ripple_duration_mean[lfp_channel] =sum(ripple_duration_values) / len(ripple_duration_values)
+            
             cross_corr_values = np.array(cross_corr_values)
             # Truncate all columns to the common length
             common_length = min(len(column) for column in cross_corr_values)

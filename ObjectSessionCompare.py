@@ -15,8 +15,10 @@ def ReadOneDaySession (parent_folder,folderName='SyncRecording', IsTracking=Fals
                        read_aligned_data_from_file=False,read_class_data_from_file=False):
     
     # Create an empty DataFrame with specified columns
-    columns = ['TrialName', 'Timestamp', 'RippleNumLFP1','RippleFreqLFP1','RippleNumLFP2','RippleFreqLFP2',
-               'RippleNumLFP3','RippleFreqLFP3','RippleNumLFP4','RippleFreqLFP4']
+    columns = ['TrialName', 'Timestamp', 'RippleNumLFP1','RippleFreqLFP1','RippleStdLFP1','RippleDurationLFP1',
+               'RippleNumLFP2','RippleFreqLFP2','RippleStdLFP2','RippleDurationLFP2',
+               'RippleNumLFP3','RippleFreqLFP3','RippleStdLFP3','RippleDurationLFP3',
+               'RippleNumLFP4','RippleFreqLFP4','RippleStdLFP4','RippleDurationLFP4']
     SessionRippleInfo = pd.DataFrame(columns=columns)
     
     
@@ -71,9 +73,13 @@ def ReadOneDaySession (parent_folder,folderName='SyncRecording', IsTracking=Fals
         'Add ripple information of Current Recording Trial to the Session DataFrame '
         Row_to_add = {'TrialName': SyncRecordingName,'Timestamp':Recording1.Ephys_tracking_spad_aligned['timestamps'][0],
                       'RippleNumLFP1':Recording1.ripple_numbers['LFP_1'],'RippleFreqLFP1':Recording1.ripple_freq['LFP_1'], 
+                      'RippleStdLFP1':Recording1.ripple_std_mean['LFP_1'],'RippleDurationLFP1':Recording1.ripple_duration_mean['LFP_1'],
                       'RippleNumLFP2':Recording1.ripple_numbers['LFP_2'],'RippleFreqLFP2':Recording1.ripple_freq['LFP_2'], 
+                      'RippleStdLFP2':Recording1.ripple_std_mean['LFP_2'],'RippleDurationLFP2':Recording1.ripple_duration_mean['LFP_2'],
                       'RippleNumLFP3':Recording1.ripple_numbers['LFP_3'],'RippleFreqLFP3':Recording1.ripple_freq['LFP_3'], 
-                      'RippleNumLFP4':Recording1.ripple_numbers['LFP_4'],'RippleFreqLFP4':Recording1.ripple_freq['LFP_4'] }
+                      'RippleStdLFP3':Recording1.ripple_std_mean['LFP_3'],'RippleDurationLFP3':Recording1.ripple_duration_mean['LFP_3'],
+                      'RippleNumLFP4':Recording1.ripple_numbers['LFP_4'],'RippleFreqLFP4':Recording1.ripple_freq['LFP_4'] ,
+                      'RippleStdLFP4':Recording1.ripple_std_mean['LFP_4'],'RippleDurationLFP4':Recording1.ripple_duration_mean['LFP_4']}
         SessionRippleInfo.loc[len(SessionRippleInfo)] = Row_to_add
         Session_save_path = os.path.join(parent_folder, 'Results','SessionRippleInfo.pkl')
         SessionRippleInfo.to_pickle(Session_save_path)
@@ -81,7 +87,7 @@ def ReadOneDaySession (parent_folder,folderName='SyncRecording', IsTracking=Fals
     return SessionRippleInfo                                                                   
 
 
-parent_folder='E:/YYFstudy/20240214_Day3'
+parent_folder='E:/YYFstudy/20240213_Day2'
 
 SessionRippleInfo=ReadOneDaySession (parent_folder,folderName='SyncRecording', IsTracking=False,read_aligned_data_from_file=False,read_class_data_from_file=False)
 
