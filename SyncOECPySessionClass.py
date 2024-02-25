@@ -3,6 +3,7 @@
 Created on Thu Jul 27 12:03:35 2023
 This is the Class that used to form a synchronised dataset including LFP channel signals, 
 pyPhotometry recorded optical signal as zscore, and animal position.
+Some of the functions are named as SPAD*** just because I made this for SPAD-ephys analysis first, then modified it for pyPhotometry recordings.
 
 @author: Yifang
 """
@@ -20,20 +21,24 @@ import pynapple as nap
 import pynacollada as pyna
 
 class SyncOEpyPhotometrySession:
-    def __init__(self, dpath,duration=100,IsTracking=False,read_aligned_data_from_file=False):
+    def __init__(self, dpath,recordingName,duration=100,IsTracking=False,read_aligned_data_from_file=False):
         '''
         Parameters
         ----------
-        dpath : TYPE
-            DESCRIPTION.
-        EphysData : TYPE:pandas, readout from open-ephys recording, with SPAD mask
-
+        dpath : path to save data for a single recording trial with ephys and optical data. 
+        IsTracking: 
+            whether to include animal position tracking data, not neccessary for sleeping sessions.
+        read_aligned_data_from_file: 
+            False if it is the first time you analyse this trial of data, 
+            once you have removed noises, run the single-trial analysis, saved the .pkl file, 
+            set it to true to read aligned data directly.
         '''
         self.pyPhotometry_fs = 130
         self.ephys_fs = 30000
         self.tracking_fs = 10
-        self.fs = 10000.0
-        self.dpath=dpath
+        self.fs = 10000
+        self.recordingName=recordingName
+        self.dpath=os.path.join(dpath, self.recordingName)
         self.IsTracking=IsTracking
 
         self.Ephys_data=self.read_open_ephys_data() #read ephys data that we pre-processed from dpath
@@ -41,25 +46,32 @@ class SyncOEpyPhotometrySession:
             self.read_tracking_data() #read tracking raw data   
             self.trackingdata_extent,frame_count, frame_indices= self.extent_tracking_to_ephys_pd ()    
         
-        # #self.Format_tracking_data_index () ## this is to change the index to timedelta index, for resampling
+        #self.Format_tracking_data_index () ## this is to change the index to timedelta index, for resampling
         if (read_aligned_data_from_file):
             filepath=os.path.join(self.dpath, "Ephys_tracking_photometry_aligned.pkl")
             self.Ephys_tracking_spad_aligned = pd.read_pickle(filepath)
         else:
             self.Sync_ephys_with_spad() #output self.spad_align, self.ephys_align
+        
+        self.savepath = os.path.join(dpath, "Results")
+        if not os.path.exists(self.savepath):
+            os.makedirs(self.savepath)
+        self.ripple_numbers = {}
+        self.ripple_freq ={}
                		
     def Sync_ephys_with_spad(self):
+        'Main function to read all saved decoded ephys and optical data and save them as a signal Pandas dataFrame'
         if self.IsTracking:
            self.Ephys_data = pd.concat([self.Ephys_data, self.trackingdata_extent], axis=1)
            
         self.form_ephys_sync_data() # find the spad sync part
         self.Format_ephys_data_index () # this is to change the index to timedelta index, for resampling
-        self.PhotometryData=self.Read_photometry_data() #read spad data
-        self.photometry_sync_data=self.form_photometry_sync_data ()
-        self.resample_photometry()
+        self.PhotometryData=self.Read_photometry_data() #read pyPhotometry data
+        self.photometry_sync_data=self.form_photometry_sync_data () # find the photometry sync part,i.e. the same part with sync pulses
+        self.resample_photometry() #resampling
         self.resample_ephys()
-        self.slice_to_align_with_min_len()
-        self.Ephys_tracking_spad_aligned=pd.concat([self.ephys_align, self.photometry_align], axis=1)  
+        self.slice_to_align_with_min_len() #since two data sources are with different sampling rate, the resampled data length are not the same, but similiar.
+        self.Ephys_tracking_spad_aligned=pd.concat([self.ephys_align, self.photometry_align], axis=1)  #define a new DataFrame to save both LPF and optical signal
         self.save_data(self.Ephys_tracking_spad_aligned, 'Ephys_tracking_photometry_aligned.pkl')
         return self.Ephys_tracking_spad_aligned
     
@@ -92,17 +104,6 @@ class SyncOEpyPhotometrySession:
         self.Ephys_tracking_spad_aligned = self.Ephys_tracking_spad_aligned.drop(slicing_index)
         return self.Ephys_tracking_spad_aligned
     
-    def reset_index_data(self):
-        time_interval = 1 / self.fs  # Time interval in seconds
-        total_duration=len(self.Ephys_tracking_spad_aligned)*time_interval
-        # Reindex the DataFrame with a continuous timestamp index
-        new_index = pd.timedelta_range(start=f'{0:.9f}S', end=f'{total_duration:.9f}S', freq=f'{time_interval:.9f}S')[:-1]
-        self.Ephys_tracking_spad_aligned = self.Ephys_tracking_spad_aligned.reset_index(drop=True)
-        self.Ephys_tracking_spad_aligned = self.Ephys_tracking_spad_aligned.set_index(new_index,drop=True)
-        self.Ephys_tracking_spad_aligned['timestamps']=np.arange(0, total_duration, time_interval)
-        # # Save the data
-        self.save_data(self.Ephys_tracking_spad_aligned, 'Ephys_tracking_spad_aligned.pkl')
-        return self.Ephys_tracking_spad_aligned
     
     def Read_photometry_data (self):
         '''
@@ -127,7 +128,6 @@ class SyncOEpyPhotometrySession:
             'zscore_raw': zscore_raw,
             'Cam_Sync':CamSync_photometry
         })
-
         return self.PhotometryData
     
     def form_photometry_sync_data (self):
@@ -149,11 +149,7 @@ class SyncOEpyPhotometrySession:
                 break  # Exit loop once the last falling edge is found
         py_mask_final=np.zeros(len(CamSync),dtype=np.int)        
         py_mask_final[rising_edge_index:falling_edge_index]=1
-        # fig, ax = plt.subplots(figsize=(15,5))
-        # ax.plot(py_mask)
-        # ax.spines['top'].set_visible(False)
-        # ax.spines['right'].set_visible(False)
-        # OE.plot_trace_in_seconds(py_mask,self.pyPhotometry_fs)
+
         mask_array_bool = np.array(py_mask_final, dtype=bool)
         self.PhotometryData['mask']=mask_array_bool
         self.photometry_sync_data=self.PhotometryData[mask_array_bool]
@@ -172,8 +168,12 @@ class SyncOEpyPhotometrySession:
         print ('pyPhotometry synced part data length', len(self.photometry_sync_data)/self.pyPhotometry_fs)
         absolute_difference = abs(len(self.photometry_sync_data)/self.pyPhotometry_fs - len(self.Ehpys_sync_data)/self.ephys_fs)
         if absolute_difference>0.05:
-            print ('NOTE!!! Synchronised mask matched wrong! Detected a difference of the sync mask durations larger than 50ms.\
-                   Please make sure pyPhotometry data and ephys data are from the same trial.')
+            print ('NOTE!!!Synchronised mask matched wrong!')
+            print('Detected a difference of the sync mask durations larger than 50ms.Please make sure pyPhotometry data and ephys data are from the same trial.')
+            print ('The pipeline will cut the longer recording automatically')
+        else:
+            print ('Yay~~Sync mask matched! Synchronising LFP and Optical signal finished.')
+                   
         return self.photometry_sync_data
     
     def resample_photometry (self):
@@ -264,8 +264,7 @@ class SyncOEpyPhotometrySession:
     def save_data (self, data,filename):
         filepath=os.path.join(self.dpath, filename)
         data.to_pickle(filepath)
-        return -1
-        
+        return -1      
     
     def slicing_pd_data (self, data,start_time, end_time):
         # Start time in seconds
@@ -281,8 +280,7 @@ class SyncOEpyPhotometrySession:
         start_idx =int( start_time * self.fs)# Time interval in seconds   
         end_idx = int(end_time * self.fs)# Time interval in seconds
         silced_data=data[start_idx:end_idx]
-        return silced_data
-    
+        return silced_data    
         
     def plot_two_traces_heatmapSpeed (self, spad_data,lfp_data, speed_series, spad_label='spad',lfp_label='LFP',Spectro_ylim=30,AddColorbar=False):
         fig, (ax1, ax2, ax3,ax4) = plt.subplots(4, 1, figsize=(15, 8))
@@ -361,61 +359,64 @@ class SyncOEpyPhotometrySession:
         return -1
     
     
-    def plot_theta_feature (self,LFP_channel,start_time,end_time,LFP=True):
+    def plot_band_power_feature (self,LFP_channel,start_time,end_time,LFP=True):
         silced_recording=self.slicing_pd_data (self.Ephys_tracking_spad_aligned,start_time=start_time, end_time=end_time)
         if LFP:
             lfp_data=silced_recording[LFP_channel]/1000
         else:
             lfp_data=silced_recording[LFP_channel]
         data=lfp_data.to_numpy()
-        #lfp_thetaband=OE.butter_filter(signal, btype='low', cutoff=15, fs=self.fs, order=5)
+
         lfp_thetaband=OE.band_pass_filter(data,5,9,Fs=self.fs)
         #lfp_thetaband = lfp_thetaband - np.mean(lfp_thetaband)
-        sst,frequency,power,global_ws=OE.Calculate_wavelet(lfp_data,lowpassCutoff=500,Fs=self.fs)
+        sst,frequency,power,global_ws=OE.Calculate_wavelet(data,lowpassCutoff=500,Fs=self.fs)
         time = np.arange(len(sst)) *(1/self.fs)
-        OE.plot_wavelet_feature(sst,frequency,power,global_ws,time,lfp_thetaband)
-        return -1
-
-    
-    def plot_ripple_feature (self,LFP_channel,start_time,end_time,LFP=True):
-        silced_recording=self.slicing_pd_data (self.Ephys_tracking_spad_aligned,start_time=start_time, end_time=end_time)
-        if LFP:
-            lfp_data=silced_recording[LFP_channel]/1000
-        else:
-            lfp_data=silced_recording[LFP_channel]
-        data=lfp_data.to_numpy()
-        #lfp_thetaband=OE.butter_filter(signal, btype='low', cutoff=15, fs=self.fs, order=5)
+        OE.plot_wavelet_feature(sst,frequency,power,global_ws,time,lfp_thetaband,powerband='(5-9Hz)')
+        
         lfp_rippleband=OE.band_pass_filter(data,150,250,Fs=self.fs)
         #lfp_thetaband = lfp_thetaband - np.mean(lfp_thetaband)
         sst,frequency,power,global_ws=OE.Calculate_wavelet(lfp_rippleband,lowpassCutoff=500,Fs=self.fs,scale=20)
         time = np.arange(len(sst)) *(1/self.fs)
-        OE.plot_wavelet_feature(sst,frequency,power,global_ws,time,lfp_data)
+        OE.plot_wavelet_feature(data,frequency,power,global_ws,time,lfp_rippleband,powerband='(150-250Hz)')     
         return -1
-   
-    def separate_theta (self,LFP_channel,theta_thres,nonthetha_thres):
+
+    def pynacollada_label_theta (self,LFP_channel,Low_thres=0.5,High_thres=10):
         '''NOTE: 
-        This is not a good way to separate theta automatically
-        The threshold for spectrum power is highly depended on the recording quality, electrode position, etc.
-        A rigid threshold will also cut the recording into incontinuous pieces.
-        I changed to use the pynacollada method in function  
+        I applied the pynacollada ripple-detection method, but with the theta band to extract high-theta period.
+        Other period are defined as non-theta.
         '''
         lfp_data=self.Ephys_tracking_spad_aligned[LFP_channel]/1000
-        sst,frequency,power,global_ws=OE.Calculate_wavelet(lfp_data/1000,lowpassCutoff=500,Fs=self.fs)
-        #set bound for theta band
-        lower_bound= 4
-        upper_bound = 12
-        indices_between_range = np.where((frequency >= lower_bound) & (frequency <= upper_bound))
         
-        power_band=power[indices_between_range[0]]
-        power_band_mean=np.max(power_band,axis=0)
-        percentile_thres_theta = np.percentile(power_band_mean, theta_thres)
-        percentile_thres_nontheta = np.percentile(power_band_mean, nonthetha_thres)
-        indices_above_percentile = np.where(power_band_mean > percentile_thres_theta)
-        indices_below_percentile = np.where(power_band_mean < percentile_thres_nontheta)
-        #Separate theta and non-theta
-        self.theta_part=self.Ephys_tracking_spad_aligned.iloc[indices_above_percentile[0]]
-        self.non_theta_part=self.Ephys_tracking_spad_aligned.iloc[indices_below_percentile[0]] 
-        # Save the theta part with real indices
+        timestamps=self.Ephys_tracking_spad_aligned['timestamps'].copy()
+        timestamps=timestamps.to_numpy()
+        LFP=nap.Tsd(t = timestamps, d = lfp_data.to_numpy(), time_units = 's')
+        'To detect theta'
+        theta_band_filtered,nSS,nSS3,theta_ep,theta_tsd = OE.getThetaEvents (LFP,self.fs,windowlen=2000,Low_thres=Low_thres,High_thres=High_thres)
+        
+        print ('Label theta part, found theta high epoch number---',len(theta_ep))
+        '''METHOD: label theta_ep in the Dataframe'''
+        timestamps_round=np.round(timestamps, 2)
+
+        self.Ephys_tracking_spad_aligned['BrainState']='nontheta'
+        indices_theta_epoch = []
+        for i in range (len(theta_ep)):
+            # print ('ep start---', theta_ep.iloc[[i]]['start'][0])
+            # print ('ep end---', theta_ep.iloc[[i]]['end'][0])
+            indices_theta_epoch_i = np.where((timestamps_round>=theta_ep.iloc[[i]]['start'][0]) & (timestamps_round<theta_ep.iloc[[i]]['end'][0]))[0]
+            indices_theta_epoch.extend(indices_theta_epoch_i.astype(int))
+            
+        self.Ephys_tracking_spad_aligned.iloc[indices_theta_epoch, self.Ephys_tracking_spad_aligned.columns.get_loc('BrainState')]='theta' 
+        self.save_data(self.Ephys_tracking_spad_aligned, 'Ephys_tracking_photometry_aligned.pkl')
+        
+        print ('---Theta labelling saved, plotting theta and nontheta features---') 
+        '''This will separate theta and non-theta period, but only for visualisation.
+        We should not use the separated and concatenated theta/nontheta periods for other analysis,
+        because it will cut and concatenate the LFP and optical signals arbitrarily'''
+        
+        self.theta_part=self.Ephys_tracking_spad_aligned.iloc[indices_theta_epoch]
+        self.non_theta_part=self.Ephys_tracking_spad_aligned[self.Ephys_tracking_spad_aligned['BrainState'] == 'nontheta']
+        
+        'Save the theta part with real indices'
         theta_path=os.path.join(self.dpath, "theta_part_with_index.pkl")
         self.theta_part.to_pickle(theta_path) 
         non_theta_path=os.path.join(self.dpath, "non_theta_part_with_index.pkl")
@@ -426,19 +427,303 @@ class SyncOEpyPhotometrySession:
         self.non_theta_part=self.non_theta_part.reset_index(drop=True)
         
         time_interval = 1.0 / self.fs
-        total_duration = len(self.non_theta_part) * time_interval
+        
+        total_duration = np.round(len(self.non_theta_part) * time_interval,4)
         self.non_theta_part['timestamps'] = np.arange(0, total_duration, time_interval)
-        total_duration = len(self.theta_part) * time_interval
         # Convert the 'time_column' to timedelta if it's not already
         self.non_theta_part['time_column'] = pd.to_timedelta(self.non_theta_part['timestamps'],unit='s') 
         # Set the index to the 'time_column'
         self.non_theta_part.set_index('time_column', inplace=True)
         
+        
+        total_duration = np.round(len(self.theta_part) * time_interval,4)
         self.theta_part['timestamps'] = np.arange(0, total_duration, time_interval)
         self.theta_part['time_column'] = pd.to_timedelta(self.theta_part['timestamps'], unit='s') 
-        self.theta_part.set_index('time_column', inplace=True)            
+        self.theta_part.set_index('time_column', inplace=True)      
+        
+        #plot theta
+        sst,frequency,power,global_ws=OE.Calculate_wavelet(self.theta_part[LFP_channel]/1000,lowpassCutoff=500,Fs=self.fs)
+        time = np.arange(len(sst)) *(1/self.fs)
+        OE.plot_wavelet_feature(sst,frequency,power,global_ws,time,self.theta_part[LFP_channel])
+        self.plot_lowpass_two_trace (self.theta_part, LFP_channel,SPAD_cutoff=20,lfp_cutoff=20)
+        #plot non-theta
+        sst,frequency,power,global_ws=OE.Calculate_wavelet(self.non_theta_part[LFP_channel]/1000,lowpassCutoff=500,Fs=self.fs)
+        time = np.arange(len(sst)) *(1/self.fs)
+        OE.plot_wavelet_feature(sst,frequency,power,global_ws,time,self.non_theta_part[LFP_channel])
+        self.plot_lowpass_two_trace (self.non_theta_part, LFP_channel,SPAD_cutoff=20,lfp_cutoff=20)
+        
         return self.theta_part,self.non_theta_part
-         
+    
+    def pynappleAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,Low_thres=1,High_thres=10,plot_segment=False,plot_ripple_ep=True,excludeTheta=True):
+        'This is the LFP data that need to be saved for the sync ananlysis'
+        data_segment=self.Ephys_tracking_spad_aligned
+        #data_segment=self.non_theta_part
+        timestamps=data_segment['timestamps'].copy()
+        timestamps=timestamps.to_numpy()
+        timestamps=timestamps-timestamps[0]
+        #Use non-theta part to detect ripple
+        lfp_data=data_segment[lfp_channel]
+        spad_data=data_segment['zscore_raw']
+        lfp_data=lfp_data/1000 #change the unit from uV to mV
+        SPAD_cutoff=100
+        SPAD_smooth_np = OE.smooth_signal(spad_data,Fs=self.fs,cutoff=SPAD_cutoff)
+        'To align LFP and SPAD raw data to pynapple format'
+        LFP=nap.Tsd(t = timestamps, d = lfp_data.to_numpy(), time_units = 's')
+        SPAD=nap.Tsd(t = timestamps, d = spad_data.to_numpy(), time_units = 's')
+        SPAD_smooth=nap.Tsd(t = timestamps, d = SPAD_smooth_np, time_units = 's')
+        if self.IsTracking:
+            speed=nap.Tsd(t = timestamps, d = data_segment['speed_abs'].to_numpy(), time_units = 's')
+        
+        'Calculate theta band for optical signal'
+        SPAD_ripple_band_filtered,nSS_spad,nSS3_spad,rip_ep_spad,rip_tsd_spad = OE.getRippleEvents (SPAD_smooth,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
+        'To detect ripple'
+        ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd = OE.getRippleEvents (LFP,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
+        
+        if excludeTheta:
+            'To remove detected ripples if they are during theta----meaning they are fast gamma'
+            drop_index_ep=[]
+            drop_index_std=[]
+            for i in range (len(rip_ep)):
+                ripple_std_time=rip_tsd.index[i]
+                close_timestamps_mask = np.abs(data_segment['timestamps'] -data_segment['timestamps'][0]- ripple_std_time) <= 0.01           
+                close_timestamps_df = data_segment[close_timestamps_mask]
+                if 'theta' in close_timestamps_df['BrainState'].values:
+                    drop_index_ep.append(i)
+                    drop_index_std.append(ripple_std_time)
+                    print ('Romeve rip_ep near theta, peak time is --', ripple_std_time)    
+            rip_ep = rip_ep.drop(drop_index_ep)
+            rip_tsd = rip_tsd.drop(drop_index_std)
+        
+        
+        # Create an empty dictionary
+        # Define your string
+        # Assign a value to the dynamically generated key
+        self.ripple_numbers[lfp_channel] = len(rip_ep)
+        'Calculate ripple frequency during non-theta periods'
+        self.ripple_freq[lfp_channel]=np.round(self.ripple_numbers[lfp_channel]/(len(self.non_theta_part)/self.fs),4)
+        
+        print('LFP length in seconds:',len(LFP)/self.fs)
+        print('Optical signal length in seconds:',len(SPAD)/self.fs)
+        print('Found ripple event numbers:',self.ripple_numbers[lfp_channel])
+        print('Ripple event frequency during non-theta:',self.ripple_freq[lfp_channel], 'events/seconds')
+        
+        'To plot the choosen segment with start time and end time'
+        if plot_segment:
+            ex_ep = nap.IntervalSet(start = ep_start, end = ep_end, time_units = 's') 
+            fig, ax = plt.subplots(6, 1, figsize=(10, 12))
+            OE.plot_trace_nap (ax[0], LFP,ex_ep,color=sns.color_palette("husl", 8)[5],title='LFP raw Trace')
+            OE.plot_trace_nap (ax[1], ripple_band_filtered,ex_ep,color=sns.color_palette("husl", 8)[5],title='Ripple band')
+            OE.plot_ripple_event (ax[2], rip_ep, rip_tsd, ex_ep, nSS, nSS3, Low_thres=Low_thres) 
+            OE.plot_trace_nap (ax[3], SPAD_smooth,ex_ep,color='green',title='calcium recording (z-score)')
+            LFP_rippleband=OE.band_pass_filter(LFP.restrict(ex_ep),150,250,Fs=self.fs)        
+            sst,frequency,power,global_ws=OE.Calculate_wavelet(LFP_rippleband,lowpassCutoff=1500,Fs=self.fs,scale=40)
+            OE.plot_wavelet(ax[4],sst,frequency,power,Fs=self.fs,colorBar=False)
+            if self.IsTracking:
+                OE.plot_trace_nap (ax[5], speed,ex_ep,color='grey',title='speed (cm/second)')
+                ax[5].set_ylim(0,10)
+            #OE.plot_ripple_spectrum (ax[4], LFP, ex_ep,y_lim=30,Fs=self.fs,vmax_percentile=100)
+            plt.subplots_adjust(hspace=0.5)
+
+        '''To calculate cross-correlation'''
+        cross_corr_values = []
+        if plot_ripple_ep:
+            save_ripple_path = os.path.join(self.savepath, self.recordingName+'_Ripples_'+lfp_channel)
+            if not os.path.exists(save_ripple_path):
+                os.makedirs(save_ripple_path)
+                
+            event_peak_times=rip_tsd.index.to_numpy()
+            for i in range(len(rip_ep)):
+                fig, ax = plt.subplots(3, 1, figsize=(6, 9))
+                ripple_std=rip_tsd.iloc[i]
+                ripple_duration=((rip_ep.iloc[[i]]['end']-rip_ep.iloc[[i]]['start'])*1000)[0]  
+                if event_peak_times[i]>0.25:
+                    start_time=event_peak_times[i]-0.25
+                    end_time=event_peak_times[i]+0.25
+                    rip_long_ep = nap.IntervalSet(start = start_time, end = end_time, time_units = 's') 
+                    LFP_ep=LFP.restrict(rip_long_ep)
+                    #SPAD_ep=SPAD.restrict(rip_long_ep)
+                    SPAD_smooth_ep=SPAD_smooth.restrict(rip_long_ep)
+                    SPAD_ripple_band_filtered_ep=SPAD_ripple_band_filtered.restrict(rip_long_ep) 
+                    ripple_band_filtered_ep=ripple_band_filtered.restrict(rip_long_ep)                    
+                    #Set the title of ripple feature
+                    plot_title = "Optical signal from pyPhotometry" 
+                    sst_ep,frequency_spad,power_spad,global_ws=OE.Calculate_wavelet(SPAD_smooth_ep,lowpassCutoff=200,Fs=self.fs,scale=40)
+                    time = np.arange(-len(sst_ep)/2,len(sst_ep)/2) *(1/self.fs)
+                    OE.plot_ripple_overlay (ax[0],LFP_ep,SPAD_smooth_ep,frequency_spad,power_spad,time,ripple_band_filtered_ep,plot_title,plotLFP=False,plotSPAD=True,plotRipple=False)                                   
+                    #Set the title of ripple feature
+                    plot_title = "Local Field Potential with Spectrogram" 
+                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_ep,lowpassCutoff=1500,Fs=self.fs,scale=40) 
+                    OE.plot_ripple_overlay (ax[1],LFP_ep,SPAD_smooth_ep,frequency,power,time,ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=False)
+                    lags,cross_corr =OE.calculate_correlation_with_detrend (SPAD_smooth_ep,LFP_ep)
+                    #cross_corr = signal.correlate(spad_1, lfp_1, mode='full')
+                    cross_corr_values.append(cross_corr)
+                    # print('LFP_ep length:',len(LFP_ep))
+                    # print('SPAD_ep length:',len(SPAD_smooth_ep))
+                    # print('Cross corr:',len(cross_corr))
+                    
+                if event_peak_times[i]>0.05:
+                    start_time=event_peak_times[i]-0.05
+                    end_time=event_peak_times[i]+0.05
+                    rip_long_ep = nap.IntervalSet(start = start_time, end = end_time, time_units = 's') 
+                    LFP_ep=LFP.restrict(rip_long_ep)
+                    SPAD_ep=SPAD.restrict(rip_long_ep)
+                    ripple_band_filtered_ep=ripple_band_filtered.restrict(rip_long_ep)
+                    #SPAD_ripple_band_filtered_ep=SPAD_ripple_band_filtered.restrict(rip_long_ep)
+                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_ep,lowpassCutoff=1500,Fs=self.fs,scale=40)                
+                    time = np.arange(-len(sst_ep)/2,len(sst_ep)/2) *(1/self.fs)
+                    #Set the title of ripple feature
+                    plot_title = f"Ripple Peak std:{ripple_std:.2f}, Ripple Duration:{ripple_duration:.2f} ms" 
+                    #OE.plot_ripple_overlay (ax[2],ripple_band_filtered_ep,SPAD_ep,frequency,power,time,SPAD_ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=True)
+                    OE.plot_ripple_overlay (ax[2],LFP_ep,SPAD_ep,frequency,power,time,ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=True)
+                
+                ax[0].axvline(0, color='white',linewidth=2)
+                ax[1].axvline(0, color='white',linewidth=2)
+                ax[2].axvline(0, color='white',linewidth=2) 
+                plt.tight_layout()
+                
+                figName=self.recordingName+'_Ripple'+str(i)+'.png'
+                fig.savefig(os.path.join(save_ripple_path,figName))
+
+            cross_corr_values = np.array(cross_corr_values)
+            # Truncate all columns to the common length
+            common_length = min(len(column) for column in cross_corr_values)
+            truncated_corr_array = np.array([column[1:common_length-1] for column in cross_corr_values])
+            mean_cross_corr = np.mean(truncated_corr_array, axis=0)
+            std_cross_corr = np.std(truncated_corr_array, axis=0)
+            
+            x = lags[1:common_length-1]/self.fs
+            
+            plt.figure(figsize=(8, 4))
+            plt.plot(x, mean_cross_corr, color='b', label='Mean Cross-Correlation')
+            plt.fill_between(x, mean_cross_corr - std_cross_corr, mean_cross_corr + std_cross_corr, color='gray', alpha=0.3, label='Standard Deviation')
+            plt.xlabel('Lags(seconds)')
+            plt.ylabel('Cross-Correlation')
+            plt.title('Mean Cross-Correlation with Standard Deviation (1-Second Window)')
+            plt.legend()
+            plt.grid()
+            CorrfigName=self.recordingName+'_Ripple_CrossCorrelation_'+lfp_channel+'.png'
+            plt.savefig(os.path.join(self.savepath,CorrfigName))
+            plt.show()
+        return ripple_band_filtered,rip_ep,rip_tsd,cross_corr_values
+    
+    
+    def pynappleThetaAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,Low_thres=1,High_thres=10,plot_ripple_ep=True):
+        'This is the LFP data that need to be saved for the sync ananlysis'
+        data_segment=self.Ephys_tracking_spad_aligned
+        #data_segment=self.theta_part
+        timestamps=data_segment['timestamps'].copy()
+        timestamps=timestamps.to_numpy()
+        timestamps=timestamps-timestamps[0]
+        #Use non-theta part to detect ripple
+        lfp_data=data_segment[lfp_channel]
+        spad_data=data_segment['zscore_raw']
+        lfp_data=lfp_data/1000 #change the unit from uV to mV
+        SPAD_cutoff=50
+        SPAD_smooth_np = OE.smooth_signal(spad_data,Fs=self.fs,cutoff=SPAD_cutoff)
+        'To align LFP and SPAD raw data to pynapple format'
+        LFP=nap.Tsd(t = timestamps, d = lfp_data.to_numpy(), time_units = 's')
+        SPAD=nap.Tsd(t = timestamps, d = spad_data.to_numpy(), time_units = 's')
+        SPAD_smooth=nap.Tsd(t = timestamps, d = SPAD_smooth_np, time_units = 's')
+        if self.IsTracking:
+            speed=nap.Tsd(t = timestamps, d = data_segment['speed_abs'].to_numpy(), time_units = 's')
+        
+        'Calculate theta band for optical signal'
+        theta_band_filtered_spad,nSS_spad,nSS3_spad,rip_ep_spad,rip_tsd_spad = OE.getThetaEvents (SPAD_smooth,self.fs,windowlen=2000,Low_thres=Low_thres,High_thres=High_thres)
+        'To detect theta by LFP'
+        theta_band_filtered,nSS,nSS3,rip_ep,rip_tsd = OE.getThetaEvents (LFP,self.fs,windowlen=2000,Low_thres=Low_thres,High_thres=High_thres)    
+        'To plot the choosen segment'
+        ex_ep = nap.IntervalSet(start = ep_start, end = ep_end, time_units = 's') 
+        fig, ax = plt.subplots(6, 1, figsize=(10, 12))
+        OE.plot_trace_nap (ax[0], LFP,ex_ep,color=sns.color_palette("husl", 8)[5],title='LFP raw Trace')
+        OE.plot_trace_nap (ax[1], theta_band_filtered,ex_ep,color=sns.color_palette("husl", 8)[5],title='Theta band')
+        OE.plot_ripple_event (ax[2], rip_ep, rip_tsd, ex_ep, nSS, nSS3, Low_thres=Low_thres) 
+                
+        print('LFP length:',len(LFP))
+        print('SPAD length:',len(SPAD))
+        print('SPAD_smooth length:',len(SPAD_smooth_np))
+        
+        OE.plot_trace_nap (ax[3], SPAD_smooth,ex_ep,color='green',title='calcium recording (z-score)')
+        LFP_thetaband=OE.band_pass_filter(LFP.restrict(ex_ep),4,20,Fs=self.fs)        
+        sst,frequency,power,global_ws=OE.Calculate_wavelet(LFP_thetaband,lowpassCutoff=50,Fs=self.fs,scale=200)
+        OE.plot_wavelet(ax[4],sst,frequency,power,Fs=self.fs,colorBar=False,logbase=True)
+        
+        if self.IsTracking:
+            OE.plot_trace_nap (ax[5], speed,ex_ep,color='grey',title='speed (cm/second)')
+            ax[5].set_ylim(0,10)
+        #OE.plot_ripple_spectrum (ax[4], LFP, ex_ep,y_lim=30,Fs=self.fs,vmax_percentile=100)
+        plt.subplots_adjust(hspace=0.5)
+    
+        print('LFP_thetaband length:',len(LFP_thetaband))
+        '''To calculate cross-correlation'''
+        cross_corr_values = []
+        if plot_ripple_ep:
+            save_theta_path = os.path.join(self.savepath, self.recordingName+'_Thetas_'+lfp_channel)
+            if not os.path.exists(save_theta_path):
+                os.makedirs(save_theta_path)
+                
+            event_peak_times=rip_tsd.index.to_numpy()
+            for i in range(len(rip_ep)):
+                ripple_std=rip_tsd.iloc[i]
+                ripple_duration=((rip_ep.iloc[[i]]['end']-rip_ep.iloc[[i]]['start'])*1000)[0]  
+                if event_peak_times[i]>0.5:
+                    fig, ax = plt.subplots(3, 1, figsize=(6, 9))
+                    start_time=event_peak_times[i]-0.5
+                    end_time=event_peak_times[i]+0.5
+                    rip_long_ep = nap.IntervalSet(start = start_time, end = end_time, time_units = 's') 
+                    LFP_ep=LFP.restrict(rip_long_ep)
+                    SPAD_ep=SPAD.restrict(rip_long_ep)
+                    SPAD_smooth_ep=SPAD_smooth.restrict(rip_long_ep)
+                    theta_band_filtered_spad_ep=theta_band_filtered_spad.restrict(rip_long_ep)  
+                    theta_band_filtered_ep=theta_band_filtered.restrict(rip_long_ep)                    
+                    #Set the title of ripple feature
+                    plot_title = "Optical signal from SPAD" 
+                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(theta_band_filtered_spad_ep,lowpassCutoff=500,Fs=self.fs,scale=400)
+                    time = np.arange(-len(sst_ep)/2,len(sst_ep)/2) *(1/self.fs)
+                    OE.plot_theta_overlay (ax[0],LFP_ep,SPAD_smooth_ep,frequency,power,time,theta_band_filtered_ep,plot_title,plotLFP=False,plotSPAD=True,plotTheta=False)                                   
+                    #Set the title of ripple feature
+                    plot_title = "Local Field Potential with Spectrogram" 
+                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(theta_band_filtered_ep,lowpassCutoff=100,Fs=self.fs,scale=400) 
+                    OE.plot_theta_overlay (ax[1],LFP_ep,SPAD_smooth_ep,frequency,power,time,theta_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotTheta=False)
+                    #cross_corr = signal.correlate(spad_1, lfp_1, mode='full')
+                    lags,cross_corr =OE.calculate_correlation_with_detrend (SPAD_smooth_ep,LFP_ep)
+                    cross_corr_values.append(cross_corr)
+                    
+                    ripple_band_filtered_ep=theta_band_filtered.restrict(rip_long_ep)           
+                    time = np.arange(-len(sst_ep)/2,len(sst_ep)/2) *(1/self.fs)
+                    #Set the title of ripple feature
+                    plot_title = f"Ripple Peak std:{ripple_std:.2f}, Ripple Duration:{ripple_duration:.2f} ms" 
+                    OE.plot_theta_overlay (ax[2],LFP_ep,theta_band_filtered_spad_ep,frequency,power,time,ripple_band_filtered_ep,plot_title,plotLFP=False,plotSPAD=True,plotTheta=True)
+                ax[0].axvline(0, color='white',linewidth=2)
+                ax[1].axvline(0, color='white',linewidth=2)
+                ax[2].axvline(0, color='white',linewidth=2) 
+                plt.tight_layout()
+                
+                figName=self.recordingName+'Theta'+str(i)+'.png'
+                fig.savefig(os.path.join(save_theta_path,figName))
+                
+            cross_corr_values = np.array(cross_corr_values)
+            # Truncate all columns to the common length
+            common_length = min(len(column) for column in cross_corr_values)
+            truncated_corr_array = np.array([column[1:common_length-1] for column in cross_corr_values])
+            mean_cross_corr = np.mean(truncated_corr_array, axis=0)
+            std_cross_corr = np.std(truncated_corr_array, axis=0)
+            
+            x = lags[1:common_length-1]/self.fs
+            
+            plt.figure(figsize=(8, 4))
+            plt.plot(x, mean_cross_corr, color='b', label='Mean Cross-Correlation')
+            plt.fill_between(x, mean_cross_corr - std_cross_corr, mean_cross_corr + std_cross_corr, color='gray', alpha=0.3, label='Standard Deviation')
+            plt.xlabel('Lags(seconds)')
+            plt.ylabel('Cross-Correlation')
+            plt.title('Mean Cross-Correlation with Standard Deviation (1-Second Window)')
+            plt.legend()
+            plt.grid()
+            CorrfigName=self.recordingName+'_Theta_CrossCorrelation_'+lfp_channel+'.png'
+            plt.savefig(os.path.join(self.savepath,CorrfigName))
+            plt.show()
+            
+        return theta_band_filtered,rip_ep,rip_tsd,cross_corr_values
+
     def get_mean_corr_two_traces (self, spad_data,lfp_data,corr_window):
         # corr_window as second
         total_seconds=len(spad_data)/self.fs
@@ -480,261 +765,51 @@ class SyncOEpyPhotometrySession:
         plt.legend()
         plt.grid()
         plt.show()
-        return lags,mean_cross_corr,std_cross_corr    
-    
-    def pynappleAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,Low_thres=1,High_thres=10,plot_ripple_ep=True):
-        'This is the LFP data that need to be saved for the sync ananlysis'
-        data_segment=self.Ephys_tracking_spad_aligned
-        #data_segment=self.non_theta_part
-        timestamps=data_segment['timestamps'].copy()
-        timestamps=timestamps.to_numpy()
-        timestamps=timestamps-timestamps[0]
-        #Use non-theta part to detect ripple
-        lfp_data=data_segment[lfp_channel]
-        spad_data=data_segment['zscore_raw']
-        lfp_data=lfp_data/1000 #change the unit from uV to mV
-        SPAD_cutoff=50
-        SPAD_smooth_np = OE.smooth_signal(spad_data,Fs=self.fs,cutoff=SPAD_cutoff)
-        'To align LFP and SPAD raw data to pynapple format'
-        LFP=nap.Tsd(t = timestamps, d = lfp_data.to_numpy(), time_units = 's')
-        SPAD=nap.Tsd(t = timestamps, d = spad_data.to_numpy(), time_units = 's')
-        SPAD_smooth=nap.Tsd(t = timestamps, d = SPAD_smooth_np, time_units = 's')
-        if self.IsTracking:
-            speed=nap.Tsd(t = timestamps, d = data_segment['speed_abs'].to_numpy(), time_units = 's')
-        
-        'To detect ripple'
-        ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd = OE.getRippleEvents (LFP,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
-        #SPAD_ripple_band_filtered,nSS_1,nSS3_1,rip_ep_1,rip_tsd_1 = OE.getRippleEvents (SPAD,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
-        'To plot the choosen segment'
-        ex_ep = nap.IntervalSet(start = ep_start, end = ep_end, time_units = 's') 
-        fig, ax = plt.subplots(6, 1, figsize=(10, 12))
-        OE.plot_trace_nap (ax[0], LFP,ex_ep,color=sns.color_palette("husl", 8)[5],title='LFP raw Trace')
-        OE.plot_trace_nap (ax[1], ripple_band_filtered,ex_ep,color=sns.color_palette("husl", 8)[5],title='Ripple band')
-        OE.plot_ripple_event (ax[2], rip_ep, rip_tsd, ex_ep, nSS, nSS3, Low_thres=Low_thres) 
-                
-        print('LFP length:',len(LFP))
-        print('SPAD length:',len(SPAD))
-        print('SPAD_smooth length:',len(SPAD_smooth_np))
-        
-        OE.plot_trace_nap (ax[3], SPAD_smooth,ex_ep,color='green',title='calcium recording (z-score)')
-        LFP_rippleband=OE.band_pass_filter(LFP.restrict(ex_ep),150,250,Fs=self.fs)        
-        sst,frequency,power,global_ws=OE.Calculate_wavelet(LFP_rippleband,lowpassCutoff=1500,Fs=self.fs,scale=40)
-        OE.plot_wavelet(ax[4],sst,frequency,power,Fs=self.fs,colorBar=False)
-        
-        if self.IsTracking:
-            OE.plot_trace_nap (ax[5], speed,ex_ep,color='grey',title='speed (cm/second)')
-            ax[5].set_ylim(0,10)
-        #OE.plot_ripple_spectrum (ax[4], LFP, ex_ep,y_lim=30,Fs=self.fs,vmax_percentile=100)
-        plt.subplots_adjust(hspace=0.5)
+        return lags,mean_cross_corr,std_cross_corr   
 
-        print('LFP_rippleband length:',len(LFP_rippleband))
-        '''To calculate cross-correlation'''
-        cross_corr_values = []
-        if plot_ripple_ep:
-            event_peak_times=rip_tsd.index.to_numpy()
-            for i in range(1,len(rip_ep)-1):
-                fig, ax = plt.subplots(3, 1, figsize=(10, 18))
-                ripple_std=rip_tsd.iloc[i]
-                ripple_duration=((rip_ep.iloc[[i]]['end']-rip_ep.iloc[[i]]['start'])*1000)[0]  
-                if event_peak_times[i]>0.25:
-                    start_time=event_peak_times[i]-0.25
-                    end_time=event_peak_times[i]+0.25
-                    rip_long_ep = nap.IntervalSet(start = start_time, end = end_time, time_units = 's') 
-                    LFP_ep=LFP.restrict(rip_long_ep)
-                    SPAD_ep=SPAD.restrict(rip_long_ep)
-                    SPAD_smooth_ep=SPAD_smooth.restrict(rip_long_ep)
-                    ripple_band_filtered_ep=ripple_band_filtered.restrict(rip_long_ep)                    
-                    #Set the title of ripple feature
-                    plot_title = "Optical signal from SPAD" 
-                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(SPAD_ep,lowpassCutoff=200,Fs=self.fs,scale=40)
-                    time = np.arange(-len(sst_ep)/2,len(sst_ep)/2) *(1/self.fs)
-                    OE.plot_ripple_overlay (ax[0],LFP_ep,SPAD_smooth_ep,frequency,power,time,ripple_band_filtered_ep,plot_title,plotLFP=False,plotSPAD=True,plotRipple=False)                                   
-                    #Set the title of ripple feature
-                    plot_title = "Local Field Potential with Spectrogram" 
-                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_ep,lowpassCutoff=1500,Fs=self.fs,scale=40) 
-                    OE.plot_ripple_overlay (ax[1],LFP_ep,SPAD_ep,frequency,power,time,ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=False)
-                    lags,cross_corr =OE.calculate_correlation_with_detrend (SPAD_ep,LFP_ep)
-                    #cross_corr = signal.correlate(spad_1, lfp_1, mode='full')
-                    cross_corr_values.append(cross_corr)
-                    print('LFP_ep length:',len(LFP_ep))
-                    print('SPAD_ep length:',len(SPAD_ep))
-                    print('Cross corr:',len(cross_corr))
-                    
-                if event_peak_times[i]>0.05:
-                    start_time=event_peak_times[i]-0.05
-                    end_time=event_peak_times[i]+0.05
-                    rip_long_ep = nap.IntervalSet(start = start_time, end = end_time, time_units = 's') 
-                    LFP_ep=LFP.restrict(rip_long_ep)
-                    SPAD_ep=SPAD.restrict(rip_long_ep)
-                    ripple_band_filtered_ep=ripple_band_filtered.restrict(rip_long_ep)
-                    #SPAD_ripple_band_filtered_ep=SPAD_ripple_band_filtered.restrict(rip_long_ep)
-                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_ep,lowpassCutoff=1500,Fs=self.fs,scale=40)                
-                    time = np.arange(-len(sst_ep)/2,len(sst_ep)/2) *(1/self.fs)
-                    #Set the title of ripple feature
-                    plot_title = f"Ripple Peak std:{ripple_std:.2f}, Ripple Duration:{ripple_duration:.2f} ms" 
-                    #OE.plot_ripple_overlay (ax[2],ripple_band_filtered_ep,SPAD_ep,frequency,power,time,SPAD_ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=True)
-                    OE.plot_ripple_overlay (ax[2],LFP_ep,SPAD_ep,frequency,power,time,ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=True)
-                ax[0].axvline(0, color='white',linewidth=2)
-                ax[1].axvline(0, color='white',linewidth=2)
-                ax[2].axvline(0, color='white',linewidth=2) 
-                '''Using the following codes, I only plot the ripple epoch'''
-                # LFP_ep=LFP.restrict(rip_ep.iloc[[i]])
-                # SPAD_ep=SPAD_smooth.restrict(rip_ep.iloc[[i]])
-                # ripple_band_filtered_ep=ripple_band_filtered.restrict(rip_ep.iloc[[i]])
-                # sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_ep,lowpassCutoff=1500,Fs=self.fs,scale=40)              
-                # time = np.arange(len(sst_ep)) *(1/self.fs)
-                # #Set the title of ripple feature
-                # ripple_std=rip_tsd.iloc[i]
-                # ripple_duration=((rip_ep.iloc[[i]]['end']-rip_ep.iloc[[i]]['start'])*1000)[0]
-                # plot_title = "Filtered ripple"
-                # OE.plot_ripple_overlay (ax[2],LFP_ep,SPAD_ep,frequency,power,time,ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=True)
-                # t=event_peak_times[i]-rip_ep['start'][i]
-                # ax[2].axvline(t, color='white',linewidth=2)
-            cross_corr_values = np.array(cross_corr_values)
-            # Truncate all columns to the common length
-            common_length = min(len(column) for column in cross_corr_values)
-            truncated_corr_array = np.array([column[1:common_length-1] for column in cross_corr_values])
-            mean_cross_corr = np.mean(truncated_corr_array, axis=0)
-            std_cross_corr = np.std(truncated_corr_array, axis=0)
-            
-            x = lags[1:common_length-1]/self.fs
-            
-            plt.figure(figsize=(10, 5))
-            plt.plot(x, mean_cross_corr, color='b', label='Mean Cross-Correlation')
-            plt.fill_between(x, mean_cross_corr - std_cross_corr, mean_cross_corr + std_cross_corr, color='gray', alpha=0.3, label='Standard Deviation')
-            plt.xlabel('Lags(seconds)')
-            plt.ylabel('Cross-Correlation')
-            plt.title('Mean Cross-Correlation with Standard Deviation (1-Second Window)')
-            plt.legend()
-            plt.grid()
-            plt.show()
-            
-        return ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd,cross_corr_values
-
-    def pynappleThetaAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,Low_thres=1,High_thres=10,plot_ripple_ep=True):
-        'This is the LFP data that need to be saved for the sync ananlysis'
-        data_segment=self.Ephys_tracking_spad_aligned
-        #data_segment=self.non_theta_part
-        timestamps=data_segment['timestamps'].copy()
-        timestamps=timestamps.to_numpy()
-        timestamps=timestamps-timestamps[0]
-        #Use non-theta part to detect ripple
-        lfp_data=data_segment[lfp_channel]
-        spad_data=data_segment['zscore_raw']
-        lfp_data=lfp_data/1000 #change the unit from uV to mV
-        SPAD_cutoff=20
-        SPAD_smooth_np = OE.smooth_signal(spad_data,Fs=self.fs,cutoff=SPAD_cutoff)
-        'To align LFP and SPAD raw data to pynapple format'
-        LFP=nap.Tsd(t = timestamps, d = lfp_data.to_numpy(), time_units = 's')
-        SPAD=nap.Tsd(t = timestamps, d = spad_data.to_numpy(), time_units = 's')
-        SPAD_smooth=nap.Tsd(t = timestamps, d = SPAD_smooth_np, time_units = 's')
-        if self.IsTracking:
-            speed=nap.Tsd(t = timestamps, d = data_segment['speed_abs'].to_numpy(), time_units = 's')
+    # def separate_theta_by_relative_bandpower (self,LFP_channel,theta_thres,nonthetha_thres):
+    #     '''NOTE: 
+    #     This is not a good way to separate theta automatically
+    #     The threshold for spectrum power is highly depended on the recording quality, electrode position, etc.
+    #     A rigid threshold will also cut the recording into incontinuous pieces.
+    #     I changed to use the pynacollada method in function  
+    #     '''
+    #     lfp_data=self.Ephys_tracking_spad_aligned[LFP_channel]/1000
+    #     sst,frequency,power,global_ws=OE.Calculate_wavelet(lfp_data/1000,lowpassCutoff=500,Fs=self.fs)
+    #     #set bound for theta band
+    #     lower_bound= 4
+    #     upper_bound = 12
+    #     indices_between_range = np.where((frequency >= lower_bound) & (frequency <= upper_bound))
         
-        'To detect theta'
-        theta_band_filtered,nSS,nSS3,rip_ep,rip_tsd = OE.getThetaEvents (LFP,self.fs,windowlen=2000,Low_thres=Low_thres,High_thres=High_thres)    
-        'To plot the choosen segment'
-        ex_ep = nap.IntervalSet(start = ep_start, end = ep_end, time_units = 's') 
-        fig, ax = plt.subplots(6, 1, figsize=(10, 12))
-        OE.plot_trace_nap (ax[0], LFP,ex_ep,color=sns.color_palette("husl", 8)[5],title='LFP raw Trace')
-        OE.plot_trace_nap (ax[1], theta_band_filtered,ex_ep,color=sns.color_palette("husl", 8)[5],title='Theta band')
-        OE.plot_ripple_event (ax[2], rip_ep, rip_tsd, ex_ep, nSS, nSS3, Low_thres=Low_thres) 
-                
-        print('LFP length:',len(LFP))
-        print('SPAD length:',len(SPAD))
-        print('SPAD_smooth length:',len(SPAD_smooth_np))
-        print('theta_band_filtered length:',len(theta_band_filtered))
+    #     power_band=power[indices_between_range[0]]
+    #     power_band_mean=np.max(power_band,axis=0)
+    #     percentile_thres_theta = np.percentile(power_band_mean, theta_thres)
+    #     percentile_thres_nontheta = np.percentile(power_band_mean, nonthetha_thres)
+    #     indices_above_percentile = np.where(power_band_mean > percentile_thres_theta)
+    #     indices_below_percentile = np.where(power_band_mean < percentile_thres_nontheta)
+    #     #Separate theta and non-theta
+    #     self.theta_part=self.Ephys_tracking_spad_aligned.iloc[indices_above_percentile[0]]
+    #     self.non_theta_part=self.Ephys_tracking_spad_aligned.iloc[indices_below_percentile[0]] 
+    #     # Save the theta part with real indices
+    #     theta_path=os.path.join(self.dpath, "theta_part_with_index.pkl")
+    #     self.theta_part.to_pickle(theta_path) 
+    #     non_theta_path=os.path.join(self.dpath, "non_theta_part_with_index.pkl")
+    #     self.non_theta_part.to_pickle(non_theta_path)
         
-        OE.plot_trace_nap (ax[3], SPAD_smooth,ex_ep,color='green',title='calcium recording (z-score)')
-        LFP_thetaband=OE.band_pass_filter(LFP.restrict(ex_ep),4,20,Fs=self.fs)        
-        sst,frequency,power,global_ws=OE.Calculate_wavelet(LFP_thetaband,lowpassCutoff=50,Fs=self.fs,scale=200)
-        OE.plot_wavelet(ax[4],sst,frequency,power,Fs=self.fs,colorBar=False,logbase=True)
+    #     #From here,I reset the index, concatenate the theta part and non-theta part just for plotting and show the features
+    #     self.theta_part=self.theta_part.reset_index(drop=True)
+    #     self.non_theta_part=self.non_theta_part.reset_index(drop=True)
         
-        if self.IsTracking:
-            OE.plot_trace_nap (ax[5], speed,ex_ep,color='grey',title='speed (cm/second)')
-            ax[5].set_ylim(0,10)
-        #OE.plot_ripple_spectrum (ax[4], LFP, ex_ep,y_lim=30,Fs=self.fs,vmax_percentile=100)
-        plt.subplots_adjust(hspace=0.5)
-    
-        print('LFP_thetaband length:',len(LFP_thetaband))
-        '''To calculate cross-correlation'''
-        cross_corr_values = []
-        if plot_ripple_ep:
-            event_peak_times=rip_tsd.index.to_numpy()
-            for i in range(1,len(rip_ep)-1):
-                fig, ax = plt.subplots(3, 1, figsize=(10, 18))
-                ripple_std=rip_tsd.iloc[i]
-                ripple_duration=((rip_ep.iloc[[i]]['end']-rip_ep.iloc[[i]]['start'])*1000)[0]  
-                if event_peak_times[i]>0.5:
-                    start_time=event_peak_times[i]-0.5
-                    end_time=event_peak_times[i]+0.5
-                    rip_long_ep = nap.IntervalSet(start = start_time, end = end_time, time_units = 's') 
-                    LFP_ep=LFP.restrict(rip_long_ep)
-                    SPAD_ep=SPAD.restrict(rip_long_ep)
-                    SPAD_smooth_ep=SPAD_smooth.restrict(rip_long_ep)
-                    ripple_band_filtered_ep=theta_band_filtered.restrict(rip_long_ep)                    
-                    #Set the title of ripple feature
-                    plot_title = "Optical signal from SPAD" 
-                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(SPAD_ep,lowpassCutoff=500,Fs=self.fs,scale=400)
-                    time = np.arange(-len(sst_ep)/2,len(sst_ep)/2) *(1/self.fs)
-                    OE.plot_theta_overlay (ax[0],LFP_ep,SPAD_smooth_ep,frequency,power,time,ripple_band_filtered_ep,plot_title,plotLFP=False,plotSPAD=True,plotTheta=False)                                   
-                    #Set the title of ripple feature
-                    plot_title = "Local Field Potential with Spectrogram" 
-                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_ep,lowpassCutoff=100,Fs=self.fs,scale=400) 
-                    OE.plot_theta_overlay (ax[1],LFP_ep,SPAD_ep,frequency,power,time,ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotTheta=False)
-                    lags,cross_corr =OE.calculate_correlation_with_detrend (SPAD_ep,LFP_ep)
-                    #cross_corr = signal.correlate(spad_1, lfp_1, mode='full')
-                    cross_corr_values.append(cross_corr)
-                    print('LFP_ep length:',len(LFP_ep))
-                    print('SPAD_ep length:',len(SPAD_ep))
-                    print('Cross corr:',len(cross_corr))
-                    
-                if event_peak_times[i]>0.5:
-                    start_time=event_peak_times[i]-0.5
-                    end_time=event_peak_times[i]+0.5
-                    rip_long_ep = nap.IntervalSet(start = start_time, end = end_time, time_units = 's') 
-                    LFP_ep=LFP.restrict(rip_long_ep)
-                    SPAD_ep=SPAD.restrict(rip_long_ep)
-                    ripple_band_filtered_ep=theta_band_filtered.restrict(rip_long_ep)
-                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_ep,lowpassCutoff=1500,Fs=self.fs,scale=200)                
-                    time = np.arange(-len(sst_ep)/2,len(sst_ep)/2) *(1/self.fs)
-                    #Set the title of ripple feature
-                    plot_title = f"Ripple Peak std:{ripple_std:.2f}, Ripple Duration:{ripple_duration:.2f} ms" 
-                    OE.plot_theta_overlay (ax[2],LFP_ep,SPAD_ep,frequency,power,time,ripple_band_filtered_ep,plot_title,plotLFP=False,plotSPAD=False,plotTheta=True)
-                ax[0].axvline(0, color='white',linewidth=2)
-                ax[1].axvline(0, color='white',linewidth=2)
-                ax[2].axvline(0, color='white',linewidth=2) 
-                '''Using the following codes, I only plot the ripple epoch'''
-                # LFP_ep=LFP.restrict(rip_ep.iloc[[i]])
-                # SPAD_ep=SPAD_smooth.restrict(rip_ep.iloc[[i]])
-                # ripple_band_filtered_ep=ripple_band_filtered.restrict(rip_ep.iloc[[i]])
-                # sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_ep,lowpassCutoff=1500,Fs=self.fs,scale=40)              
-                # time = np.arange(len(sst_ep)) *(1/self.fs)
-                # #Set the title of ripple feature
-                # ripple_std=rip_tsd.iloc[i]
-                # ripple_duration=((rip_ep.iloc[[i]]['end']-rip_ep.iloc[[i]]['start'])*1000)[0]
-                # plot_title = "Filtered ripple"
-                # OE.plot_ripple_overlay (ax[2],LFP_ep,SPAD_ep,frequency,power,time,ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=True)
-                # t=event_peak_times[i]-rip_ep['start'][i]
-                # ax[2].axvline(t, color='white',linewidth=2)
-            cross_corr_values = np.array(cross_corr_values)
-            # Truncate all columns to the common length
-            common_length = min(len(column) for column in cross_corr_values)
-            truncated_corr_array = np.array([column[1:common_length-1] for column in cross_corr_values])
-            mean_cross_corr = np.mean(truncated_corr_array, axis=0)
-            std_cross_corr = np.std(truncated_corr_array, axis=0)
-            
-            x = lags[1:common_length-1]/self.fs
-            
-            plt.figure(figsize=(10, 5))
-            plt.plot(x, mean_cross_corr, color='b', label='Mean Cross-Correlation')
-            plt.fill_between(x, mean_cross_corr - std_cross_corr, mean_cross_corr + std_cross_corr, color='gray', alpha=0.3, label='Standard Deviation')
-            plt.xlabel('Lags(seconds)')
-            plt.ylabel('Cross-Correlation')
-            plt.title('Mean Cross-Correlation with Standard Deviation (1-Second Window)')
-            plt.legend()
-            plt.grid()
-            plt.show()
-            
-        return theta_band_filtered,nSS,nSS3,rip_ep,rip_tsd,cross_corr_values
-
+    #     time_interval = 1.0 / self.fs
+    #     total_duration = len(self.non_theta_part) * time_interval
+    #     self.non_theta_part['timestamps'] = np.arange(0, total_duration, time_interval)
+    #     total_duration = len(self.theta_part) * time_interval
+    #     # Convert the 'time_column' to timedelta if it's not already
+    #     self.non_theta_part['time_column'] = pd.to_timedelta(self.non_theta_part['timestamps'],unit='s') 
+    #     # Set the index to the 'time_column'
+    #     self.non_theta_part.set_index('time_column', inplace=True)
+        
+    #     self.theta_part['timestamps'] = np.arange(0, total_duration, time_interval)
+    #     self.theta_part['time_column'] = pd.to_timedelta(self.theta_part['timestamps'], unit='s') 
+    #     self.theta_part.set_index('time_column', inplace=True)            
+    #     return self.theta_part,self.non_theta_part

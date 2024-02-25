@@ -61,8 +61,8 @@ def read_multiple_photometry_files_in_folder(pydata_folder_path,save_parent_fold
     return -1
 
 def main():
-    pydata_folder_path='E:/YYFstudy/20240214_Day3/pyPhotometry'
-    save_parent_folder='E:/YYFstudy/20240214_Day3'
+    pydata_folder_path='E:/YYFstudy/20240213_Day2/pyPhotometry'
+    save_parent_folder='E:/YYFstudy/20240213_Day2'
     read_multiple_photometry_files_in_folder(pydata_folder_path,save_parent_folder,sampling_rate=130,new_folder_name='SyncRecording')
 
 if __name__ == "__main__":

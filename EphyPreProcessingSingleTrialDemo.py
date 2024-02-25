@@ -23,12 +23,12 @@ directory = "E:/YYFstudy/20240214_Day3/OpenEphys/2024-02-14_14-23-29"
 '''Set the folder your session data, this folder is used to save decoded LFP data, it should include optical signal data and animal tracking data as .csv;
 this folder is now manually created, but I want to make it automatic'''
 
-dpath="E:/YYFstudy/20240214_Day3/SyncRecording10/"
+dpath="E:/YYFstudy/20240214_Day3/SyncRecording1/"
 
 Ephys_fs=30000 #Ephys sampling rate
 '''recordingNum is the index of recording from the OE recording, start from 0'''
 'EphysData is the LFP data that need to be saved for the sync ananlysis'
-EphysData=OE.readEphysChannel (directory, recordingNum=9)
+EphysData=OE.readEphysChannel (directory, recordingNum=0)
 
 #%% 
 '''PROCESSING SPAD SYNC RECORDINGS'''
@@ -83,7 +83,7 @@ ax.plot(py_mask)
 ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
 '''To double check the SPAD mask'''
-OE.check_SPAD_mask_length(py_mask)
+OE.check_Optical_mask_length(py_mask)
 #%% If the py mask is correct, save spad mask
 EphysData['py_mask']=py_mask
 #%%

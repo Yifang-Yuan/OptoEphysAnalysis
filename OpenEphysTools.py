@@ -276,7 +276,7 @@ def getRippleEvents (lfp_raw,Fs,windowlen=300,Low_thres=1,High_thres=10):
     return ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd
 
 def getThetaEvents (lfp_raw,Fs,windowlen=1000,Low_thres=2,High_thres=10):
-    theta_band_filtered = pyna.eeg_processing.bandpass_filter(lfp_raw, 4, 15, Fs,order=1)
+    theta_band_filtered = pyna.eeg_processing.bandpass_filter(lfp_raw, 5, 9, Fs,order=1)
     squared_signal = np.square(theta_band_filtered.values)
     window = np.ones(windowlen)/windowlen
     nSS = filtfilt(window, 1, squared_signal)
@@ -288,8 +288,8 @@ def getThetaEvents (lfp_raw,Fs,windowlen=1000,Low_thres=2,High_thres=10):
     nSS2 = nSS.threshold(Low_thres, method='above')
     nSS3 = nSS2.threshold(High_thres, method='below')
     # Round 2 : Excluding ripples whose length < minRipLen and greater than Maximum Ripple Length
-    minThetaLen = 200 # ms
-    maxThetaLen = 2000 # ms    
+    minThetaLen = 500 # ms
+    maxThetaLen = 5000 # ms    
     rip_ep = nSS3.time_support
     rip_ep = rip_ep.drop_short_intervals(minThetaLen, time_units = 'ms')
     rip_ep = rip_ep.drop_long_intervals(maxThetaLen, time_units = 'ms')
@@ -545,7 +545,7 @@ def plot_moving_state_heatmap(ax, speed_series,cbar=False,annot=False):
 
     return -1
 
-def Transient_during_LFP_event (rip_tsd,transient_trace,half_window,fs):
+def Transient_during_LFP_event (fig_save_path,rip_tsd,transient_trace,half_window,fs):
     event_peak_times=rip_tsd.index.to_numpy()
     transient_trace = transient_trace.reset_index(drop=True)
     half_window_len=int(half_window*fs)
@@ -565,7 +565,7 @@ def Transient_during_LFP_event (rip_tsd,transient_trace,half_window,fs):
     mean_z_score = np.mean(z_score_values, axis=0)
     std_z_score = np.std(z_score_values, axis=0)
     x = np.linspace(-half_window, half_window, len(mean_z_score))
-    plt.figure(figsize=(10, 5))
+    plt.figure(figsize=(8, 4))
     plt.plot(x,mean_z_score, color='b', label='Mean z-score aligned with oscillation peaks')
     plt.fill_between(x,mean_z_score - std_z_score, mean_z_score + std_z_score, color='gray', alpha=0.3, label='Standard Deviation')
     [plt.axvline(x=0, color='green')]
@@ -574,6 +574,7 @@ def Transient_during_LFP_event (rip_tsd,transient_trace,half_window,fs):
     plt.title('Mean z-score')
     plt.legend()
     plt.grid()
+    plt.savefig(fig_save_path)
     plt.show()
     return mean_z_score,std_z_score
         
@@ -587,7 +588,7 @@ def Calculate_wavelet(signal_pd,lowpassCutoff=1500,Fs=10000,scale=40):
     sst = butter_filter(signal, btype='low', cutoff=lowpassCutoff, fs=Fs, order=5)
     sst = sst - np.mean(sst)
     variance = np.std(sst, ddof=1) ** 2
-    print("variance = ", variance)
+    #print("variance = ", variance)
     # ----------C-O-M-P-U-T-A-T-I-O-N------S-T-A-R-T-S------H-E-R-E---------------
     if 0:
         variance = 1.0
@@ -600,7 +601,7 @@ def Calculate_wavelet(signal_pd,lowpassCutoff=1500,Fs=10000,scale=40):
     s0 = scale * dt  # this says start at a scale of 10ms, use shorter scale will give you wavelet at high frequecny
     j1 = 7 / dj  # this says do 7 powers-of-two with dj sub-octaves each
     lag1 = 0.1  # lag-1 autocorrelation for red noise background
-    print("lag1 = ", lag1)
+    #print("lag1 = ", lag1)
     mother = 'MORLET'
     # Wavelet transform:
     wave, period, scale, coi = wavelet(sst, dt, pad, dj, s0, j1, mother)
@@ -633,7 +634,7 @@ def plot_wavelet(ax,sst,frequency,power,Fs=10000,colorBar=False,logbase=False):
         #plt.subplots_adjust(right=0.7, top=0.9)              
     return -1
 
-def plot_wavelet_feature(sst,frequency,power,global_ws,time,sst_filtered):
+def plot_wavelet_feature(sst,frequency,power,global_ws,time,sst_filtered,powerband='(4-15Hz)'):
         import matplotlib.ticker as ticker
         from matplotlib.gridspec import GridSpec
         fig = plt.figure(figsize=(9, 10))
@@ -688,7 +689,7 @@ def plot_wavelet_feature(sst,frequency,power,global_ws,time,sst_filtered):
         #plt.xlim(xlim[:])
         plt.xlabel('Time (seconds)')
         plt.ylabel('Amplitude (mV)')
-        plt.title('d) Local field potental (4-15 Hz)')
+        plt.title('d) Local field potental '+ powerband)
 
         plt.show()
         return -1

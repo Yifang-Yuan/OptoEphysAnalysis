@@ -12,14 +12,16 @@ import pandas as pd
 from SyncOECPySessionClass import SyncOEpyPhotometrySession
 import OpenEphysTools as OE
 #%%
-dpath="E:/YYFstudy/20240214_Day3/SyncRecording9/"
+dpath="E:/YYFstudy/20240214_Day3/"
+recordingName='SyncRecording1'
 #dpath="G:/SPAD/SPADData/20230722_SPADOE/SyncRecording0/"
-Recording1=SyncOEpyPhotometrySession(dpath,IsTracking=False,read_aligned_data_from_file=False) 
+Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=False) 
+#%%
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
 LFP_channel='LFP_2'
 #%%
 '''To remove noises from the LFP data and cut Matrix to only preserve clean parts'''
-# # Recording1.remove_noise(start_time=58,end_time=62)
+#Recording1.remove_noise(start_time=0,end_time=45)
 # Recording1.remove_noise(start_time=22,end_time=25)
 # Recording1.remove_noise(start_time=62,end_time=65)
 # data=Recording1.reset_index_data()
@@ -27,19 +29,14 @@ LFP_channel='LFP_2'
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined as theta period.
 nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-#theta_part,non_theta_part=Recording1.separate_theta (LFP_channel,theta_thres=70,nonthetha_thres=50)
+theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.5,High_thres=10)
 #%%
-silced_recording=Recording1.slicing_pd_data (Recording1.Ephys_tracking_spad_aligned,start_time=0, end_time=176)
-#%%
-
 '''To plot the feature of a part of the signal'''
-start_time=0
-end_time=176
+start_time=60
+end_time=70
 Recording1.plot_segment_feature (LFP_channel,start_time,end_time,SPAD_cutoff=50,lfp_cutoff=500)
-'To plot the feature of theta-part of the signal'
-#Recording1.plot_theta_feature (LFP_channel,start_time,end_time,LFP=True)
-'To plot the feature of non-theta-part of the signal'
-# Recording1.plot_ripple_feature (LFP_channel,start_time,end_time)
+'To plot the feature of theta-band and ripple-band of the segment signal'
+Recording1.plot_band_power_feature (LFP_channel,start_time,end_time,LFP=True)
 #%% This is to calculate and plot the trace around theta trough
 silced_recording=theta_part
 silced_recording['theta_angle']=OE.calculate_theta_phase_angle(silced_recording[LFP_channel], theta_low=5, theta_high=9)
@@ -84,22 +81,28 @@ lags,Corr_mean,Corr_std=Recording1.get_mean_corr_two_traces (spad_low,lfp_low,co
 #%% Detect ripple event
 '''RIPPLE DETECTION
 For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
-ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd,cross_corr_values=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,ep_start=0,ep_end=80,
-                                                                          Low_thres=2,High_thres=10,plot_ripple_ep=True)
+ripple_band_filtered,rip_ep,rip_tsd,cross_corr_values=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,ep_start=0,ep_end=80,
+                                                                          Low_thres=2,High_thres=10,plot_segment=False,plot_ripple_ep=True,excludeTheta=True)
 #This is to plot the average calcium transient around a ripple peak
+figName=recordingName+'_RipplePeakOpticalSignal_'+LFP_channel+'.png'
+fig_save_path=os.path.join(dpath,'Results',figName)
+
 transient_trace=Recording1.Ephys_tracking_spad_aligned['zscore_raw']
-#transient_trace= OE.smooth_signal(transient_trace,Fs=10000,cutoff=100)
-mean_z_score,std_z_score=OE.Transient_during_LFP_event (rip_tsd,transient_trace,half_window=0.2,fs=10000)
+mean_z_score,std_z_score=OE.Transient_during_LFP_event (fig_save_path,rip_tsd,transient_trace,half_window=0.2,fs=10000)
 #time_duration=transient_trace.index[-1].total_seconds()
 #%% Detect theta event
 '''THETA PEAK DETECTION
 For a rigid threshold to get larger amplitude theta events: Low_thres=1, for more ripple events, Low_thres=0.5'''
-theta_band_filtered,nSS,nSS3,rip_ep,rip_tsd,cross_corr_values=Recording1.pynappleThetaAnalysis (lfp_channel=LFP_channel,ep_start=0,ep_end=10,
+theta_band_filtered,rip_ep,rip_tsd,cross_corr_values=Recording1.pynappleThetaAnalysis (lfp_channel=LFP_channel,ep_start=0,ep_end=100,
                                                                          Low_thres=0.5,High_thres=10,plot_ripple_ep=True)
+
+
+figName=recordingName+'_ThetaPeakOpticalSignal_'+LFP_channel+'.png'
+fig_save_path=os.path.join(dpath,'Results',figName)
 #This is to plot the average calcium transient around a ripple peak
 transient_trace=Recording1.Ephys_tracking_spad_aligned['zscore_raw']
-#transient_trace= OE.smooth_signal(transient_trace,Fs=10000,cutoff=100)
-mean_z_score,std_z_score=OE.Transient_during_LFP_event (rip_tsd,transient_trace,half_window=0.5,fs=10000)
+mean_z_score,std_z_score=OE.Transient_during_LFP_event (fig_save_path,rip_tsd,transient_trace,half_window=0.5,fs=10000)
+
 #time_duration=transient_trace.index[-1].total_seconds()
 #%%
 '''This can convert the speed to moving state'''
@@ -107,3 +110,4 @@ mean_z_score,std_z_score=OE.Transient_during_LFP_event (rip_tsd,transient_trace,
 # fig, ax = plt.subplots(figsize=(15,5))
 # ax=OE.plot_moving_state_heatmap(ax, moving_state,cbar=True,annot=False)
 # Recording1.plot_two_traces (spad_low,lfp_low,moving_state)
+#%%
