@@ -61,7 +61,9 @@ You can still use `EphyPreProcessingSingleTrialDemo.py` to call 'OpenEphysTools.
 
 ## Combine analysis for Optical signal and LFP
 
-`CombineAnalysis.py`---to create a class (`SyncOESPADSessionClass.py` or `SyncOECPySessionClass.py`) and analyse a session of data.  
+`CombineAnalysis.py`---to create a class (`SyncOESPADSessionClass.py` or `SyncOECPySessionClass.py`) and analyse a single trial (a single SyncRecording folder) of data.  
+
+`ObjectSessionCompare.py`---a bactch analysis of all trials in the same folder (data from one session/one day).
 
 `SyncOESPADSessionClass.py``SyncOECPySessionClass.py`--- Class with synchronised LFP,SPAD,cam data, no need to run, but it might need to be modified to achieve new functions and analysis. 
 
