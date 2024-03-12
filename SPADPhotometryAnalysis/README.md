@@ -6,7 +6,7 @@ https://github.com/katemartian/Photometry_data_processing
 
 `photometry_functions.py` provides functions to read, batch-read pyPhotometry data that saved as .csv, it also includes codes to integrate photometry analysis to Cheeseboard task.
 
-`PhotometryTraceAnalysis.py` is the main file to read and process pyPhotometry data, you'll be able to save normalised signal trace `"Green_traceAll.csv"`, reference trace `"Red_traceAll.csv"`, zscore trace `"Zscore_traceAll.csv"`, and a CamSync file if synchronisation is included: `"CamSync_photometry.csv"`.
+`PhotometryAnalysisSingleTrialDemo.py` is the main file to read and process pyPhotometry data, you'll be able to save normalised signal trace `"Green_traceAll.csv"`, reference trace `"Red_traceAll.csv"`, zscore trace `"Zscore_traceAll.csv"`, and a CamSync file if synchronisation is included: `"CamSync_photometry.csv"`.
 
 ### Cheeseboard task with photometry recording
 `pyCheese_singleTrial.py` and `pyCheese_multiTrial.py` provide photometry data analysis with cheeseboard task. 
