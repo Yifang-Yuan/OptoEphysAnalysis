@@ -21,6 +21,7 @@ from scipy.signal import filtfilt
 import pickle
 import seaborn as sns
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from scipy import stats
 
 def butter_filter(data, btype='low', cutoff=10, fs=9938.4, order=5): 
     # cutoff and fs in Hz
@@ -236,7 +237,7 @@ def save_open_ephys_data (dpath, data):
     data.to_pickle(filepath)
     return -1
 
-def getRippleEvents (lfp_raw,Fs,windowlen=300,Low_thres=1,High_thres=10):
+def getRippleEvents (lfp_raw,Fs,windowlen=500,Low_thres=1,High_thres=10):
     ripple_band_filtered = pyna.eeg_processing.bandpass_filter(lfp_raw, 120, 250, Fs)
     squared_signal = np.square(ripple_band_filtered.values)
     window = np.ones(windowlen)/windowlen
@@ -276,15 +277,14 @@ def getRippleEvents (lfp_raw,Fs,windowlen=300,Low_thres=1,High_thres=10):
     return ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd
 
 def getThetaEvents (lfp_raw,Fs,windowlen=1000,Low_thres=2,High_thres=10):
-    theta_band_filtered = pyna.eeg_processing.bandpass_filter(lfp_raw, 5, 9, Fs,order=1)
+    theta_band_filtered = pyna.eeg_processing.bandpass_filter(lfp_raw, 5, 9, Fs,order=2)
     squared_signal = np.square(theta_band_filtered.values)
     window = np.ones(windowlen)/windowlen
     nSS = filtfilt(window, 1, squared_signal)
     nSS = (nSS - np.mean(nSS))/np.std(nSS)
     nSS = nap.Tsd(t=theta_band_filtered.index.values, 
                   d=nSS, 
-                  time_support=theta_band_filtered.time_support)
-                  
+                  time_support=theta_band_filtered.time_support)            
     nSS2 = nSS.threshold(Low_thres, method='above')
     nSS3 = nSS2.threshold(High_thres, method='below')
     # Round 2 : Excluding ripples whose length < minRipLen and greater than Maximum Ripple Length
@@ -306,13 +306,28 @@ def getThetaEvents (lfp_raw,Fs,windowlen=1000,Low_thres=2,High_thres=10):
         tmp = nSS.loc[s:e]
         rip_tsd.append(tmp.idxmax())
         rip_max.append(tmp.max())
-    
     rip_max = np.array(rip_max)
     rip_tsd = np.array(rip_tsd)
-    
     rip_tsd = nap.Tsd(t = rip_tsd, d = rip_max)
-
     return theta_band_filtered,nSS,nSS3,rip_ep,rip_tsd
+
+def getThetaDeltaRatio (lfp_raw,Fs,windowlen=1000):
+    theta_band_filtered = pyna.eeg_processing.bandpass_filter(lfp_raw, 5, 9, Fs,order=2)
+    squared_signal = np.square(theta_band_filtered.values)
+    window = np.ones(windowlen)/windowlen
+    nSS_theta = filtfilt(window, 1, squared_signal)
+    nSS_theta = (nSS_theta - np.mean(nSS_theta))/np.std(nSS_theta)
+    # nSS_theta = nap.Tsd(t=theta_band_filtered.index.values, d=nSS_theta, time_support=theta_band_filtered.time_support)      
+    
+    delta_band_filtered = pyna.eeg_processing.bandpass_filter(lfp_raw, 1, 4, Fs,order=2)
+    squared_signal = np.square(delta_band_filtered.values)
+    window = np.ones(windowlen)/windowlen
+    nSS_delta = filtfilt(window, 1, squared_signal)
+    nSS_delta = (nSS_delta - np.mean(nSS_delta))/np.std(nSS_delta)
+    # nSS_delta = nap.Tsd(t=delta_band_filtered.index.values, d=nSS_delta, time_support=delta_band_filtered.time_support) 
+    ThetaDeltaRatio=np.abs(nSS_theta/nSS_delta)
+    ThetaDeltaRatio[ThetaDeltaRatio > 2] = 2
+    return ThetaDeltaRatio
 
 def get_detrend(data):
      data_detrend = signal.detrend(data)
@@ -335,9 +350,8 @@ def calculate_correlation_with_detrend (spad_data,lfp_data):
         lfp_np=lfp_data.values
     else:
         lfp_np=lfp_data
-        
-    spad_1=get_detrend(spad_np)
-    lags,corr=calculate_correlation (spad_1,lfp_np)
+    #spad_np=get_detrend(spad_np)
+    lags,corr=calculate_correlation (spad_np,lfp_np)
     return lags,corr
 
 def plot_trace_nap (ax, pynapple_data,restrict_interval, color, title='LFP raw Trace'):
@@ -452,6 +466,24 @@ def plot_trace_in_seconds(data,Fs,title='Trace in seconds'):
     ax.set_title(title)
     return -1
 
+def plot_trace_in_seconds_ax (ax,data, Fs, label='data',color='b',ylabel='z-score',xlabel=True):
+    num_samples = len(data)
+    time_seconds = np.arange(num_samples) / Fs
+    sns.lineplot(x=time_seconds, y=data.values, ax=ax, label=label, linewidth=1, color=color)
+    ax.set_ylabel(ylabel)
+    ax.spines['top'].set_visible(False)    # Hide the top spine
+    ax.spines['right'].set_visible(False)  # Hide the right spine
+    ax.spines['left'].set_visible(False)   # Hide the left spine
+    #ax.spines['bottom'].set_visible(True)  # Show the bottom spine
+    if xlabel==False:
+        ax.set_xticks([])  # Hide x-axis tick marks
+        ax.set_xlabel([])
+        ax.set_xlabel('')  # Hide x-axis label
+        ax.spines['bottom'].set_visible(False)  # Show the bottom spine
+    ax.set_xlim(time_seconds.min(), time_seconds.max())  # Set x-limits
+    ax.legend(loc='upper right')
+    return ax
+
 def plot_timedelta_trace_in_seconds (data,ax,label='data',color='b',ylabel='z-score',xlabel=True):
     sns.lineplot(x=data.index.total_seconds(), y=data.values, ax=ax, label=label, linewidth=1, color=color)
     ax.set_ylabel(ylabel)
@@ -479,7 +511,6 @@ def plot_animal_tracking (trackingdata):
     trackingdata.plot.scatter(x='X', y='Y', color='blue', marker='o', s=2, ax=ax)    
     # Adding labels and title
     plt.xlabel('X')
-    plt.yticks([])
     plt.title('Animal tracking Plot')
     plt.show()
     return -1
@@ -544,39 +575,6 @@ def plot_moving_state_heatmap(ax, speed_series,cbar=False,annot=False):
     ax.set_ylabel('Speed')
 
     return -1
-
-def Transient_during_LFP_event (fig_save_path,rip_tsd,transient_trace,half_window,fs):
-    event_peak_times=rip_tsd.index.to_numpy()
-    transient_trace = transient_trace.reset_index(drop=True)
-    half_window_len=int(half_window*fs)
-    z_score_values = []
-    for i in range(len(event_peak_times)):
-        peak_time_index=int(event_peak_times[i]*fs)
-        if peak_time_index>half_window_len and peak_time_index<len(transient_trace)-half_window_len:
-            #print ('peak time is', peak_time_index)
-            start_idx=peak_time_index-half_window_len
-            end_idx=peak_time_index+half_window_len
-            silced_recording=transient_trace[start_idx:end_idx]
-            #z_score=butter_filter(silced_recording.values, btype='low', cutoff=50, fs=fs, order=5)
-            z_score=smooth_signal(silced_recording,Fs=10000,cutoff=50)
-            z_score_values.append(z_score)
-    #print (z_score_values)
-    z_score_values = np.array(z_score_values)
-    mean_z_score = np.mean(z_score_values, axis=0)
-    std_z_score = np.std(z_score_values, axis=0)
-    x = np.linspace(-half_window, half_window, len(mean_z_score))
-    plt.figure(figsize=(8, 4))
-    plt.plot(x,mean_z_score, color='b', label='Mean z-score aligned with oscillation peaks')
-    plt.fill_between(x,mean_z_score - std_z_score, mean_z_score + std_z_score, color='gray', alpha=0.3, label='Standard Deviation')
-    [plt.axvline(x=0, color='green')]
-    plt.xlabel('Time(seconds)')
-    plt.ylabel('z-score')
-    plt.title('Mean z-score')
-    plt.legend()
-    plt.grid()
-    plt.savefig(fig_save_path)
-    plt.show()
-    return mean_z_score,std_z_score
         
 
 def Calculate_wavelet(signal_pd,lowpassCutoff=1500,Fs=10000,scale=40):
@@ -800,9 +798,10 @@ def calculate_theta_phase_angle(channel_data, theta_low=5, theta_high=9):
     angle = np.angle(analytic_signal)  # this is the theta angle (radians)
     return angle
 
-def calculate_theta_trough_index(df):
+def calculate_theta_trough_index(df,Fs=10000):
     troughs = (df['theta_angle'] < df['theta_angle'].shift(-1)) & (df['theta_angle'] < df['theta_angle'].shift(1)) & (df['theta_angle']<-3.13)
     trough_index = df.index[troughs]
+    #trough_time=trough_index/Fs
     return trough_index
 
 def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmode='one'):
@@ -810,12 +809,14 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
     # Initialize lists to store cycle data
     cycle_data_values_zscore = []
     cycle_data_values_lfp = []
-    half_cycle_time = pd.to_timedelta(half_window, unit='s')
+    #half_cycle_time = pd.to_timedelta(half_window, unit='s')
+    half_cycle_time=half_window
     # Extract A values for each cycle and calculate mean and std
     for i in range(len(trough_index)):
-        start = trough_index[i] - half_cycle_time
-        end = trough_index[i] + half_cycle_time
+        start = int(trough_index[i] - half_cycle_time*fs)
+        end = int(trough_index[i] + half_cycle_time*fs)
         cycle_zscore = df['zscore_raw'].loc[start:end]
+        print ('length of the cycle',len(cycle_zscore))
         cycle_zscore=smooth_signal(cycle_zscore,10000,cutoff=50,window='flat')
         cycle_lfp = df[LFP_channel].loc[start:end]
         #cycle_zscore_np = cycle_zscore.to_numpy()
@@ -824,7 +825,6 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
         if len(cycle_lfp_np) > half_window * fs * 2:
             cycle_data_values_zscore.append(cycle_zscore_np)
             cycle_data_values_lfp.append(cycle_lfp_np)
-
     cycle_data_values_zscore_np = np.vstack(cycle_data_values_zscore)
     cycle_data_values_lfp_np = np.vstack(cycle_data_values_lfp)
 
@@ -832,7 +832,6 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
     std_z_score = np.std(cycle_data_values_zscore_np, axis=0)
     mean_lfp = np.mean(cycle_data_values_lfp_np, axis=0)
     std_lfp = np.std(cycle_data_values_lfp_np, axis=0)
-
     x = np.linspace(-half_window, half_window, len(mean_z_score))
     if plotmode=='one':
         # Create a figure with two y-axes
@@ -847,8 +846,7 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
         ax1.set_ylabel('z-score', color='g')
         ax1.set_title('Mean z-score and Mean LFP during a theta cycle')
         ax1.legend(loc='upper left')
-        ax1.grid()
-    
+        #ax1.grid()    
         # Create a second y-axis and plot mean LFP on it
         ax2 = ax1.twinx()
         ax2.plot(x, mean_lfp, color='b', label='Mean LFP')
@@ -876,3 +874,49 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
         ax2.legend(loc='upper right')
         plt.show()
     return -1
+
+def find_peak_and_std(data,half_win_len):
+    if isinstance(data, pd.Series):
+        # If data is a pandas Series
+        peak_index = data.idxmax()
+        print ('peak_index',peak_index)
+        peak_value = data.iloc[peak_index]
+        window_data = data.iloc[max(0, peak_index - half_win_len):min(len(data) - 1, peak_index + half_win_len) + 1]
+        peak_std = peak_value/window_data.std()
+    elif isinstance(data, np.ndarray):
+        # If data is a numpy array
+        peak_index = np.argmax(data)
+        peak_value = data[peak_index]
+        window_start = max(0, peak_index - half_win_len)
+        window_end = min(len(data) - 1, peak_index + half_win_len)
+        window_data = data[window_start:window_end + 1]
+        peak_std = peak_value/np.std(window_data)
+    else:
+        raise TypeError("Data type not recognized. Please provide either a pandas Series or a numpy array.") 
+    return peak_value, peak_index, peak_std
+
+def align_numpy_array_to_same_length (data):
+    max_common_length = max(len(column) for column in data)
+    new_data = []
+    for column in data:
+        if len(column) >= 0.9 * max_common_length:
+            # If the length is sufficient, append the column to the new data list
+            new_data.append(column)
+    filtered_data = np.array(new_data,dtype=object)         
+
+    common_length = min(len(column) for column in filtered_data)
+    filtered_data = np.array([column[1:common_length-1] for column in filtered_data])
+    filtered_data = filtered_data.astype(float)
+    return filtered_data
+
+def calculateStatisticNumpy (data):
+    mean = np.mean(data, axis=0)
+    std = np.std(data, axis=0)
+    sem = stats.sem(data)
+    df = len(data) - 1
+    moe = stats.t.ppf(0.975, df) * sem  # 0.975 for 95% confidence level (two-tailed)
+    # Calculate the confidence interval
+    confidence_interval = mean - moe, mean + moe
+    return mean,std, confidence_interval
+
+    

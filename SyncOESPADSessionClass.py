@@ -3,6 +3,7 @@
 Created on Thu Jul 27 12:03:35 2023
 This is the Class that used to form a synchronised dataset including LFP channel signals, 
 SPAD recorded optical signal as zscore, and animal position.
+Note:I named it as SyncOECSessionClass but it is actually a single recording trial.
 @author: Yifang
 """
 import os

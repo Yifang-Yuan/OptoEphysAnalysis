@@ -38,7 +38,6 @@ def read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode
             # Create the folder if it doesn't exist
             if not os.path.exists(save_folder_path):
                 os.makedirs(save_folder_path)
-                
             OE.save_open_ephys_data (save_folder_path,EphysData)
     
     return -1
@@ -48,8 +47,8 @@ def main():
     '''Set the folder for the Open Ephys recording, defualt folder names are usually date and time'''
     '''Set the parent folder your session results, this should be the same parent folder to save optical data'''
     
-    Ephys_folder_path = "E:/YYFstudy/20240213_Day2/OpenEphys/2024-02-13_11-02-17"   
-    save_parent_folder="E:/YYFstudy/20240213_Day2/" 
+    Ephys_folder_path = "E:/YYFstudy/20240212_Day1/OpenEphys/2024-02-12_15-02-31"   
+    save_parent_folder="E:/YYFstudy/20240212_Day1/" 
     Ephys_fs=30000 #Ephys sampling rate
     read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode='py',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording')
 

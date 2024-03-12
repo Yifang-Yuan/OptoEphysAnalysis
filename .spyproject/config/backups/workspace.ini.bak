@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = empty-project-type
-recent_files = ['CombineAnalysisPy.py', 'SyncOECPySessionClass.py', 'EphysPreReadSession.py', 'OpenEphysTools.py', 'ObjectSessionCompare.py']
+recent_files = ['CombineAnalysisPy.py', 'OpenEphysTools.py', 'SyncOECPySessionClass.py', 'ObjectExpPool.py', 'BatchProcessRecordingClass.py', 'D:\\anaconda3\\envs\\pynapple\\lib\\site-packages\\pynapple\\core\\interval_set.py']
 
 [main]
 version = 0.2.0
