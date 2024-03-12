@@ -8,7 +8,7 @@ This is the main file to process the binary data recorded by the SPC imager.
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-import traceAnalysis as Analysis
+import SPADAnalysisTools as Analysis
 import SPADdemod
 import SPADreadBin
 import os
@@ -123,6 +123,5 @@ plt3.ticklabel_format(axis='y', style='plain')
 # set up the size and location of the colorbar
 position=fig.add_axes([0.2,0.01,0.4,0.02])
 plt.colorbar(CS, cax=position, orientation='horizontal', fraction=0.05, pad=0.5)
-
 plt.subplots_adjust(right=0.7, top=0.9)
 
