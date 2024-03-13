@@ -16,12 +16,12 @@ import os
 # Sampling Frequency
 fs   = 9938.4
 '''Read binary files for two ROIs'''
-dpath="E:/SPAD/SPADData/20231027_GCamp8f_pyr_OECSync/2023_10_27_17_5_43_Cage_td_g30Iso20_recording1/"
+#dpath="E:/SPAD/SPADData/20231027_GCamp8f_pyr_OECSync/2023_10_27_17_5_43_Cage_td_g30Iso20_recording1/"
 #Green,Red=SPADreadBin.readMultipleBinfiles_twoROIs(dpath,9,xxrange_g=[105,210],yyrange_g=[125,235],xxrange_r=[105,210],yyrange_r=[25,105]) 
 
 '''Read binary files for single ROI'''
-#dpath="C:/SPAD/SPADData/20240109_SNR/timedivision/2024_1_9_16_16_31_td3uW/"
-#TraceRaw=SPADreadBin.readMultipleBinfiles(dpath,9,xxRange=[70,250],yyRange=[60,240])
+dpath="C:/SPAD/SPADData/20240109_SNR/timedivision/2024_1_9_16_16_31_td3uW/"
+TraceRaw=SPADreadBin.readMultipleBinfiles(dpath,9,xxRange=[70,250],yyRange=[60,240])
 # Set the path to the parent folder
 '''Show images'''
 filename = os.path.join(dpath, "spc_data1.bin")
@@ -87,7 +87,7 @@ if 0:
 n = len(sst)
 dt = 1/fs
 time = np.arange(len(sst)) * dt   # construct time array
-#%%
+
 pad = 1  # pad the time series with zeroes (recommended)
 dj = 0.25  # this will do 4 sub-octaves per octave
 s0 = 25 * dt  # this says start at a scale of 6 months
@@ -101,7 +101,7 @@ wave, period, scale, coi = wavelet(sst, dt, pad, dj, s0, j1, mother)
 power = (np.abs(wave)) ** 2  # compute wavelet power spectrum
 global_ws = (np.sum(power, axis=1) / n)  # time-average over all times
 frequency=1/period
-#%%
+
 xlim = ([0,85])  # plotting range
 fig, plt3 = plt.subplots(figsize=(15,5))
 
