@@ -13,18 +13,30 @@ import seaborn as sns
 import OpenEphysTools as OE
 import pynapple as nap
 import pickle
+import MakePlots
 
-def PoolTrialsByState (parent_folder,LFP_channel='LFP_1'):
+def SeparateTrialsByStateAndSave (parent_folder,LFP_channel='LFP_1'):
     all_contents = os.listdir(parent_folder)
     # Filter out directories containing the target string
     day_recording_folders = [folder for folder in all_contents if 'Day' in folder]
     # Define a custom sorting key function to sort folders in numeric order
     sorted_folders = sorted(day_recording_folders, key=lambda x: int(x.split('Day')[-1]))
-    # Iterate over each sync recording folder
-    ripple_triggered_optical_peak_std={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    #Iterate over each sync recording folder
+    ripple_triggered_optical_peak_value={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
     ripple_triggered_optical_peak_time={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
     ripple_triggered_zscore={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
-
+    ripple_triggered_LFP={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    ripple_event_corr={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    ripple_freq={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    ripple_numbers={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    ripple_std_values={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    ripple_duration_values={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    
+    theta_triggered_optical_peak_value={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    theta_triggered_optical_peak_time={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    theta_triggered_zscore={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    theta_triggered_LFP={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    theta_event_corr={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
     for DayRecordingFolder in sorted_folders:
         # Now you can perform operations on each folder, such as reading files inside it
         print("Day folder:", DayRecordingFolder)
@@ -37,19 +49,252 @@ def PoolTrialsByState (parent_folder,LFP_channel='LFP_1'):
         sync_recording_folders.sort(key=numeric_sort_key)
         for SyncRecordingName in sync_recording_folders:
             print("Now processing folder:", SyncRecordingName)
-            Classfilepath=os.path.join(day_folder_path, SyncRecordingName,SyncRecordingName+'Class.pkl')
+            Classfilepath=os.path.join(day_folder_path, SyncRecordingName,SyncRecordingName+LFP_channel+'_Class.pkl')
             print ("Class file name:", Classfilepath)
             with open(Classfilepath, 'rb') as file:
                 Recording1 = pickle.load(file)
                 column_name=Recording1.TrainingState+'_'+Recording1.sleepState
-
-                ripple_triggered_optical_peak_std [column_name].append(Recording1.ripple_triggered_optical_peak_std_array)
-                ripple_triggered_optical_peak_time [column_name].append(Recording1.ripple_triggered_optical_peak_time_array)
-                ripple_triggered_zscore [column_name].append(Recording1.ripple_triggered_zscore_values_arrary)
+                ripple_triggered_optical_peak_value [column_name].append(Recording1.ripple_triggered_optical_peak_values)
+                ripple_triggered_optical_peak_time [column_name].append(Recording1.ripple_triggered_optical_peak_times)
+                ripple_triggered_zscore [column_name].append(Recording1.ripple_triggered_zscore_values)
+                ripple_triggered_LFP[column_name].append(Recording1.ripple_triggered_LFP_values)
+                ripple_event_corr[column_name].append(Recording1.ripple_event_corr_array)
+                ripple_freq[column_name].append(Recording1.ripple_freq)
+                ripple_numbers[column_name].append(Recording1.ripple_numbers)
+                ripple_std_values[column_name].append(Recording1.ripple_std_values)
+                ripple_duration_values[column_name].append(Recording1.ripple_duration_values)
+                
+                theta_triggered_optical_peak_value [column_name].append(Recording1.theta_triggered_optical_peak_values)
+                theta_triggered_optical_peak_time [column_name].append(Recording1.theta_triggered_optical_peak_times)
+                theta_triggered_zscore [column_name].append(Recording1.theta_triggered_zscore_values)
+                theta_triggered_LFP[column_name].append(Recording1.theta_triggered_LFP_values)
+                theta_event_corr[column_name].append(Recording1.theta_event_corr_array)
+                
+    save_path = os.path.join(parent_folder, 'ripple_triggered_optical_peak_value_'+LFP_channel+'.pkl')
+    with open(save_path, 'wb') as file:
+        pickle.dump(ripple_triggered_optical_peak_value, file)
+    save_path = os.path.join(parent_folder, 'ripple_triggered_optical_peak_time_'+LFP_channel+'.pkl')
+    with open(save_path, 'wb') as file:
+        pickle.dump(ripple_triggered_optical_peak_time, file)
+    save_path = os.path.join(parent_folder, 'ripple_triggered_zscore_'+LFP_channel+'.pkl')
+    with open(save_path, 'wb') as file:
+        pickle.dump(ripple_triggered_zscore, file)
+    save_path = os.path.join(parent_folder, 'ripple_triggered_LFP_'+LFP_channel+'.pkl')
+    with open(save_path, 'wb') as file:
+        pickle.dump(ripple_triggered_LFP, file)     
+    save_path = os.path.join(parent_folder, 'ripple_event_corr_'+LFP_channel+'.pkl')
+    with open(save_path, 'wb') as file:
+        pickle.dump(ripple_event_corr, file)
+    save_path = os.path.join(parent_folder, 'ripple_freq'+LFP_channel+'.pkl')
+    with open(save_path, 'wb') as file:
+        pickle.dump(ripple_freq, file)
+    save_path = os.path.join(parent_folder, 'ripple_numbers'+LFP_channel+'.pkl')
+    with open(save_path, 'wb') as file:
+        pickle.dump(ripple_numbers, file)
+    save_path = os.path.join(parent_folder, 'ripple_std_values'+LFP_channel+'.pkl')
+    with open(save_path, 'wb') as file:
+        pickle.dump(ripple_std_values, file)
+        
+    save_path = os.path.join(parent_folder, 'ripple_duration_values'+LFP_channel+'.pkl')
+    with open(save_path, 'wb') as file:
+        pickle.dump(ripple_duration_values, file)    
+        
+    save_path = os.path.join(parent_folder, 'theta_triggered_optical_peak_value_'+LFP_channel+'.pkl')
+    with open(save_path, 'wb') as file:
+        pickle.dump(theta_triggered_optical_peak_value, file)
+    save_path = os.path.join(parent_folder, 'theta_triggered_optical_peak_time_'+LFP_channel+'.pkl')
+    with open(save_path, 'wb') as file:
+        pickle.dump(theta_triggered_optical_peak_time, file)
+    save_path = os.path.join(parent_folder, 'theta_triggered_zscore_'+LFP_channel+'.pkl')
+    with open(save_path, 'wb') as file:
+        pickle.dump(theta_triggered_zscore, file)
+    save_path = os.path.join(parent_folder, 'theta_triggered_LFP_'+LFP_channel+'.pkl')
+    with open(save_path, 'wb') as file:
+        pickle.dump(theta_triggered_LFP, file) 
+    save_path = os.path.join(parent_folder, 'theta_event_corr_'+LFP_channel+'.pkl')
+    with open(save_path, 'wb') as file:
+        pickle.dump(theta_event_corr, file) 
     
-    return ripple_triggered_optical_peak_std,ripple_triggered_optical_peak_time,ripple_triggered_zscore
+    return -1
 
 
-parent_folder='E:/YYFstudy/Exp1'
-ripple_triggered_optical_peak_std,ripple_triggered_optical_peak_time,ripple_triggered_zscore=PoolTrialsByState (parent_folder,LFP_channel='LFP_4')
+def PoolDatabyStateAndPlot (parent_folder, LFP_channel, mode='ripple'):
+    if mode=='ripple':
+        half_window=0.2 #seconds, for ripple
+    if mode=='theta':
+        half_window=0.5 #seconds, for theta
+    
+    filename = os.path.join(parent_folder, mode+'_triggered_optical_peak_value_'+LFP_channel+'.pkl')
+    with open(filename, 'rb') as file:
+        peak_value=pickle.load(file)
+    filename = os.path.join(parent_folder, mode+'_triggered_optical_peak_time_'+LFP_channel+'.pkl')
+    with open(filename, 'rb') as file:
+        time_dict=pickle.load(file)
+    filename = os.path.join(parent_folder, mode+'_triggered_zscore_'+LFP_channel+'.pkl')
+    with open(filename, 'rb') as file:
+        zscore=pickle.load(file)
+    filename = os.path.join(parent_folder, mode+'_triggered_LFP_'+LFP_channel+'.pkl')
+    with open(filename, 'rb') as file:
+        LFP=pickle.load(file)   
+    filename = os.path.join(parent_folder, mode+'_event_corr_'+LFP_channel+'.pkl')
+    with open(filename, 'rb') as file:
+        event_corr=pickle.load(file)  
+            
+    savepath = os.path.join(parent_folder, "ResultsPooled")
+    if not os.path.exists(savepath):
+        os.makedirs(savepath)     
+    for key in time_dict:
+        print (key)
+        time_i = np.concatenate(time_dict[key])
+        peak_value_i = np.concatenate(peak_value[key])
+        zscore_i = np.concatenate(zscore[key])
+        LFP_i = np.concatenate(LFP[key])
+        event_corr_i=np.concatenate(event_corr[key])
+        mean_z_score,std_z_score, CI_z_score=OE.calculateStatisticNumpy (zscore_i)
+        mean_LFP,std_LFP, CI_LFP=OE.calculateStatisticNumpy (LFP_i)
+        mean_event_corr,std_event_corr,CI_event_corr=OE.calculateStatisticNumpy (event_corr_i)
+        '--plot transient and LFP---'
+        x = np.linspace(-half_window, half_window, len(mean_z_score))
+        fig, ax = plt.subplots(figsize=(8, 4))
+        MakePlots.plot_oscillation_epoch_traces(ax,x,mean_z_score,
+                                                mean_LFP,std_z_score,std_LFP,CI_z_score,CI_LFP,mode='ripple',plotShade='CI')
+        fig.suptitle(f'{key}: Mean optical transient triggered by {mode} peak in {LFP_channel}')
+        
+        figName=f'{key}_Optical_triggered_by_{mode}_{LFP_channel}.png'
+        fig.savefig(os.path.join(savepath,figName))
+        '---scatter plot optical peak and LFP---'
+        fig, ax = plt.subplots(figsize=(8, 4))
+        MakePlots.plot_oscillation_epoch_optical_peaks(ax,x,time_i,peak_value_i,mean_LFP,std_LFP,CI_LFP,
+                                                        half_window,mode='ripple',plotShade='CI')
+        fig.suptitle(f'{key}_optical_peak_triggered_by_{mode}_{LFP_channel}')
+        figName=f'{key}_Optical Peak triggered by {mode}_{LFP_channel}.png'
+        fig.savefig(os.path.join(savepath,figName))
+        
+        '---plot correlation---'
+        Fs=10000
+        x = np.linspace((-len(mean_event_corr)/2)/Fs, (len(mean_event_corr)/2)/Fs, len(mean_event_corr))  
+        plt.figure(figsize=(8, 4))
+        plt.plot(x, mean_event_corr, color='gray', label='Mean Cross-Correlation')
+        plt.fill_between(x, CI_event_corr[0], CI_event_corr[1], color='gray', alpha=0.2, label='0.95 CI')
+        plt.xlabel('Lags(seconds)')
+        plt.ylabel('Cross-Correlation')
+        plt.title(f'{key}: Mean Cross-Correlation (1-Second Window)_{LFP_channel}')
+        plt.legend()
+        figName=f'{key}_Optical_LFP_corr_{mode}_{LFP_channel}.png'
+        plt.savefig(os.path.join(savepath,figName))
+        
+        '---plot histogram----'
+        # Plotting histograms
+        timepoints_negative = time_i[time_i < 0]
+        timepoints_positive = time_i[time_i >= 0]
+        plt.figure(figsize=(8, 6))
+        # Histogram for timepoints smaller than 0
+        plt.hist(timepoints_negative, bins=20, color='blue', alpha=0.5, label='Timepoints < 0',density=True)
+        # Histogram for timepoints larger than or equal to 0
+        plt.hist(timepoints_positive, bins=20, color='red', alpha=0.5, label='Timepoints >= 0',density=True)
+        plt.xlabel('Time relevant to LFP ripple peak (seconds)')
+        plt.ylabel('peak numbers (density)')
+        plt.title(f'{key}: Histogram of Optical peak times {LFP_channel}')
+        figName=f'{key}_Optical_peaktime_hist_{mode}_{LFP_channel}.png'
+        plt.savefig(os.path.join(savepath,figName))
+    return -1
+
+def Ripple_Stat_by_State_Bar_plot(parent_folder,LFP_channel,filterOF=True):
+    filename = os.path.join(parent_folder, 'ripple_freq'+LFP_channel+'.pkl')
+    with open(filename, 'rb') as file:
+        ripple_freq=pickle.load(file)
+    filename = os.path.join(parent_folder, 'ripple_numbers'+LFP_channel+'.pkl')
+    with open(filename, 'rb') as file:
+        ripple_numbers=pickle.load(file)
+    filename = os.path.join(parent_folder, 'ripple_std_values'+LFP_channel+'.pkl')
+    with open(filename, 'rb') as file:
+        ripple_std_values=pickle.load(file)
+    filename = os.path.join(parent_folder, 'ripple_duration_values'+LFP_channel+'.pkl')
+    with open(filename, 'rb') as file:
+        ripple_duration_values=pickle.load(file)
+    
+    if filterOF:
+        keys_to_plot = ['pre_sleep', 'pre_awake','post_sleep','post_awake']
+        ripple_freq = {key: ripple_freq[key] for key in keys_to_plot if key in ripple_freq}
+        ripple_numbers={key: ripple_numbers[key] for key in keys_to_plot if key in ripple_numbers}
+        ripple_std_values = {key: ripple_std_values[key] for key in keys_to_plot if key in ripple_std_values}
+        ripple_duration_values={key: ripple_duration_values[key] for key in keys_to_plot if key in ripple_duration_values}
+        
+    savepath = os.path.join(parent_folder, "ResultsPooled")
+    fig, ax = plt.subplots(figsize=(8, 6))
+    MakePlots.plot_bar_from_dict(ax,ripple_freq,plotScatter=False)
+    # Add labels and title
+    ax.set_ylabel('Ripple Frequency (events/second)',fontsize=16)
+    #ax.set_xlabel('Condition',fontsize=16)
+    ax.set_title('Ripple Frequency by Condition',fontsize=16)
+    plt.xticks(rotation=45, ha='right',fontsize=16)  # Rotate x-axis labels for better visibility
+    plt.tight_layout()
+    figName=f'Ripple Frequency by Condition_{LFP_channel}.png'
+    fig.savefig(os.path.join(savepath,figName))
+    plt.show()
+    
+    fig, ax = plt.subplots(figsize=(8, 6))
+    MakePlots.plot_bar_from_dict(ax,ripple_numbers,plotScatter=False)
+    # Add labels and title
+    ax.set_ylabel('Ripple numbers in the 3-mins trial',fontsize=16)
+    #ax.set_xlabel('Condition',fontsize=16)
+    ax.set_title('Ripple number by Condition',fontsize=16)
+    plt.xticks(rotation=45, ha='right',fontsize=16)  # Rotate x-axis labels for better visibility
+    plt.tight_layout()
+    figName=f'Ripple Numbers by Condition_{LFP_channel}.png'
+    fig.savefig(os.path.join(savepath,figName))
+    plt.show()
+    
+    for key in ripple_std_values:
+        print (key)
+        ripple_std_values[key] = np.concatenate(ripple_std_values[key])
+    fig, ax = plt.subplots(figsize=(8, 6))
+    MakePlots.plot_bar_from_dict(ax,ripple_std_values,plotScatter=False)
+    # Add labels and title
+    ax.set_ylabel('Ripple Amplitude (std)',fontsize=16)
+    #ax.set_xlabel('Condition',fontsize=16)
+    ax.set_title('Ripple Amplitude by Condition',fontsize=16)
+    plt.xticks(rotation=45, ha='right',fontsize=16)  # Rotate x-axis labels for better visibility
+    plt.tight_layout()
+    figName=f'Ripple Amplitude by Condition_{LFP_channel}.png'
+    fig.savefig(os.path.join(savepath,figName))
+    plt.show()
+    
+    for key in ripple_std_values:
+        print (key)
+        ripple_duration_values[key] = np.concatenate(ripple_duration_values[key])
+    fig, ax = plt.subplots(figsize=(8, 6))
+    MakePlots.plot_bar_from_dict(ax,ripple_duration_values,plotScatter=False)
+    # Add labels and title
+    ax.set_ylabel('Ripple Duration (ms)',fontsize=16)
+    #ax.set_xlabel('Condition',fontsize=16)
+    ax.set_title('Ripple Duration by Condition',fontsize=16)
+    plt.xticks(rotation=45, ha='right',fontsize=16)  # Rotate x-axis labels for better visibility
+    plt.tight_layout()
+    figName=f'Ripple Duration by Condition_{LFP_channel}.png'
+    fig.savefig(os.path.join(savepath,figName))
+    plt.show()
+    
+    return ripple_freq,ripple_numbers,ripple_std_values
 #%%
+parent_folder='E:/YYFstudy/Exp1'
+#SeparateTrialsByStateAndSave (parent_folder,LFP_channel='LFP_1')
+#PoolDatabyStateAndPlot (parent_folder, 'LFP_1', mode='theta')
+ripple_freq,ripple_numbers,ripple_std_values=Ripple_Stat_by_State_Bar_plot(parent_folder,'LFP_1')
+#%%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

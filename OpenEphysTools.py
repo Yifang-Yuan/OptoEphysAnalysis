@@ -919,4 +919,8 @@ def calculateStatisticNumpy (data):
     confidence_interval = mean - moe, mean + moe
     return mean,std, confidence_interval
 
-    
+def getNormalised (data):
+    mean = np.mean(data)
+    std= np.std(data)
+    normalized_data = (data - mean) / std
+    return normalized_data

@@ -24,7 +24,6 @@ def plot_oscillation_epoch_traces(ax,x_value,data1_mean,data2_mean,data1_std,dat
     # Set labels and title
     ax.set_xlabel('Time (seconds)')
     ax.set_ylabel('z-score')
-    ax.set_title(f'Mean optical transient triggered by {mode} peak')
     # Set legend location
     ax.legend(loc='upper right')
     return ax
@@ -32,7 +31,7 @@ def plot_oscillation_epoch_traces(ax,x_value,data1_mean,data2_mean,data1_std,dat
 
 def plot_oscillation_epoch_optical_peaks(ax,x_value,optical_peak_times,optical_peak_values,mean_LFP,std_LFP,CI_LFP,half_window,mode='ripple',plotShade='CI'):
     # Plot peak values
-    ax.scatter(optical_peak_times, optical_peak_values, color='limegreen', label='Optical-peak')
+    ax.scatter(optical_peak_times, optical_peak_values, color='limegreen', label='Optical-peak',s=8)
     # Plot mean LFP
     ax.plot(x_value, mean_LFP, color='royalblue', label='Mean LFP')
     # Plot shaded regions
@@ -46,9 +45,26 @@ def plot_oscillation_epoch_optical_peaks(ax,x_value,optical_peak_times,optical_p
     # Set labels and title
     ax.set_xlabel('Peak Time')
     ax.set_ylabel('Normalised signal')
-    ax.set_title(f'Optical peaks during {mode} Event')
+    
     ax.set_xlim(-half_window, half_window)
     # Set legend location
     ax.legend(loc='lower right')
 
+    return ax
+
+def plot_bar_from_dict(ax,data_dict,plotScatter=True):
+    # Extract labels and data
+    labels = list(data_dict.keys())
+    data = [data_dict[label] for label in labels]
+    # Calculate the mean and standard deviation for each group
+    means = [np.mean(d) for d in data]
+    stds = [np.std(d) for d in data]
+    # Plotting
+    # Plot bars with error bars
+    ax.bar(labels, means, yerr=stds, capsize=8,alpha=0.3,color='black',)
+    # Add scatter dots
+    if plotScatter:
+        for i, label in enumerate(labels):
+            x = [i] * len(data_dict[label])  # x-coordinate for scatter points
+            ax.scatter(x, data_dict[label], color='tomato', zorder=5)  # zorder to ensure scatter dots are on top of bars
     return ax

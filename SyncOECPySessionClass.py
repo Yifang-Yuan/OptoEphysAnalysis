@@ -48,20 +48,21 @@ class SyncOEpyPhotometrySession:
         
         self.savepath = os.path.join(SessionPath, "Results")
         if not os.path.exists(self.savepath):
-            os.makedirs(self.savepath)
-
-        del self.Ephys_data
-        del self.Ephys_sync_data
-        del self.PhotometryData
-        del self.ephys_resampled
-        del self.ephys_align
-        del self.photometry_sync_data
-        del self.photometry_align
-        del self.py_resampled
-        if self.IsTracking:
-            del self.trackingdata
-            del self.trackingdata_resampled
-            del self.trackingdata_align
+            os.makedirs(self.savepath) 
+   
+        if not read_aligned_data_from_file:
+            del self.Ephys_data
+            del self.Ephys_sync_data
+            del self.PhotometryData
+            del self.ephys_resampled
+            del self.ephys_align
+            del self.photometry_sync_data
+            del self.photometry_align
+            del self.py_resampled
+            if self.IsTracking:
+                del self.trackingdata
+                del self.trackingdata_resampled
+                del self.trackingdata_align
 
     def ReadTrialAnimalState(self,SessionPath):
         SessionLabelFile=os.path.join(SessionPath,'TrailLabel.csv')
@@ -759,7 +760,10 @@ class SyncOEpyPhotometrySession:
                  
         timestamps=self.Ephys_tracking_spad_aligned['timestamps']
         z_score_values = []
-        LFP_values=[]
+        LFP_values_1=[]
+        LFP_values_2=[]
+        LFP_values_3=[]
+        LFP_values_4=[]
         peak_values =[]
         peak_indexs = []
         peak_stds = []
@@ -776,19 +780,29 @@ class SyncOEpyPhotometrySession:
                 end_idx=closest_index+int(half_window*self.fs)
                 segment_data = self.Ephys_tracking_spad_aligned[start_idx:end_idx]
                 segment_zscore=segment_data['zscore_raw']
-                segment_LFP=segment_data[lfp_channel]
                 z_score=OE.smooth_signal(segment_zscore,Fs=self.fs,cutoff=50)
-                LFP_smooth=OE.smooth_signal(segment_LFP,Fs=self.fs,cutoff=1000)
                 # normalise to zscore
-                mean = np.mean(z_score)
-                std_dev = np.std(z_score)
-                normalized_z_score = (z_score - mean) / std_dev
+                normalized_z_score = OE.getNormalised (z_score)
                 z_score_values.append(normalized_z_score)
                 
-                mean_LFP = np.mean(LFP_smooth)
-                std_dev_LFP = np.std(LFP_smooth)
-                normalized_LFP = (LFP_smooth - mean_LFP) / std_dev_LFP
-                LFP_values.append(normalized_LFP)
+                segment_LFP_1=segment_data['LFP_1']
+                segment_LFP_2=segment_data['LFP_2']
+                segment_LFP_3=segment_data['LFP_3']
+                segment_LFP_4=segment_data['LFP_4']
+                
+                LFP_smooth_1=OE.smooth_signal(segment_LFP_1,Fs=self.fs,cutoff=1000)
+                LFP_smooth_2=OE.smooth_signal(segment_LFP_2,Fs=self.fs,cutoff=1000)
+                LFP_smooth_3=OE.smooth_signal(segment_LFP_3,Fs=self.fs,cutoff=1000)
+                LFP_smooth_4=OE.smooth_signal(segment_LFP_4,Fs=self.fs,cutoff=1000)
+                LFP_normalised_1=OE.getNormalised (LFP_smooth_1)
+                LFP_normalised_2=OE.getNormalised (LFP_smooth_2)
+                LFP_normalised_3=OE.getNormalised (LFP_smooth_3)
+                LFP_normalised_4=OE.getNormalised (LFP_smooth_4)
+              
+                LFP_values_1.append(LFP_normalised_1)
+                LFP_values_2.append(LFP_normalised_2)
+                LFP_values_3.append(LFP_normalised_3)
+                LFP_values_4.append(LFP_normalised_4)
                 #Calculate optical peak triggerred by ripple peak
                 mididx=int(len(normalized_z_score)/2)
                 peak_value, peak_index, peak_std=OE.find_peak_and_std(normalized_z_score[mididx-half_window_len:mididx+half_window_len],half_window_len)
@@ -806,17 +820,38 @@ class SyncOEpyPhotometrySession:
             figName=self.recordingName+savename+'singleOptical_'+lfp_channel+'.png'
             plt.savefig(os.path.join(self.savepath,figName))
             plt.show()
+        
         z_score_values = np.array(z_score_values)
         mean_z_score,std_z_score, CI_z_score=OE.calculateStatisticNumpy (z_score_values)
         
-        LFP_values = np.array(LFP_values)
-        mean_LFP,std_LFP, CI_LFP=OE.calculateStatisticNumpy (LFP_values)
+        LFP_values_1 = np.array(LFP_values_1)
+        LFP_values_2 = np.array(LFP_values_2)
+        LFP_values_3 = np.array(LFP_values_3)
+        LFP_values_4 = np.array(LFP_values_4)
         
-        x = np.linspace(-half_window, half_window, len(mean_z_score))
+        mean_LFP_1,std_LFP_1, CI_LFP_1=OE.calculateStatisticNumpy (LFP_values_1)
+        mean_LFP_2,std_LFP_2, CI_LFP_2=OE.calculateStatisticNumpy (LFP_values_2)
+        mean_LFP_3,std_LFP_3, CI_LFP_3=OE.calculateStatisticNumpy (LFP_values_3)
+        mean_LFP_4,std_LFP_4, CI_LFP_4=OE.calculateStatisticNumpy (LFP_values_4)
         'Plot LFP and optical signal during ripple/theta events'
-        fig, ax = plt.subplots(figsize=(8, 4))
-        ax=MakePlots.plot_oscillation_epoch_traces(ax,x,mean_z_score,mean_LFP,std_z_score,std_LFP,CI_z_score,CI_LFP,mode=mode,plotShade=plotShade)
+        x = np.linspace(-half_window, half_window, len(mean_z_score))
+        fig, ax = plt.subplots(2, 2, figsize=(10, 8))
+        print (ax)
+        MakePlots.plot_oscillation_epoch_traces(ax[0,0],x,mean_z_score,mean_LFP_1,std_z_score,
+                                                      std_LFP_1,CI_z_score,CI_LFP_1,mode=mode,plotShade=plotShade)
+        MakePlots.plot_oscillation_epoch_traces(ax[0,1],x,mean_z_score,mean_LFP_2,std_z_score,
+                                                      std_LFP_2,CI_z_score,CI_LFP_2,mode=mode,plotShade=plotShade)
+        MakePlots.plot_oscillation_epoch_traces(ax[1,0],x,mean_z_score,mean_LFP_3,std_z_score,
+                                                      std_LFP_3,CI_z_score,CI_LFP_3,mode=mode,plotShade=plotShade)
+        MakePlots.plot_oscillation_epoch_traces(ax[1,1],x,mean_z_score,mean_LFP_4,std_z_score,
+                                                      std_LFP_4,CI_z_score,CI_LFP_4,mode=mode,plotShade=plotShade)
+        ax[0,0].set_title('Electrode 1')
+        ax[0,1].set_title('Electrode 2')
+        ax[1,0].set_title('Electrode 3')
+        ax[1,1].set_title('Electrode 4')
         # Save and show plot
+        fig.suptitle(f'Mean optical transient triggered by {mode} peak in {lfp_channel}')
+        plt.tight_layout()
         figName = self.recordingName + savename + 'OpticalMean_' + lfp_channel + '.png'
         fig.savefig(os.path.join(self.savepath, figName))
         plt.show()
@@ -827,17 +862,36 @@ class SyncOEpyPhotometrySession:
         peak_stds=np.array(peak_stds)
         if mode=='ripple':
             self.ripple_triggered_zscore_values=z_score_values
-            self.ripple_triggered_LFP_values=LFP_values
+            self.ripple_triggered_LFP_values_1=LFP_values_1
+            self.ripple_triggered_LFP_values_2=LFP_values_2
+            self.ripple_triggered_LFP_values_3=LFP_values_3
+            self.ripple_triggered_LFP_values_4=LFP_values_4
             self.ripple_triggered_optical_peak_times=peak_times
             self.ripple_triggered_optical_peak_values=peak_values
         if mode=='theta':
             self.theta_triggered_zscore_values=z_score_values
-            self.theta_triggered_LFP_values=LFP_values
+            self.theta_triggered_LFP_values_1=LFP_values_1
+            self.theta_triggered_LFP_values_2=LFP_values_2
+            self.theta_triggered_LFP_values_3=LFP_values_3
+            self.theta_triggered_LFP_values_4=LFP_values_4
             self.theta_triggered_optical_peak_times=peak_times
             self.theta_triggered_optical_peak_values=peak_values
             
-        fig, ax = plt.subplots(figsize=(8, 4))
-        ax=MakePlots.plot_oscillation_epoch_optical_peaks(ax,x,peak_times,peak_values,mean_LFP,std_LFP,CI_LFP,half_window,mode=mode,plotShade=plotShade)
+        fig, ax = plt.subplots(2, 2, figsize=(10, 8))
+        MakePlots.plot_oscillation_epoch_optical_peaks(ax[0,0],x,peak_times,peak_values,
+                                                       mean_LFP_1,std_LFP_1,CI_LFP_1,half_window,mode=mode,plotShade=plotShade)
+        MakePlots.plot_oscillation_epoch_optical_peaks(ax[0,1],x,peak_times,peak_values,
+                                                       mean_LFP_2,std_LFP_2,CI_LFP_2,half_window,mode=mode,plotShade=plotShade)
+        MakePlots.plot_oscillation_epoch_optical_peaks(ax[1,0],x,peak_times,peak_values,
+                                                       mean_LFP_3,std_LFP_3,CI_LFP_3,half_window,mode=mode,plotShade=plotShade)
+        MakePlots.plot_oscillation_epoch_optical_peaks(ax[1,1],x,peak_times,peak_values,
+                                                       mean_LFP_4,std_LFP_4,CI_LFP_4,half_window,mode=mode,plotShade=plotShade)
+        ax[0,0].set_title('Electrode 1')
+        ax[0,1].set_title('Electrode 2')
+        ax[1,0].set_title('Electrode 3')
+        ax[1,1].set_title('Electrode 4')
+        fig.suptitle(f'Optical peaks during {mode} Event on {lfp_channel}')
+        plt.tight_layout()
         figName=self.recordingName+savename+'peaktime_'+lfp_channel+'.png'
         fig.savefig(os.path.join(self.savepath,figName))
         plt.show()
@@ -864,13 +918,10 @@ class SyncOEpyPhotometrySession:
                 z_score=OE.smooth_signal(segment_zscore,Fs=self.fs,cutoff=50)
                 lags,cross_corr =OE.calculate_correlation_with_detrend (z_score,segment_LFP)
                 cross_corr_values.append(cross_corr)
-
         cross_corr_values = np.array(cross_corr_values,dtype=float)
         # Truncate all columns to the common length   
         #event_corr_array=OE.align_numpy_array_to_same_length (cross_corr_values)
         event_corr_array=cross_corr_values
-        mean_cross_corr = np.mean(event_corr_array, axis=0)
-        std_cross_corr = np.std(event_corr_array, axis=0)
         mean_cross_corr,std_cross_corr, CI_cross_corr=OE.calculateStatisticNumpy (event_corr_array)
         if mode=='ripple':
             self.ripple_event_corr_array=event_corr_array
