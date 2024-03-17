@@ -15,6 +15,11 @@ import pynapple as nap
 import pickle
 import MakePlots
 
+def load_pickle_files (filepath):
+    with open(filepath, 'rb') as file:
+        data=pickle.load(file)
+    return data
+
 def SeparateTrialsByStateAndSave (parent_folder,LFP_channel='LFP_1'):
     all_contents = os.listdir(parent_folder)
     # Filter out directories containing the target string
@@ -22,21 +27,22 @@ def SeparateTrialsByStateAndSave (parent_folder,LFP_channel='LFP_1'):
     # Define a custom sorting key function to sort folders in numeric order
     sorted_folders = sorted(day_recording_folders, key=lambda x: int(x.split('Day')[-1]))
     #Iterate over each sync recording folder
-    ripple_triggered_optical_peak_value={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
-    ripple_triggered_optical_peak_time={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
-    ripple_triggered_zscore={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
-    ripple_triggered_LFP={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
-    ripple_event_corr={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
-    ripple_freq={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
-    ripple_numbers={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
-    ripple_std_values={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
-    ripple_duration_values={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    List_template={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    ripple_triggered_optical_peak_value= List_template.copy()
+    ripple_triggered_optical_peak_time= List_template.copy()
+    ripple_triggered_zscore= List_template.copy()
+    ripple_triggered_LFP= List_template.copy()
+    ripple_event_corr= List_template.copy()
+    ripple_freq= List_template.copy()
+    ripple_numbers= List_template.copy()
+    ripple_std_values= List_template.copy()
+    ripple_duration_values= List_template.copy()
+    theta_triggered_optical_peak_value=List_template.copy()
+    theta_triggered_optical_peak_time=List_template.copy()
+    theta_triggered_zscore=List_template.copy()
+    theta_triggered_LFP=List_template.copy()
+    theta_event_corr=List_template.copy()
     
-    theta_triggered_optical_peak_value={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
-    theta_triggered_optical_peak_time={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
-    theta_triggered_zscore={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
-    theta_triggered_LFP={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
-    theta_event_corr={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
     for DayRecordingFolder in sorted_folders:
         # Now you can perform operations on each folder, such as reading files inside it
         print("Day folder:", DayRecordingFolder)
@@ -117,7 +123,6 @@ def SeparateTrialsByStateAndSave (parent_folder,LFP_channel='LFP_1'):
     
     return -1
 
-
 def PoolDatabyStateAndPlot (parent_folder, LFP_channel, mode='ripple'):
     if mode=='ripple':
         half_window=0.2 #seconds, for ripple
@@ -125,20 +130,19 @@ def PoolDatabyStateAndPlot (parent_folder, LFP_channel, mode='ripple'):
         half_window=0.5 #seconds, for theta
     
     filename = os.path.join(parent_folder, mode+'_triggered_optical_peak_value_'+LFP_channel+'.pkl')
-    with open(filename, 'rb') as file:
-        peak_value=pickle.load(file)
+    peak_value=load_pickle_files (filename)
+    
     filename = os.path.join(parent_folder, mode+'_triggered_optical_peak_time_'+LFP_channel+'.pkl')
-    with open(filename, 'rb') as file:
-        time_dict=pickle.load(file)
+    time_dict=load_pickle_files (filename)
+
     filename = os.path.join(parent_folder, mode+'_triggered_zscore_'+LFP_channel+'.pkl')
-    with open(filename, 'rb') as file:
-        zscore=pickle.load(file)
+    zscore=load_pickle_files (filename)
+
     filename = os.path.join(parent_folder, mode+'_triggered_LFP_'+LFP_channel+'.pkl')
-    with open(filename, 'rb') as file:
-        LFP=pickle.load(file)   
+    LFP=load_pickle_files (filename)
+ 
     filename = os.path.join(parent_folder, mode+'_event_corr_'+LFP_channel+'.pkl')
-    with open(filename, 'rb') as file:
-        event_corr=pickle.load(file)  
+    event_corr=load_pickle_files (filename)
             
     savepath = os.path.join(parent_folder, "ResultsPooled")
     if not os.path.exists(savepath):
@@ -159,9 +163,9 @@ def PoolDatabyStateAndPlot (parent_folder, LFP_channel, mode='ripple'):
         MakePlots.plot_oscillation_epoch_traces(ax,x,mean_z_score,
                                                 mean_LFP,std_z_score,std_LFP,CI_z_score,CI_LFP,mode='ripple',plotShade='CI')
         fig.suptitle(f'{key}: Mean optical transient triggered by {mode} peak in {LFP_channel}')
-        
         figName=f'{key}_Optical_triggered_by_{mode}_{LFP_channel}.png'
         fig.savefig(os.path.join(savepath,figName))
+        
         '---scatter plot optical peak and LFP---'
         fig, ax = plt.subplots(figsize=(8, 4))
         MakePlots.plot_oscillation_epoch_optical_peaks(ax,x,time_i,peak_value_i,mean_LFP,std_LFP,CI_LFP,
@@ -183,36 +187,73 @@ def PoolDatabyStateAndPlot (parent_folder, LFP_channel, mode='ripple'):
         figName=f'{key}_Optical_LFP_corr_{mode}_{LFP_channel}.png'
         plt.savefig(os.path.join(savepath,figName))
         
-        '---plot histogram----'
-        # Plotting histograms
-        timepoints_negative = time_i[time_i < 0]
-        timepoints_positive = time_i[time_i >= 0]
-        plt.figure(figsize=(8, 6))
-        # Histogram for timepoints smaller than 0
-        plt.hist(timepoints_negative, bins=20, color='blue', alpha=0.5, label='Timepoints < 0',density=True)
-        # Histogram for timepoints larger than or equal to 0
-        plt.hist(timepoints_positive, bins=20, color='red', alpha=0.5, label='Timepoints >= 0',density=True)
-        plt.xlabel('Time relevant to LFP ripple peak (seconds)')
-        plt.ylabel('peak numbers (density)')
-        plt.title(f'{key}: Histogram of Optical peak times {LFP_channel}')
-        figName=f'{key}_Optical_peaktime_hist_{mode}_{LFP_channel}.png'
-        plt.savefig(os.path.join(savepath,figName))
     return -1
+
+
+def Compare_OpticalPeak_RipplePeak (parent_folder, LFP_channel,side='both', halfwindow=0.01, mode='ripple'):
+
+    filename = os.path.join(parent_folder, mode+'_triggered_optical_peak_time_'+LFP_channel+'.pkl')
+    time_dict=load_pickle_files (filename)
+    savepath = os.path.join(parent_folder, "ResultsPooled")
+    peak_num_probability={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    if not os.path.exists(savepath):
+        os.makedirs(savepath)     
+    for key in time_dict:
+        time_i = np.concatenate(time_dict[key])
+        total_num=len(time_i)
+        # '---plot histogram----'
+        # # Plotting histograms
+        # timepoints_negative = time_i[time_i < 0]
+        # timepoints_positive = time_i[time_i >= 0]
+        # plt.figure(figsize=(8, 6))
+        # # Histogram for timepoints smaller than 0
+        # plt.hist(timepoints_negative, bins=20, color='blue', alpha=0.5, label='Timepoints < 0',density=True)
+        # # Histogram for timepoints larger than or equal to 0
+        # plt.hist(timepoints_positive, bins=20, color='red', alpha=0.5, label='Timepoints >= 0',density=True)
+        # plt.xlabel('Time relevant to LFP ripple peak (seconds)')
+        # plt.ylabel('peak numbers (density)')
+        # plt.title(f'{key}: Histogram of Optical peak times {LFP_channel}')
+        # figName=f'{key}_Optical_peaktime_hist_{mode}_{LFP_channel}.png'
+        # plt.savefig(os.path.join(savepath,figName))
+        '----calculate ripple-optical coocurence----'
+        if side=='both':
+            time_i=time_i[time_i < halfwindow]
+            time_i=time_i[time_i>-halfwindow]
+            peak_num_probability[key]=len(time_i)/total_num
+        if side =='after':
+            time_i=time_i[time_i < halfwindow]
+            time_i=time_i[time_i>0]
+            peak_num_probability[key]=len(time_i)/total_num
+        if side =='before':
+            time_i=time_i[time_i < 0]
+            time_i=time_i[time_i>-halfwindow]
+            peak_num_probability[key]=len(time_i)/total_num
+            
+    fig, ax = plt.subplots(figsize=(8, 6))
+    MakePlots.plot_bar_from_dict(ax,peak_num_probability,plotScatter=False)
+    # Add labels and title
+    ax.set_ylabel('Number of Optical Peaks',fontsize=16)
+    #ax.set_xlabel('Condition',fontsize=16)
+    ax.set_title(f'Number of Optical Peaks within {halfwindow} on {side} side of the ripple peak',fontsize=16)
+    plt.xticks(rotation=45, ha='right',fontsize=16)  # Rotate x-axis labels for better visibility
+    plt.tight_layout()
+    figName=f'Number of Optical Peaks_{halfwindow}_{side}_{LFP_channel}.png'
+    fig.savefig(os.path.join(savepath,figName))
+    plt.show()    
+    return -1
+    
 
 def Ripple_Stat_by_State_Bar_plot(parent_folder,LFP_channel,filterOF=True):
     filename = os.path.join(parent_folder, 'ripple_freq'+LFP_channel+'.pkl')
-    with open(filename, 'rb') as file:
-        ripple_freq=pickle.load(file)
+    ripple_freq=load_pickle_files (filename)
+
     filename = os.path.join(parent_folder, 'ripple_numbers'+LFP_channel+'.pkl')
-    with open(filename, 'rb') as file:
-        ripple_numbers=pickle.load(file)
+    ripple_numbers=load_pickle_files (filename)
     filename = os.path.join(parent_folder, 'ripple_std_values'+LFP_channel+'.pkl')
-    with open(filename, 'rb') as file:
-        ripple_std_values=pickle.load(file)
+    ripple_std_values=load_pickle_files (filename)
     filename = os.path.join(parent_folder, 'ripple_duration_values'+LFP_channel+'.pkl')
-    with open(filename, 'rb') as file:
-        ripple_duration_values=pickle.load(file)
-    
+    ripple_duration_values=load_pickle_files (filename)
+
     if filterOF:
         keys_to_plot = ['pre_sleep', 'pre_awake','post_sleep','post_awake']
         ripple_freq = {key: ripple_freq[key] for key in keys_to_plot if key in ripple_freq}
@@ -282,7 +323,7 @@ parent_folder='E:/YYFstudy/Exp1'
 #PoolDatabyStateAndPlot (parent_folder, 'LFP_1', mode='theta')
 ripple_freq,ripple_numbers,ripple_std_values=Ripple_Stat_by_State_Bar_plot(parent_folder,'LFP_1')
 #%%
-
+Compare_OpticalPeak_RipplePeak (parent_folder, 'LFP_1',side='both', halfwindow=0.05, mode='ripple')
 
 
 
