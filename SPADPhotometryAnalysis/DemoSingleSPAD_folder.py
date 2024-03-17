@@ -8,9 +8,9 @@ This is the main file to process the binary data recorded by the SPC imager.
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-import SPADAnalysisTools as Analysis
-import SPADdemod
-import SPADreadBin
+from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
+from SPADPhotometryAnalysis import SPADdemod
+from SPADPhotometryAnalysis import SPADreadBin
 import os
 #%%
 # Sampling Frequency
@@ -18,16 +18,14 @@ fs   = 9938.4
 '''Read binary files for two ROIs'''
 #dpath="E:/SPAD/SPADData/20231027_GCamp8f_pyr_OECSync/2023_10_27_17_5_43_Cage_td_g30Iso20_recording1/"
 #Green,Red=SPADreadBin.readMultipleBinfiles_twoROIs(dpath,9,xxrange_g=[105,210],yyrange_g=[125,235],xxrange_r=[105,210],yyrange_r=[25,105]) 
-
 '''Read binary files for single ROI'''
-dpath="C:/SPAD/SPADData/20240109_SNR/timedivision/2024_1_9_16_16_31_td3uW/"
+dpath="D:/2024MScR_NORtask/1732333_SPAD_Day5/2024_3_8_13_34_34_Trial14/"
 TraceRaw=SPADreadBin.readMultipleBinfiles(dpath,9,xxRange=[70,250],yyRange=[60,240])
 # Set the path to the parent folder
 '''Show images'''
 filename = os.path.join(dpath, "spc_data1.bin")
 Bindata=SPADreadBin.SPADreadBin(filename,pyGUI=False)
 SPADreadBin.ShowImage(Bindata,dpath) 
-
 #%%
 '''Time division mode with one ROI, GCamp and isosbestic'''
 '''Read files'''
@@ -124,4 +122,3 @@ plt3.ticklabel_format(axis='y', style='plain')
 position=fig.add_axes([0.2,0.01,0.4,0.02])
 plt.colorbar(CS, cax=position, orientation='horizontal', fraction=0.05, pad=0.5)
 plt.subplots_adjust(right=0.7, top=0.9)
-

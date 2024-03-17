@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import FastICA
 from scipy import signal
-import SPADdemod
+from SPADPhotometryAnalysis import SPADdemod
 import photometry_functions as fp
 from scipy.fft import fft
 
@@ -443,37 +443,3 @@ def find_optoPeak (filename,Height,Distance):
     peaks, _ = find_peaks(trace, height=Height, distance=Distance)
     return peaks
 
-def calculate_SNR (data):
-    sig_value=np.mean(data)
-    noise_value=np.std(data)
-    snr=sig_value**2/noise_value**2
-    print ('SNR is', snr)
-    return snr
-
-def calculate_SNR_for_folder (parent_folder,mode='continuous'):
-    # Iterate over all folders in the parent folder
-    if mode=='continuous':
-        csv_filename="traceValueAll.csv"
-        SNR_savename='SPAD_SNR_continuous.csv'
-    if mode=='timedivision':
-        csv_filename="Green_traceAll.csv"
-        SNR_savename='SPAD_SNR_timedivision.csv'        
-    SNR_array = np.array([])
-    for folder_name in os.listdir(parent_folder):
-        folder_path = os.path.join(parent_folder, folder_name)
-        if os.path.isdir(folder_path):
-            filename=Set_filename (folder_path, csv_filename)
-            Trace_raw=getSignalTrace (filename, traceType='Constant',HighFreqRemoval=False,getBinTrace=False,bin_window=100)
-            fig, ax = plt.subplots(figsize=(12, 2.5))
-            plot_trace(Trace_raw,ax, fs=9938.4, label="Full raw data trace")
-            SNR=calculate_SNR(Trace_raw[0:9000])
-            SNR_array = np.append(SNR_array, SNR)
-            
-    csv_savename = os.path.join(parent_folder, SNR_savename)
-    np.savetxt(csv_savename, SNR_array, delimiter=',')
-    fig, ax = plt.subplots(figsize=(8, 8))
-    plt.plot(SNR_array, marker='o', linestyle='-', color='b')
-    plt.xlabel('Light Power (uW)')
-    plt.ylabel('SNR')
-    plt.title('SPAD_SNR_timedivision')
-    return -1

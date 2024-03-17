@@ -10,7 +10,7 @@ pySPAD DO NOT have ExpIndex,yrange,globalshutter at the first three bytes
 ## .bin file analysis for pySPAD,
 import os
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 
 def SPADreadBin(filename,pyGUI=True):
     binfile = open(filename, "rb") #open binfile
@@ -153,6 +153,7 @@ def combineTraces (dpath,fileNum):
     filename = os.path.join(dpath, "traceValueAll.csv")
     np.savetxt(filename, trace_raw, delimiter=",")
     return trace_raw
+
 def plot_trace(trace,ax, fs=9938.4, label="trace"):
     t=(len(trace)) / fs
     taxis = np.arange(len(trace)) / fs
@@ -168,6 +169,7 @@ def plot_trace(trace,ax, fs=9938.4, label="trace"):
 
 def ShowImage(BinData,dpath):
     '''Show the accumulated image'''
+    import cv2
     BinData=RemoveHotPixelFromTemp(BinData)
     PixelArrary=np.sum(BinData, axis=0)
     magify=1
@@ -175,11 +177,32 @@ def ShowImage(BinData,dpath):
     Pixel = (np.where(Pixel > 255, 255, Pixel)).astype(np.uint8)
     from scipy.ndimage import gaussian_filter
     Pixel_f = gaussian_filter(Pixel, sigma=1)
+
     img = Image.fromarray(Pixel_f)
     img.show()
     filename = os.path.join(dpath, "FOV_image.png")
     img.save(filename) 
     return img
+
+def find_bright_area(image):
+    import cv2
+    # Convert image to grayscale
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # Apply Gaussian blur to reduce noise
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    # Threshold the image to create a binary mask
+    _, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    # Find contours in the binary mask
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # Find the contour with the largest area
+    max_contour = max(contours, key=cv2.contourArea)
+    # Create an empty mask for the contour
+    contour_mask = np.zeros_like(gray)
+    # Draw the contour on the mask
+    cv2.drawContours(contour_mask, [max_contour], -1, 255, thickness=cv2.FILLED)
+    # Draw the outline of the contour in red
+    cv2.drawContours(image, [max_contour], -1, (0, 0, 255), 2)
+    return contour_mask, image
 
 def ShowImage_backgroundRemoved(BinData,BinData_b,dpath):
     '''Show the accumulated image'''
