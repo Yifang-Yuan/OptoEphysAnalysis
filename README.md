@@ -1,4 +1,4 @@
-# Analysis for simultaneous Ephys recording and photometry imaging by pyPhotometry or SPAD.
+![image](https://github.com/Yifang-Yuan/OptoEphysAnalysis/assets/77569999/ffbf7a36-a3e4-4615-acf8-cf49009632a9)# Analysis for simultaneous Ephys recording and photometry imaging by pyPhotometry or SPAD.
 ## Pre-requisition
 ### Packages that used for open-ephys analysis
 These packages are implemented in the analysis code, but you need to install or download them first.
@@ -35,6 +35,8 @@ Functions are aleady included in my package so you don't need to install anythin
 ## Pre-processing the data 
 
 ### Option 1: Pre-process optical, ephys, behavioural data in one go
+Use `BatchPreProcessing.py` and change folder path according to your folder name.
+
 Note: It works fine, but not recommended since it requires your folder to be nicely organised without missing files. Run optical, ephys and behavioural preprocessing separately will allow you to spot errors and file unmatched issues.
 
 Your raw data should be put in a one-day session folder like this:
@@ -81,6 +83,8 @@ After preprocessing, you will get this in each **SyncRecording*** folder:
 
 ## Post-processing for Optical signal and LFP combine analysis
 
+### Processing by each trials
+
 `CombineAnalysis.py`---to create a class (`SyncOESPADSessionClass.py` or `SyncOECPySessionClass.py`) and analyse a single trial (a single SyncRecording folder) of data.  
 
 `BatchProcessRecordingClass.py`---a bactch analysis of all trials in the same folder (data from one session/one day).
@@ -89,9 +93,25 @@ Afer combine analysis, you will get more saved pkl files in each **SyncRecording
 
 ![image](https://github.com/Yifang-Yuan/OptoEphysAnalysis/assets/77569999/90deba4c-82e5-4efe-bbae-24eeab47525b)
 
+Figures will automatically saved in a newly created **'Results'** folder (folder created by codes) in the parent folder for that one-day session (showed in one of above screenshots).
 
 `SyncOESPADSessionClass.py``SyncOECPySessionClass.py`--- Class with synchronised LFP,SPAD,cam data, no need to run, but it might need to be modified to achieve new functions and analysis. 
 
 `OpenEphysTools.py`---including functions to decode the Open Ephys binary data, analysis LFP data and ripple detection, no need to run and change, unless you want to change the Open Ephys channels, band-pass filters for pre-processing, Sync pulse channels or other output signal channels. 
 
 'ConcatenateTrials.py'----can be used to concatenate all pre-training trials and all post-training trials to get a long single trace, and then use `CombineAnalysis.py` to treat it as a single trace. But be careful to use it, since the animal may have different states in different trials.
+
+#### Example Results
+
+![image](https://github.com/Yifang-Yuan/OptoEphysAnalysis/assets/77569999/80fb9f71-2329-4128-9df8-680b8776c326)
+
+### Processing a whole object experiment (5-days data)
+`ObjectExpPool.py` will pool all pre-awake, pre-sleep, open-field, post-awake, post-sleep trials together for comparison.
+
+Resulted figures will be saved in a newly created folder **'ResultsPooled'** in the parent folder that you saved multiple days data. #
+![image](https://github.com/Yifang-Yuan/OptoEphysAnalysis/assets/77569999/9193b15a-9620-44d6-8be6-d98bc79f4762)
+
+#### Example Results
+![image](https://github.com/Yifang-Yuan/OptoEphysAnalysis/assets/77569999/208da4d1-d08e-4035-8f48-04c303b51d10)
+
+
