@@ -836,7 +836,7 @@ class SyncOEpyPhotometrySession:
         'Plot LFP and optical signal during ripple/theta events'
         x = np.linspace(-half_window, half_window, len(mean_z_score))
         fig, ax = plt.subplots(2, 2, figsize=(10, 8))
-        print (ax)
+
         MakePlots.plot_oscillation_epoch_traces(ax[0,0],x,mean_z_score,mean_LFP_1,std_z_score,
                                                       std_LFP_1,CI_z_score,CI_LFP_1,mode=mode,plotShade=plotShade)
         MakePlots.plot_oscillation_epoch_traces(ax[0,1],x,mean_z_score,mean_LFP_2,std_z_score,

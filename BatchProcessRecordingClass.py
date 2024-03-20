@@ -27,7 +27,7 @@ def ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', IsTrackin
     # Iterate over each sync recording folder
     for SyncRecordingName in sync_recording_folders:
         # Now you can perform operations on each folder, such as reading files inside it
-        print("Now processing folder:", SyncRecordingName)
+        print("----Now processing folder:", SyncRecordingName)
         Recording1=SyncOEpyPhotometrySession(parent_folder,SyncRecordingName,IsTracking=IsTracking,read_aligned_data_from_file=read_aligned_data_from_file) 
         for i in range (4):
             LFP_channel='LFP_'+str(i+1)
