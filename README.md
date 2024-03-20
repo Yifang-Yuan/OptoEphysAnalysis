@@ -1,4 +1,4 @@
-![image](https://github.com/Yifang-Yuan/OptoEphysAnalysis/assets/77569999/ffbf7a36-a3e4-4615-acf8-cf49009632a9)# Analysis for simultaneous Ephys recording and photometry imaging by pyPhotometry or SPAD.
+# Analysis for simultaneous Ephys recording and photometry imaging by pyPhotometry or SPAD.
 ## Pre-requisition
 ### Packages that used for open-ephys analysis
 These packages are implemented in the analysis code, but you need to install or download them first.
@@ -108,7 +108,8 @@ Figures will automatically saved in a newly created **'Results'** folder (folder
 ### Processing a whole object experiment (5-days data)
 `ObjectExpPool.py` will pool all pre-awake, pre-sleep, open-field, post-awake, post-sleep trials together for comparison.
 
-Resulted figures will be saved in a newly created folder **'ResultsPooled'** in the parent folder that you saved multiple days data. #
+Resulted figures will be saved in a newly created folder **'ResultsPooled'** in the parent folder that you saved multiple days data. 
+
 ![image](https://github.com/Yifang-Yuan/OptoEphysAnalysis/assets/77569999/9193b15a-9620-44d6-8be6-d98bc79f4762)
 
 #### Example Results
