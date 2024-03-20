@@ -24,8 +24,10 @@ def read_multiple_photometry_files_in_folder(pydata_folder_path,save_parent_fold
     all_files = os.listdir(pydata_folder_path)
     # Filter for CSV files and get their full paths
     csv_files = [os.path.join(pydata_folder_path, file) for file in all_files if file.endswith('.csv')]
-    # Sort the CSV files based on their creation time
-    csv_files_sorted = sorted(csv_files, key=os.path.getctime)
+    # Sort the CSV files based on their modified time
+    csv_files_sorted = sorted(csv_files, key=os.path.getmtime) #sorted by modified time
+    #csv_files_sorted = sorted(csv_files, key=os.path.getctime) #sorted by created time
+
     # Read each CSV file in order
     for i, csv_file in enumerate(csv_files_sorted, 1):
         folder_name = f'{new_folder_name}{i}'
@@ -61,8 +63,8 @@ def read_multiple_photometry_files_in_folder(pydata_folder_path,save_parent_fold
     return -1
 
 def main():
-    pydata_folder_path='E:/YYFstudy/20240215_Day4/pyPhotometry'
-    save_parent_folder='E:/YYFstudy/20240215_Day4'
+    pydata_folder_path='F:/2024MScR_NORtask/1723433_pyPhotometry_mdlxG8f/20231215_Day1/pyPhotometry'
+    save_parent_folder='F:/2024MScR_NORtask/1723433_pyPhotometry_mdlxG8f/20231215_Day1/'
     read_multiple_photometry_files_in_folder(pydata_folder_path,save_parent_folder,sampling_rate=130,new_folder_name='SyncRecording')
 
 if __name__ == "__main__":

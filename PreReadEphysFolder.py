@@ -2,9 +2,8 @@
 """
 Created on Sat Feb 17 13:08:41 2024
 
-@author: Yang
+@author: Yifang
 """
-
 '''This function reads multipile Open Ephys recordings in the same folder with file created temporal order
 It will create save save data the SyncRecordingX folder.'''
 
@@ -20,7 +19,9 @@ def read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode
     '''
     thisSession = Session(Ephys_folder_path)
     totalRecordingNums=len(thisSession.recordnodes[0].recordings)
+    print ('processing folder:',Ephys_folder_path)
     print ('Total recording trials in this Session---',totalRecordingNums)
+    
     
     if mode =='py' :
         print ('---The processing is done with a pyPhotometry or Camera Sync mask---')
@@ -47,8 +48,8 @@ def main():
     '''Set the folder for the Open Ephys recording, defualt folder names are usually date and time'''
     '''Set the parent folder your session results, this should be the same parent folder to save optical data'''
     
-    Ephys_folder_path = "E:/YYFstudy/20240212_Day1/OpenEphys/2024-02-12_15-02-31"   
-    save_parent_folder="E:/YYFstudy/20240212_Day1/" 
+    Ephys_folder_path = "F:/2024MScR_NORtask/1723433_pyPhotometry_mdlxG8f/20231215_Day1/OpenEphys/2023-12-15_15-37-34/"   
+    save_parent_folder="F:/2024MScR_NORtask/1723433_pyPhotometry_mdlxG8f/20231215_Day1/" 
     Ephys_fs=30000 #Ephys sampling rate
     read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode='py',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording')
 
