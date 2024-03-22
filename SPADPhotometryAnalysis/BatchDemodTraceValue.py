@@ -28,8 +28,17 @@ def check_ROI (dpath):
     filename = os.path.join(dpath, "spc_data1.bin")
     Bindata=SPADreadBin.SPADreadBin(filename,pyGUI=False)
     SPADreadBin.ShowImage(Bindata,dpath) 
-    
     return -1
+
+def replace_outliers(arr, threshold=10):
+    cleaned_arr = arr.copy()  # Create a copy to avoid modifying the original array
+    for i in range(len(arr)):
+        if np.abs(arr[i] - np.mean(arr)) > threshold * np.std(arr):
+            # Find the nearest neighbor value
+            neighbor_value = np.mean(arr[max(0, i-1):min(len(arr), i+2)])
+            # Replace the outlier with the neighbor value
+            cleaned_arr[i] = neighbor_value
+    return cleaned_arr
 
 def demod_multiple_SPAD_folders_save_zscore(parent_folder,high_thd=12000,low_thd=6000):
     '''When using this batch processing function, please make sure the ROI did not change for this whole experiment.'''
@@ -44,7 +53,8 @@ def demod_multiple_SPAD_folders_save_zscore(parent_folder,high_thd=12000,low_thd
         filename=Analysis.Set_filename (directory, csv_filename="traceValueAll.csv")
         Trace_raw=Analysis.getSignalTrace (filename, traceType='Constant',HighFreqRemoval=False,getBinTrace=False,bin_window=100)
         Green,Red= Analysis.getTimeDivisionTrace_fromMask (directory, Trace_raw, high_thd=high_thd,low_thd=low_thd)
-        
+        Green=replace_outliers(Green, threshold=10)
+        Red=replace_outliers(Red, threshold=10)
         z_sig,smooth_sig,corrected_sig=Analysis.photometry_smooth_plot (Red,Green,
                                                                                   sampling_rate=9938.4,smooth_win =20)
         zscorefname = os.path.join(directory, "Zscore_traceAll.csv")
@@ -67,4 +77,5 @@ plot_section_for_threshold(fs,dpath2)
 'Set the high_thd to a value larger than the maximun in the above plot, and low_thd to a value lower than the signal minimun value. '
 demod_multiple_SPAD_folders_save_zscore(parent_folder,high_thd=12000,low_thd=7000)
 #%%
+'check ROI plot if the photon count is too small'
 check_ROI (dpath1)
