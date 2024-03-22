@@ -10,6 +10,7 @@ import numpy as np
 from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 from SPADPhotometryAnalysis import SPADreadBin
 import os
+import shutil
 
 def plot_section_for_threshold(fs,dpath):
     '''Time division mode with one ROI, GCamp and isosbestic'''
@@ -54,27 +55,67 @@ def demod_multiple_SPAD_folders_save_zscore(parent_folder,high_thd=12000,low_thd
         filename=Analysis.Set_filename (directory, csv_filename="traceValueAll.csv")
         Trace_raw=Analysis.getSignalTrace (filename, traceType='Constant',HighFreqRemoval=False,getBinTrace=False,bin_window=100)
         Green,Red= Analysis.getTimeDivisionTrace_fromMask (directory, Trace_raw, high_thd=high_thd,low_thd=low_thd)
+        Green=replace_outliers(Green, threshold=3)
+        Red=replace_outliers(Red, threshold=3)
         z_sig,smooth_sig,corrected_sig=Analysis.photometry_smooth_plot (Red,Green,
                                                                                   sampling_rate=9938.4,smooth_win =20)
         zscorefname = os.path.join(directory, "Zscore_traceAll.csv")
         np.savetxt(zscorefname, z_sig, delimiter=",")
     return -1
-    
-#%%
-# Sampling Frequency
-fs   = 9938.4
-'''Read binary files for single ROI'''
-parent_folder="F:/2024MScR_NORtask/1732333_SPAD/20240304_Day1/SPAD"
 
+def copy_file(file_to_copy,source_dir,destination_dir):
+    if file_to_copy in os.listdir(source_dir):
+        # Construct the source and destination file paths
+        source_file = os.path.join(source_dir, file_to_copy)
+        destination_file = os.path.join(destination_dir, file_to_copy)
+        # Copy the file to the destination directory
+        shutil.copy(source_file, destination_file)
+        print(f"File '{file_to_copy}' copied successfully.")
+    else:
+        print(f"File '{file_to_copy}' does not exist in the source directory.")
+    return -1
+
+def copy_results_to_SyncRecording (day_parent_folder,SPAD_parent_folder,new_folder_name='SyncRecording'):
+        # Source and destination directories
+    # Specify the file to copy
+    directories = [os.path.join(SPAD_parent_folder, d) for d in os.listdir(parent_folder) if os.path.isdir(os.path.join(SPAD_parent_folder, d))]
+    # Sort the directories by creation time
+    directories.sort(key=lambda x: os.path.getctime(x))
+    # Read the directories in sorted order
+    i=0
+    for source_dir in directories:
+        i=i+1
+        folder_name = f'{new_folder_name}{i}'
+        destination_dir = os.path.join(day_parent_folder, folder_name)
+        # Create the folder if it doesn't exist
+        if not os.path.exists(destination_dir):
+            os.makedirs(destination_dir)
+        file_to_copy = 'Zscore_traceAll.csv'
+        copy_file(file_to_copy,source_dir,destination_dir)
+        file_to_copy = 'Green_traceAll.csv'
+        copy_file(file_to_copy,source_dir,destination_dir)
+        file_to_copy = 'Red_traceAll.csv'
+        copy_file(file_to_copy,source_dir,destination_dir)
+    return -1
+#%%
+# Step 1. check threshold can signal quality
+fs   = 9938.4
+day_parent_folder="F:/2024MScR_NORtask/1732333_SPAD/20240305_Day2/"
+parent_folder=os.path.join(day_parent_folder, 'SPAD')
 'Plot the 1st trial and the last trial to check whether the signal is stable'
-dpath1="F:/2024MScR_NORtask/1732333_SPAD/20240304_Day1/SPAD/2024_3_4_15_33_57_Trial1/"
+dpath1=os.path.join(parent_folder, '2024_3_5_14_43_11_Trial1')
 plot_section_for_threshold(fs,dpath1)
-dpath2="F:/2024MScR_NORtask/1732333_SPAD/20240304_Day1/SPAD/2024_3_4_18_17_51_Trial11/"
+dpath2=os.path.join(parent_folder, '2024_3_5_15_44_34_Trial6')
 plot_section_for_threshold(fs,dpath2)
 
 #%%
+# Step 2. Do the batch demodulation.
 'Set the high_thd to a value larger than the maximun in the above plot, and low_thd to a value lower than the signal minimun value. '
-demod_multiple_SPAD_folders_save_zscore(parent_folder,high_thd=12000,low_thd=7000)
+demod_multiple_SPAD_folders_save_zscore(parent_folder,high_thd=1200,low_thd=600)
+
 #%%
-'check ROI plot if the photon count is too small'
+# Step 3. Copy the files to the SyncRecording folder.
+copy_results_to_SyncRecording (day_parent_folder,SPAD_parent_folder=parent_folder,new_folder_name='SyncRecording')
+#%%
+'Check ROI plot if the photon count is too small'
 check_ROI (dpath1)

@@ -223,7 +223,7 @@ def check_Optical_mask_length(data):
     Length_in_second=length_of_filtered_series/30000
     print('Mask length in Second:', Length_in_second)
     spad_sample_num=Length_in_second*9938.4
-    print('Total optical sample number:', spad_sample_num)
+    print('Total optical sample number (if SPAD):', spad_sample_num)
     return -1
 
 def save_SPAD_mask (dpath,mask_data_array):
@@ -464,6 +464,7 @@ def plot_trace_in_seconds(data,Fs,title='Trace in seconds'):
     ax.spines['right'].set_visible(False)
     ax.set_xlabel('Time (s)')
     ax.set_title(title)
+    plt.show()
     return -1
 
 def plot_trace_in_seconds_ax (ax,data, Fs, label='data',color='b',ylabel='z-score',xlabel=True):
