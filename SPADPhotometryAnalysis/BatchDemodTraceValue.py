@@ -34,14 +34,11 @@ def replace_outliers(arr, threshold=5):
     # Calculate the mean and standard deviation of the array
     mean = np.mean(arr)
     std = np.std(arr)
-    
     # Create a mask to identify outliers
     mask = np.abs(arr - mean) > threshold * std
-    
     # Replace outliers with the mean of neighboring values
     neighbor_mean = np.convolve(arr, np.ones(3) / 3, mode='same')  # Calculate the mean of neighboring values
     cleaned_arr = np.where(mask, neighbor_mean, arr)  # Replace outliers with the neighboring mean
-    
     return cleaned_arr
 
 def demod_multiple_SPAD_folders_save_zscore(parent_folder,high_thd=12000,low_thd=6000):
@@ -57,8 +54,6 @@ def demod_multiple_SPAD_folders_save_zscore(parent_folder,high_thd=12000,low_thd
         filename=Analysis.Set_filename (directory, csv_filename="traceValueAll.csv")
         Trace_raw=Analysis.getSignalTrace (filename, traceType='Constant',HighFreqRemoval=False,getBinTrace=False,bin_window=100)
         Green,Red= Analysis.getTimeDivisionTrace_fromMask (directory, Trace_raw, high_thd=high_thd,low_thd=low_thd)
-        Green=replace_outliers(Green, threshold=5)
-        Red=replace_outliers(Red, threshold=5)
         z_sig,smooth_sig,corrected_sig=Analysis.photometry_smooth_plot (Red,Green,
                                                                                   sampling_rate=9938.4,smooth_win =20)
         zscorefname = os.path.join(directory, "Zscore_traceAll.csv")
