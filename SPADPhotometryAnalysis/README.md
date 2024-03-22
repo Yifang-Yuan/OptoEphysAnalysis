@@ -13,7 +13,7 @@ https://github.com/MattNolanLab/SPAD_in_vivo
 
 (1) put all your SPAD data path in the 'main' function; (2) modify the ROI xxrange and yyrange from screenshot or the FOV image saved by `DemoSingleSPAD_folder.py`.
 
-![image](https://github.com/Yifang-Yuan/OptoEphysAnalysis/assets/77569999/19fbf1a8-47d3-4ef2-ba53-a508d032cdee)
+![image](https://github.com/Yifang-Yuan/OptoEphysAnalysis/assets/77569999/8f8a1a1b-a686-42f7-9dc6-9cb8fd16a1d0)
 
 **Step 2. Demodulate `traceValueAll.csv`.**
 
@@ -46,6 +46,5 @@ https://github.com/katemartian/Photometry_data_processing
 A prerequisition is COLD pipeline (Lewis-Fallows 2024) to process cheeseboard behavioural data. 
 
 NOTE: These two files are designed for a specific experiment, you do not need them to perform other pyPhotometry related analysis.
-
 
 
