@@ -9,7 +9,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
-from SPADPhotometryAnalysis import SPADdemod
 from SPADPhotometryAnalysis import SPADreadBin
 import os
 #%%
@@ -19,8 +18,9 @@ fs   = 9938.4
 #dpath="E:/SPAD/SPADData/20231027_GCamp8f_pyr_OECSync/2023_10_27_17_5_43_Cage_td_g30Iso20_recording1/"
 #Green,Red=SPADreadBin.readMultipleBinfiles_twoROIs(dpath,9,xxrange_g=[105,210],yyrange_g=[125,235],xxrange_r=[105,210],yyrange_r=[25,105]) 
 '''Read binary files for single ROI'''
-dpath="D:/2024MScR_NORtask/1732333_SPAD_Day5/2024_3_8_13_34_34_Trial14/"
-TraceRaw=SPADreadBin.readMultipleBinfiles(dpath,9,xxRange=[70,250],yyRange=[60,240])
+dpath="F:/2024MScR_NORtask/1732333_SPAD/20240307_Day4/SPAD/2024_3_7_14_17_46_Trial1/"
+'To read raw trace'
+#TraceRaw=SPADreadBin.readMultipleBinfiles(dpath,2,xxRange=[70,250],yyRange=[60,240])
 # Set the path to the parent folder
 '''Show images'''
 filename = os.path.join(dpath, "spc_data1.bin")
@@ -39,10 +39,10 @@ Analysis.plot_trace(Trace_raw[0:200],ax, fs=9938.4, label="Part raw data trace")
 #SNR=Analysis.calculate_SNR(Trace_raw[0:9000])
 #%%
 '''Demodulate using peak value'''
-Green,Red=Analysis.getTimeDivisionTrace (dpath, Trace_raw, sig_highlim=2300,sig_lowlim=1900,ref_highlim=400,ref_lowlim=50)
+#Green,Red=Analysis.getTimeDivisionTrace (dpath, Trace_raw, sig_highlim=2300,sig_lowlim=1900,ref_highlim=400,ref_lowlim=50)
 #%%
 'Demodulate single ROI time division recodings'
-Green,Red= Analysis.getTimeDivisionTrace_fromMask (dpath, Trace_raw, high_thd=2250,low_thd=1800)
+Green,Red= Analysis.getTimeDivisionTrace_fromMask (dpath, Trace_raw, high_thd=12000,low_thd=6000)
 #%%
 '''Two ROIs for GEVI, one is green another is red for reference'''
 # Two ROIs
@@ -52,6 +52,7 @@ Green,Red= Analysis.getTimeDivisionTrace_fromMask (dpath, Trace_raw, high_thd=22
 #%%
 z_sig,smooth_sig,corrected_sig=Analysis.photometry_smooth_plot (Red,Green,
                                                                           sampling_rate=9938.4,smooth_win =500)
+
 #%%
 z_sig,smooth_sig,corrected_sig=Analysis.photometry_smooth_plot (Red,Green,
                                                                           sampling_rate=9938.4,smooth_win =20)
@@ -60,7 +61,7 @@ np.savetxt(zscorefname, z_sig, delimiter=",")
 #%%
 signal1, signal2=Analysis.getICA (Red,Green)
 z_sig,smooth_sig,corrected_sig=Analysis.photometry_smooth_plot (signal1,signal2,
-                                                                          sampling_rate=9938.4,smooth_win =20)
+                                                                          sampling_rate=9938.4,smooth_win =500)
 #%% Single ROIs
 bin_window=20
 Signal_bin=Analysis.get_bin_trace(Green[708500:710500],bin_window=bin_window)
