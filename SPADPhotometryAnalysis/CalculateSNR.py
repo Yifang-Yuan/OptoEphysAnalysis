@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import photometry_functions as fp
 import scipy
+from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 
 def calculate_SNR_for_photometry_folder (parent_folder):
     # Iterate over all folders in the parent folder
@@ -20,7 +21,6 @@ def calculate_SNR_for_photometry_folder (parent_folder):
     csv_files = [file for file in all_files if file.endswith('.csv')]
     print(csv_files)
     for csv_file in csv_files:
-        print('111',csv_file)
         raw_signal,raw_reference=fp.read_photometry_data (parent_folder, csv_file, readCamSync=False,plot=True)
         SNR=calculate_SNR(raw_signal)
         SNR_array = np.append(SNR_array, SNR)
@@ -32,13 +32,13 @@ def calculate_SNR_for_photometry_folder (parent_folder):
     plt.ylabel('SNR')
     return -1
 
-def calculate_SNR_for_SPAD_folder (parent_folder,mode='continuous'):
+def calculate_SNR_for_SPAD_folder (parent_folder,mode='continuous',csv_filename="traceValueAll.csv"):
     # Iterate over all folders in the parent folder
     if mode=='continuous':
-        csv_filename="traceValueAll.csv"
+        csv_filename=csv_filename
         SNR_savename='SPAD_SNR_continuous.csv'
     if mode=='timedivision':
-        csv_filename="Green_traceAll.csv"
+        csv_filename=csv_filename
         SNR_savename='SPAD_SNR_timedivision.csv'        
     SNR_array = np.array([])
     for folder_name in os.listdir(parent_folder):
@@ -66,4 +66,25 @@ def calculate_SNR (data):
     snr=sig_value**2/noise_value**2
     print ('SNR is', snr)
     return snr
+
+def calculate_SNR_for_folder_csv (parent_folder):
+    # Iterate over all folders in the parent folder
+    SNR_savename='SNR_results.csv'        
+    SNR_array = np.array([])
+    all_files = os.listdir(parent_folder)
+    csv_files = [file for file in all_files if file.endswith('.csv')]
+    print(csv_files)
+    for csv_file in csv_files:
+        csv_filepath = os.path.join(parent_folder, csv_file)
+        print(csv_filepath)
+        raw_signal = np.genfromtxt(csv_filepath, delimiter=',', skip_header=1)
+        SNR=calculate_SNR(raw_signal)
+        SNR_array = np.append(SNR_array, SNR)
+    csv_savename = os.path.join(parent_folder, SNR_savename)
+    np.savetxt(csv_savename, SNR_array, delimiter=',')
+    fig, ax = plt.subplots(figsize=(8, 8))
+    plt.plot(SNR_array, marker='o', linestyle='-', color='b')
+    plt.xlabel('Light Power (uW)')
+    plt.ylabel('SNR')
+    return raw_signal
 
