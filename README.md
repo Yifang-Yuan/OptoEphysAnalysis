@@ -10,11 +10,13 @@ https://github.com/open-ephys/open-ephys-python-tools
 **NOTE:** This package has an issue on the sequence of reading `recording*` folder , i.e. if you have an experiment folder with more than 10 recordings, it will read the folders in this order: 1,10,2,3,4...,
 Please refer to: https://github.com/Yifang-Yuan/OptoEphysAnalysis/tree/main/TroubleShootingOthersPackage. You can simply replace a file or replace a function in this package.
 
-(2) To process open-ephys LTP data, install pynapple:
+(2) To process open-ephys LTP data, install pynapple: https://github.com/pynapple-org/pynapple
 
 **NOTE:** pynapple is somehow not compatible with the inbuild Spyder installater on Anaconda home page, i.e. if you create an environment for pynapple and want to use spyder, you have to use terminal to install and open Spyder (I'm not sure whether they've fixed this, my experience).
 
-https://github.com/pynapple-org/pynapple
+**IMPORTANT:** pynapple changed some data structure from Pandas to Numpy which causes errors in some functions, to install an older version of pyapple, use these in the terminal: 
+
+`pip install pynapple==0.3.3`
 
 (3) Pynacollada is used for ripple detection, include this repository:
 
