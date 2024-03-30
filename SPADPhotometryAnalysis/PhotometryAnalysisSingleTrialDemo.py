@@ -14,18 +14,19 @@ from SPADPhotometryAnalysis import photometry_functions as fp
 import os
 # Folder with your files
 # Modify it depending on where your file is located
-folder ="E:/YYFstudy/20240214_Day3/SyncRecording10/"
+folder ="F:/2024MScR_NORtask/1732333_pyPhotometry/20240215_Day4/pyPhotometry/"
 # File name
-file_name = '1732333-2024-02-14-154153.csv'
+file_name = '1732333-2024-02-15-132655.csv'
 sampling_rate=130
 #%%
 '''Read csv file and calculate zscore of the fluorescent signal'''
 raw_signal,raw_reference,Cam_Sync=fp.read_photometry_data (folder, file_name, readCamSync=True,plot=True)
 '''Get zdFF directly'''
-zdFF = fp.get_zdFF(raw_reference,raw_signal,smooth_win=2,remove=0,lambd=5e4,porder=1,itermax=50)
+zdFF = fp.get_zdFF(raw_reference,raw_signal,smooth_win=10,remove=0,lambd=5e4,porder=1,itermax=50)
 fig = plt.figure(figsize=(16, 5))
 ax1 = fig.add_subplot(111)
 ax1 = fp.plotSingleTrace (ax1, zdFF, SamplingRate=sampling_rate,color='black',Label='zscore_signal')
+#%%
 '''Save signal'''
 greenfname = os.path.join(folder, "Green_traceAll.csv")
 np.savetxt(greenfname, raw_signal, delimiter=",")
@@ -44,15 +45,15 @@ def get_part_trace(data,start_time,end_time,fs):
     return sliced_data
 
 '''!!!Skip this part or comment these four lines if you dont want to cut your data'''
-# start_time=40
-# end_time=60
-# raw_signal=get_part_trace(raw_signal,start_time=start_time,end_time=end_time,fs=sampling_rate)
-# raw_reference=get_part_trace(raw_reference,start_time=start_time,end_time=end_time,fs=sampling_rate)
-# fig = plt.figure(figsize=(16, 10))
-# ax1 = fig.add_subplot(211)
-# ax1 = fp.plotSingleTrace (ax1, raw_signal, SamplingRate=sampling_rate,color='blue',Label='Signal')
-# ax2 = fig.add_subplot(212)
-# ax2 = fp.plotSingleTrace (ax2, raw_reference, SamplingRate=sampling_rate,color='purple',Label='Reference')
+start_time=40
+end_time=60
+raw_signal=get_part_trace(raw_signal,start_time=start_time,end_time=end_time,fs=sampling_rate)
+raw_reference=get_part_trace(raw_reference,start_time=start_time,end_time=end_time,fs=sampling_rate)
+fig = plt.figure(figsize=(16, 10))
+ax1 = fig.add_subplot(211)
+ax1 = fp.plotSingleTrace (ax1, raw_signal, SamplingRate=sampling_rate,color='blue',Label='Signal')
+ax2 = fig.add_subplot(212)
+ax2 = fp.plotSingleTrace (ax2, raw_reference, SamplingRate=sampling_rate,color='purple',Label='Reference')
 #%%
 '''
 You can get zdFF directly by calling the function fp.get_zdFF()

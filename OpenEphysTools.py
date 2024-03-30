@@ -549,13 +549,13 @@ def plot_two_raw_traces (data1,data2, spad_label='spad',lfp_label='LFP'):
     #ax2.set_title('LFP')
     ax2.set_xlabel('Time (s)')
     ax2.legend()
-    plt.tight_layout()
+    #plt.tight_layout()
     plt.show()
     return fig
     
 def plot_speed_heatmap(ax, speed_series,cbar=False,annot=False):
     speed_series = speed_series.to_frame()
-    heatmap = sns.heatmap(speed_series.transpose(), annot=annot, cmap='YlGnBu', ax=ax, cbar=cbar, yticklabels=[])
+    #heatmap = sns.heatmap(speed_series.transpose(), annot=annot, cmap='YlGnBu', ax=ax, cbar=cbar, yticklabels=[])
     ax.set_title("Heatmap of Animal speed over time")
     # Format x-axis labels to show seconds
     ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: pd.Timedelta(x*100000).seconds))

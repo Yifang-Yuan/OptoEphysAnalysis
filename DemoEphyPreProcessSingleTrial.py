@@ -18,12 +18,12 @@ The final output should be a pandas format EphysData with data recorded by open 
 #%%
 '''Set the folder for the Open Ephys recording, defualt folder names are usually date and time'''
 
-directory = "F:/2024MScR_NORtask/1732333_SPAD/20240307_Day4/Ephys/2024-03-07_14-17-31/"  
+directory = "F:/2024MScR_NORtask/1732333_SPAD/20240304_Day1/Ephys/2024-03-04_15-33-03/"  
 
 '''Set the folder your session data, this folder is used to save decoded LFP data, it should include optical signal data and animal tracking data as .csv;
 this folder is now manually created, but I want to make it automatic'''
 
-dpath="F:/2024MScR_NORtask/1732333_SPAD/20240307_Day4/SyncRecording11"  
+dpath="F:/2024MScR_NORtask/1732333_SPAD/20240304_Day1/SyncRecording1"  
 
 Ephys_fs=30000 #Ephys sampling rate
 '''recordingNum is the index of recording from the OE recording, start from 0'''

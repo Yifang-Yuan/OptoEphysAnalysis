@@ -63,8 +63,10 @@ def get_zdFF(reference,signal,smooth_win=10,remove=200,lambd=5e4,porder=1,iterma
   lin = Lasso(alpha=0.0001,precompute=True,max_iter=1000,
               positive=True, random_state=9999, selection='random')
   n = len(reference)
-  signal=signal.to_numpy()
-  reference=reference.to_numpy()
+  if isinstance(signal, pd.DataFrame):
+      signal=signal.to_numpy()
+  if isinstance(reference, pd.DataFrame):
+      reference=reference.to_numpy()
   lin.fit(reference.reshape(n,1), signal.reshape(n,1))
   reference = lin.predict(reference.reshape(n,1)).reshape(n,)
 

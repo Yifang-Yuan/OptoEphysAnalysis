@@ -13,7 +13,7 @@ from SyncOECPySessionClass import SyncOEpyPhotometrySession
 import OpenEphysTools as OE
 
 def ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', IsTracking=False,
-                       read_aligned_data_from_file=False):
+                       read_aligned_data_from_file=False,recordingMode='SPAD'):
     
     # List all files and directories in the parent folder
     all_contents = os.listdir(parent_folder)
@@ -28,7 +28,8 @@ def ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', IsTrackin
     for SyncRecordingName in sync_recording_folders:
         # Now you can perform operations on each folder, such as reading files inside it
         print("----Now processing folder:", SyncRecordingName)
-        Recording1=SyncOEpyPhotometrySession(parent_folder,SyncRecordingName,IsTracking=IsTracking,read_aligned_data_from_file=read_aligned_data_from_file) 
+        Recording1=SyncOEpyPhotometrySession(parent_folder,SyncRecordingName,IsTracking=IsTracking,
+                                             read_aligned_data_from_file=read_aligned_data_from_file,recordingMode=recordingMode) 
         for i in range (4):
             LFP_channel='LFP_'+str(i+1)
             
@@ -52,10 +53,22 @@ def ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', IsTrackin
     return -1                                                                   
 
 def main():    
-    'Put all your parent folders here for batch processing'
-    parent_folder="F:/2024MScR_NORtask/1723433_pyPhotometry_mdlxG8f/20231215_Day1/"
+    '''
+    Put all your parent folders here for batch processing.
+    recordingMode: 'py' for pyPhotometry recording, 'SPAD' for SPAD-SPC recording
+    '''
+    parent_folder="F:/2024MScR_NORtask/1732333_SPAD/20240305_Day2/"
     ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', 
-                                          IsTracking=True,read_aligned_data_from_file=False)
+                                          IsTracking=True,read_aligned_data_from_file=False,recordingMode='SPAD')
+    parent_folder="F:/2024MScR_NORtask/1732333_SPAD/20240306_Day3/"
+    ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', 
+                                          IsTracking=True,read_aligned_data_from_file=False,recordingMode='SPAD')
+    parent_folder="F:/2024MScR_NORtask/1732333_SPAD/20240307_Day4/"
+    ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', 
+                                          IsTracking=True,read_aligned_data_from_file=False,recordingMode='SPAD')
+    parent_folder="F:/2024MScR_NORtask/1732333_SPAD/20240308_Day5/"
+    ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', 
+                                          IsTracking=True,read_aligned_data_from_file=False,recordingMode='SPAD')
     
 if __name__ == "__main__":
     main()

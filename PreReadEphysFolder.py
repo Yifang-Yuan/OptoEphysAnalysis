@@ -90,8 +90,8 @@ def main():
     '''Set the folder for the Open Ephys recording, defualt folder names are usually date and time'''
     '''Set the parent folder your session results, this should be the same parent folder to save optical data'''
     
-    Ephys_folder_path = "F:/2024MScR_NORtask/1732333_SPAD/20240308_Day5/Ephys/2024-03-08_11-03-40/"   
-    save_parent_folder="F:/2024MScR_NORtask/1732333_SPAD/20240308_Day5/" 
+    Ephys_folder_path = "F:/2024MScR_NORtask/1732333_SPAD/20240306_Day3/Ephys/2024-03-06_14-51-15/"   
+    save_parent_folder="F:/2024MScR_NORtask/1732333_SPAD/20240306_Day3/" 
     Ephys_fs=30000 #Ephys sampling rate
     read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode='SPAD',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording')
 

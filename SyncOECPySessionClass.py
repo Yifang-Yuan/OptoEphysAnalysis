@@ -17,7 +17,7 @@ import pynapple as nap
 import MakePlots
 
 class SyncOEpyPhotometrySession:
-    def __init__(self, SessionPath,recordingName,IsTracking=False,read_aligned_data_from_file=False):
+    def __init__(self, SessionPath,recordingName,IsTracking=False,read_aligned_data_from_file=False, recordingMode='py'):
         '''
         Parameters
         ----------
@@ -29,7 +29,13 @@ class SyncOEpyPhotometrySession:
             once you have removed noises, run the single-trial analysis, saved the .pkl file, 
             set it to true to read aligned data directly.
         '''
-        self.pyPhotometry_fs = 130
+        self.recordingMode=recordingMode
+        'Define photometry recording sampling rate by recording mode'
+        if self.recordingMode=='py':
+            self.pyPhotometry_fs = 130
+        if self.recordingMode=='SPAD':
+            self.Spad_fs = 9938.4
+            
         self.ephys_fs = 30000
         self.tracking_fs = 10
         self.fs = 10000
@@ -37,12 +43,17 @@ class SyncOEpyPhotometrySession:
         self.dpath=os.path.join(SessionPath, self.recordingName) #Recording pre-processed data path:'SyncRecording*' folder
         self.IsTracking=IsTracking
         self.ReadTrialAnimalState(SessionPath)
+        
         if (read_aligned_data_from_file):
             filepath=os.path.join(self.dpath, "Ephys_tracking_photometry_aligned.pkl")
             self.Ephys_tracking_spad_aligned = pd.read_pickle(filepath)
         else:
             self.Ephys_data=self.read_open_ephys_data() #read ephys data that we pre-processed from dpath
-            self.Sync_ephys_with_spad() #output self.spad_align, self.ephys_align
+            if self.recordingMode=='py':
+                self.Sync_ephys_with_pyPhotometry() #output self.spad_align, self.ephys_align
+            elif self.recordingMode=='SPAD':
+                self.Sync_ephys_with_spad()
+            
         self.Label_REM_sleep ('LFP_2')
         self.save_data(self.Ephys_tracking_spad_aligned, 'Ephys_tracking_photometry_aligned.pkl')
         
@@ -80,8 +91,14 @@ class SyncOEpyPhotometrySession:
         self.TrainingState=self.SessionLabelData['TrainingState'][recording_number-1]
         return -1
     		
-    def Sync_ephys_with_spad(self):
-        'Main function to read all saved decoded ephys and optical data and save them as a signal Pandas dataFrame'
+    def Sync_ephys_with_pyPhotometry(self):
+        '''
+        Main function to read all saved decoded ephys and optical data and save them as a signal Pandas dataFrame.
+        The algorithm is (1) to read Ephys data, photometry data and camera tracking data respectively;
+        (2) using the camSync as a mask to cut the period within our sync pulse;
+        (3) format the index to timedelta index and resample all the three data sources;
+        (4) concatenate them to a single DataFrame.
+        '''
         self.form_ephys_sync_data() # find the spad sync part
         self.Format_ephys_data_index () # this is to change the index to timedelta index, for resampling
         self.PhotometryData=self.Read_photometry_data() #read pyPhotometry data
@@ -90,7 +107,7 @@ class SyncOEpyPhotometrySession:
         self.resample_ephys()
         if self.IsTracking:
             self.read_tracking_data() #read tracking raw data   
-            self.trackingdata_resampled= self.resample_tracking_to_ephys()    
+            self.resample_tracking_to_ephys()    
             self.slice_to_align_with_min_len() #since two data sources are with different sampling rate, the resampled data length are not the same, but similiar.
             self.photometry_align = self.photometry_align.set_index(self.ephys_align.index)
             self.trackingdata_align = self.trackingdata_align.set_index(self.ephys_align.index)
@@ -99,6 +116,36 @@ class SyncOEpyPhotometrySession:
             self.slice_to_align_with_min_len() #since two data sources are with different sampling rate, the resampled data length are not the same, but similiar.
             self.photometry_align = self.photometry_align.set_index(self.ephys_align.index)
             self.Ephys_tracking_spad_aligned=pd.concat([self.ephys_align, self.photometry_align], axis=1)
+        self.Ephys_tracking_spad_aligned.reset_index(drop=True, inplace=True)  
+        return -1
+    
+    def Sync_ephys_with_spad(self):
+        'This is to read SPAD photometry data, the only difference is that SPAD recording does not have a CamSync line'
+        'So we just read SPAD post-processed data from .csv, format the index and resample. '            
+        self.form_ephys_spad_sync_data() # find the spad sync part
+        self.Format_ephys_data_index () # this is to change the index to timedelta index, for resampling
+        self.PhotometryData=self.Read_photometry_data() #read spad data
+        self.Format_SPAD_data_index ()
+        self.resample_photometry()
+        self.resample_ephys()
+        #self.slice_ephys_to_align_with_spad()
+        
+        if self.IsTracking:
+            self.trackingdata=self.read_tracking_data() #read tracking raw data
+            print ('Total length of tracking (seconds):', len(self.trackingdata)/self.tracking_fs)
+            self.form_tracking_spad_sync_data() 
+            self.resample_tracking_to_ephys() 
+            self.slice_to_align_with_min_len()
+            self.photometry_align = self.photometry_align.set_index(self.ephys_align.index)
+            self.trackingdata_align = self.trackingdata_align.set_index(self.ephys_align.index)
+            self.Ephys_tracking_spad_aligned=pd.concat([self.ephys_align, self.photometry_align, self.trackingdata_align], axis=1)        
+        if not self.IsTracking:
+            'slice_to_align_with_min_len() is important because sometimes the effective SPAD recording is shorter than the real recording time due to deadtime. '
+            'E.g, I recorded 10 blocks 10s data, should be about 100s recording, but in most cases, there is no data in the last block.'
+            self.slice_to_align_with_min_len()
+            self.photometry_align = self.photometry_align.set_index(self.ephys_align.index)
+            self.Ephys_tracking_spad_aligned=pd.concat([self.ephys_align, self.photometry_align], axis=1)
+            
         self.Ephys_tracking_spad_aligned.reset_index(drop=True, inplace=True)  
         return -1
     
@@ -115,6 +162,15 @@ class SyncOEpyPhotometrySession:
         print ('Ephys data length', len(self.Ephys_data)/self.ephys_fs)
         print ('Ephys synced part data length', len(self.Ephys_sync_data)/self.ephys_fs)
         return -1         
+    
+    def form_ephys_spad_sync_data (self):
+        mask = self.Ephys_data['SPAD_mask'] 
+        self.Ephys_sync_data=self.Ephys_data[mask]
+        #OE.plot_two_raw_traces (mask,self.Ephys_sync_data['LFP_1'], spad_label='spad_mask',lfp_label='LFP_raw')
+        OE.plot_trace_in_seconds(self.Ephys_sync_data['LFP_1'], self.ephys_fs,title='Ephys sync part data')
+        print ('Ephys data length', len(self.Ephys_data)/self.ephys_fs)
+        print ('Ephys synced part data length', len(self.Ephys_sync_data)/self.ephys_fs)
+        return -1  
 
     def Format_ephys_data_index (self):
         time_interval = 1.0 / self.ephys_fs
@@ -122,7 +178,17 @@ class SyncOEpyPhotometrySession:
         timestamps = np.arange(0, total_duration, time_interval)
         timedeltas_index = pd.to_timedelta(timestamps, unit='s')            
         self.Ephys_sync_data.index = timedeltas_index
-        return self.Ephys_sync_data
+        return -1
+    
+    def Format_SPAD_data_index (self):
+        print ('SPAD data length', len(self.PhotometryData)/self.Spad_fs)
+        time_interval = 1.0 / self.Spad_fs
+        total_duration = len(self.PhotometryData) * time_interval
+        timestamps = np.arange(0, total_duration, time_interval)
+        timedeltas_index = pd.to_timedelta(timestamps, unit='s')
+        self.photometry_sync_data=self.PhotometryData
+        self.photometry_sync_data.index = timedeltas_index
+        return -1
         
     def remove_noise(self,start_time,end_time):
         start_idx =int( start_time * self.fs)# Time interval in seconds   
@@ -141,18 +207,25 @@ class SyncOEpyPhotometrySession:
         sig_data = np.genfromtxt(self.sig_csv_filename, delimiter=',')
         ref_data = np.genfromtxt(self.ref_csv_filename, delimiter=',')
         zscore_data = np.genfromtxt(self.zscore_csv_filename, delimiter=',')
-        CamSync_photometry_data=np.genfromtxt(self.CamSync_photometry_filename, delimiter=',')
         sig_raw = pd.Series(sig_data)
         ref_raw = pd.Series(ref_data)
         zscore_raw = pd.Series(zscore_data)
-        CamSync_photometry=pd.Series(CamSync_photometry_data)
-        'Zscore data is obtained by Kate Martian method, smoothed to 250Hz effective sampling rate'
-        self.PhotometryData = pd.DataFrame({
-            'sig_raw': sig_raw,
-            'ref_raw': ref_raw,
-            'zscore_raw': zscore_raw,
-            'Cam_Sync':CamSync_photometry
-        })
+        if self.recordingMode=='py':
+            CamSync_photometry_data=np.genfromtxt(self.CamSync_photometry_filename, delimiter=',')
+            CamSync_photometry=pd.Series(CamSync_photometry_data)
+            'Zscore data is obtained by Kate Martian method, smoothed to 250Hz effective sampling rate'
+            self.PhotometryData = pd.DataFrame({
+                'sig_raw': sig_raw,
+                'ref_raw': ref_raw,
+                'zscore_raw': zscore_raw,
+                'Cam_Sync':CamSync_photometry
+            })
+        else:
+            self.PhotometryData = pd.DataFrame({
+                'sig_raw': sig_raw,
+                'ref_raw': ref_raw,
+                'zscore_raw': zscore_raw,
+            })
         return self.PhotometryData
     
     def form_photometry_sync_data (self):
@@ -201,8 +274,7 @@ class SyncOEpyPhotometrySession:
             print('Detected a difference of the sync mask durations larger than 50ms.Please make sure pyPhotometry data and ephys data are from the same trial.')
             print ('The pipeline will cut the longer recording automatically')
         else:
-            print ('Yay~~Sync mask matched! Synchronising LFP and Optical signal finished.')
-                   
+            print ('Yay~~Sync mask matched! Synchronising LFP and Optical signal finished.')          
         return self.photometry_sync_data
     
     def resample_photometry (self):
@@ -229,9 +301,8 @@ class SyncOEpyPhotometrySession:
             if len(self.trackingdata_resampled)>=len(self.photometry_align):
                 self.trackingdata_align = self.trackingdata_resampled[:len(self.photometry_align)]
             else:
-                # Create a DataFrame with to concatenate, using the first row
+                #concatenate dummy frames at the begining
                 add_to_start = pd.concat([self.trackingdata_resampled.iloc[[0]]] * (len(self.photometry_align) - len(self.trackingdata_resampled)) )
-                # Concatenate the half_start, original DataFrame, and half_end DataFrames to create the extended DataFrame
                 self.trackingdata_align = pd.concat([add_to_start, self.trackingdata_resampled])
         return -1
     
@@ -247,6 +318,26 @@ class SyncOEpyPhotometrySession:
         else:
             print ('No available Tracking data in the folder!')
         return self.trackingdata
+    
+    def form_tracking_spad_sync_data (self):
+        spad_mask = self.Ephys_data['SPAD_mask'] 
+        cam_mask=self.Ephys_data['cam_mask']
+        OE.plot_trace_in_seconds(spad_mask,self.ephys_fs,title='SPAD mask')
+        OE.plot_trace_in_seconds(cam_mask,self.ephys_fs,title='Cam mask')
+        spad_start_idx=spad_mask.idxmax()
+        cam_start_idx=cam_mask.idxmax()
+        # print ('spad_start_index in Ephys---', spad_start_idx)
+        # print ('cam_start_index in Ephys---', cam_start_idx)
+        time_diff=(spad_start_idx-cam_start_idx)/self.ephys_fs
+        mask_start_idx=int(time_diff*self.tracking_fs) #spad mask in tracking data
+        time_duration=spad_mask.sum()/self.ephys_fs
+        #print ('time_duration of SPAD mask---', time_duration)
+        mask_end_idx=int(mask_start_idx+time_duration*self.tracking_fs)
+        # print ('spad_mask_in_tracking_start_idx---', mask_start_idx)
+        # print ('spad_mask_in tracking_end_idx---', mask_end_idx)
+        self.trackingdata=self.trackingdata[mask_start_idx:mask_end_idx]
+        print ('Tracking data length during SPAD mask (seconds)---', len(self.trackingdata)/self.tracking_fs)
+        return -1  
     
     def resample_tracking_to_ephys (self):
         time_interval = 1.0 / self.tracking_fs
@@ -551,14 +642,14 @@ class SyncOEpyPhotometrySession:
         
         'To plot the choosen segment with start time and end time'
         if plot_segment:
-            ex_ep = nap.IntervalSet(start = ep_start, end = ep_end, time_units = 's') 
+            ex_ep = nap.IntervalSet(start = ep_start+timestamps[0], end = ep_end+timestamps[0], time_units = 's') 
             fig, ax = plt.subplots(6, 1, figsize=(10, 12))
             OE.plot_trace_nap (ax[0], LFP,ex_ep,color=sns.color_palette("husl", 8)[5],title='LFP raw Trace')
             OE.plot_trace_nap (ax[1], ripple_band_filtered,ex_ep,color=sns.color_palette("husl", 8)[5],title='Ripple band')
             OE.plot_ripple_event (ax[2], rip_ep, rip_tsd, ex_ep, nSS, nSS3, Low_thres=Low_thres) 
             OE.plot_trace_nap (ax[3], SPAD_smooth,ex_ep,color='green',title='calcium recording (z-score)')
-            LFP_rippleband=OE.band_pass_filter(LFP.restrict(ex_ep),150,250,Fs=self.fs)        
-            sst,frequency,power,global_ws=OE.Calculate_wavelet(LFP_rippleband,lowpassCutoff=500,Fs=self.fs,scale=40)
+            #LFP_rippleband=OE.band_pass_filter(LFP.restrict(ex_ep),150,250,Fs=self.fs)     
+            sst,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered.restrict(ex_ep),lowpassCutoff=500,Fs=self.fs,scale=40)
             OE.plot_wavelet(ax[4],sst,frequency,power,Fs=self.fs,colorBar=False)
             #OE.plot_ripple_spectrum (ax[4], LFP, ex_ep,y_lim=30,Fs=self.fs,vmax_percentile=100)
             plt.subplots_adjust(hspace=0.5)
@@ -648,7 +739,7 @@ class SyncOEpyPhotometrySession:
         
         if plot_segment:
             'To plot the choosen segment'
-            ex_ep = nap.IntervalSet(start = ep_start, end = ep_end, time_units = 's') 
+            ex_ep = nap.IntervalSet(start = ep_start+timestamps[0], end = ep_end+timestamps[0], time_units = 's') 
             fig, ax = plt.subplots(6, 1, figsize=(10, 12))
             OE.plot_trace_nap (ax[0], LFP,ex_ep,color=sns.color_palette("husl", 8)[5],title='LFP raw Trace')
             OE.plot_trace_nap (ax[1], theta_band_filtered,ex_ep,color=sns.color_palette("husl", 8)[5],title='Theta band')
@@ -780,7 +871,7 @@ class SyncOEpyPhotometrySession:
                 end_idx=closest_index+int(half_window*self.fs)
                 segment_data = self.Ephys_tracking_spad_aligned[start_idx:end_idx]
                 segment_zscore=segment_data['zscore_raw']
-                z_score=OE.smooth_signal(segment_zscore,Fs=self.fs,cutoff=50)
+                z_score=OE.smooth_signal(segment_zscore,Fs=self.fs,cutoff=20)
                 # normalise to zscore
                 normalized_z_score = OE.getNormalised (z_score)
                 z_score_values.append(normalized_z_score)

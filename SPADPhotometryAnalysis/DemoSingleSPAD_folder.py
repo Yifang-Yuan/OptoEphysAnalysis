@@ -23,9 +23,9 @@ dpath="F:/2024MScR_NORtask/1732333_SPAD/20240307_Day4/SPAD/2024_3_7_14_17_46_Tri
 #TraceRaw=SPADreadBin.readMultipleBinfiles(dpath,2,xxRange=[70,250],yyRange=[60,240])
 # Set the path to the parent folder
 '''Show images'''
-filename = os.path.join(dpath, "spc_data1.bin")
-Bindata=SPADreadBin.SPADreadBin(filename,pyGUI=False)
-SPADreadBin.ShowImage(Bindata,dpath) 
+# filename = os.path.join(dpath, "spc_data1.bin")
+# Bindata=SPADreadBin.SPADreadBin(filename,pyGUI=False)
+# SPADreadBin.ShowImage(Bindata,dpath) 
 #%%
 '''Time division mode with one ROI, GCamp and isosbestic'''
 '''Read files'''
@@ -50,8 +50,8 @@ Green,Red= Analysis.getTimeDivisionTrace_fromMask (dpath, Trace_raw, high_thd=12
 #%%
 #Green, Red=Analysis.DemodTwoTraces (dpath,Green_raw, Red_raw,high_g=600,low_g=380,high_r=1200,low_r=800)
 #%%
-z_sig,smooth_sig,corrected_sig=Analysis.photometry_smooth_plot (Red,Green,
-                                                                          sampling_rate=9938.4,smooth_win =500)
+z_sig,smooth_sig,corrected_sig=Analysis.photometry_smooth_plot (Red[200000:400000],Green[200000:400000],
+                                                                          sampling_rate=9938.4,smooth_win =1000)
 
 #%%
 z_sig,smooth_sig,corrected_sig=Analysis.photometry_smooth_plot (Red,Green,
