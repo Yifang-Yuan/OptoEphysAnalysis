@@ -29,9 +29,7 @@ def SPADreadBin(filename,pyGUI=True):
         print('globalshutter is',globalshutter)
         '''if it is not global shutter fisrt 19200 byte does not count. So read them but not save or convert'''
         rolling_shutter_num= yrange*10*8*(1-globalshutter)*(ExpIndex==1)
-        binfile.read(rolling_shutter_num)
-    
-    
+        binfile.read(rolling_shutter_num)   
     print ('---Reading SPAD Binary data---')
     spadRange=(yrange,320)#define SPAD sensor size, x=320,y=240
     #spadRange=(320,yrange)#define SPAD sensor size, x=320,y=240

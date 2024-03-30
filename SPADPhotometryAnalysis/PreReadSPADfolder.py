@@ -27,10 +27,7 @@ def read_multiple_SPAD_bin_folder(parent_folder,xxRange,yyRange):
     return -1
 
 
-parent_folder="D:/2024MScR_NORtask/1732333_SPAD_Day1/"
-read_multiple_SPAD_bin_folder(parent_folder,xxRange=[0,160],yyRange=[40,200])
-parent_folder="D:/2024MScR_NORtask/1732333_SPAD_Day2/"
-read_multiple_SPAD_bin_folder(parent_folder,xxRange=[0,160],yyRange=[40,200])
+
 parent_folder="D:/2024MScR_NORtask/1732333_SPAD_Day3/"
 read_multiple_SPAD_bin_folder(parent_folder,xxRange=[0,160],yyRange=[40,200])
 parent_folder="D:/2024MScR_NORtask/1732333_SPAD_Day4/"

@@ -9,7 +9,7 @@ import glob
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import photometry_functions as fp
+from SPADPhotometryAnalysis import photometry_functions as fp
 import scipy
 from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 
@@ -72,9 +72,11 @@ def calculate_SNR_for_folder_csv (parent_folder):
     SNR_savename='SNR_results.csv'        
     SNR_array = np.array([])
     all_files = os.listdir(parent_folder)
-    csv_files = [file for file in all_files if file.endswith('.csv')]
-    print(csv_files)
-    for csv_file in csv_files:
+    trace_files = [file for file in all_files if file.startswith('ROI_trace_') and file.endswith('.csv')]
+    # Sort the CSV files based on the last two digits in their filenames
+    sorted_trace_files = sorted(trace_files, key=lambda x: int(x.split('_')[-1].split('uW')[0]))
+
+    for csv_file in sorted_trace_files:
         csv_filepath = os.path.join(parent_folder, csv_file)
         print(csv_filepath)
         raw_signal = np.genfromtxt(csv_filepath, delimiter=',', skip_header=1)
@@ -86,5 +88,6 @@ def calculate_SNR_for_folder_csv (parent_folder):
     plt.plot(SNR_array, marker='o', linestyle='-', color='b')
     plt.xlabel('Light Power (uW)')
     plt.ylabel('SNR')
-    return raw_signal
+    return SNR_array
 
+SNR_array=calculate_SNR_for_folder_csv ('C:/SPAD/18032024')
