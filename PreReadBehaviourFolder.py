@@ -74,10 +74,14 @@ def plot_multiple_behaviour_files_in_folder(BehaviourData_folder_path,tracking_f
     return -1
 
 def main():   
-    save_parent_folder='E:/YYFstudy/20240212_Day1/'
-    BehaviourData_folder_path='E:/YYFstudy/20240212_Day1/Behaviour/'
-    label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
     
+    '''Set the folder for the Behaviour recording, defualt folder names are usually date and time'''
+    '''Set the parent folder your session results, this should be the same parent folder to save optical data'''
+    
+    save_parent_folder='F:/2024MScR_NORtask/1723433_pyPhotometry_mdlxG8f/20231215_Day1/'
+    BehaviourData_folder_path='F:/2024MScR_NORtask/1723433_pyPhotometry_mdlxG8f/20231215_Day1/Behaviour/'
+    label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
+    #plot_multiple_behaviour_files_in_folder(BehaviourData_folder_path,tracking_fs=10)
 if __name__ == "__main__":
     main()
 

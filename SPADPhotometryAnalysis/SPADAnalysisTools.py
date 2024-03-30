@@ -11,7 +11,7 @@ import numpy as np
 from sklearn.decomposition import FastICA
 from scipy import signal
 from SPADPhotometryAnalysis import SPADdemod
-import photometry_functions as fp
+from SPADPhotometryAnalysis import photometry_functions as fp
 from scipy.fft import fft
 
 '''Set basic parameter'''

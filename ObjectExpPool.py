@@ -21,12 +21,18 @@ def load_pickle_files (filepath):
     return data
 
 def SeparateTrialsByStateAndSave (parent_folder,LFP_channel='LFP_1'):
+    '''
+    This function pools data from all sessions and separate trial by the animals behavioural/sleeping state.
+    It will go through all daily folders and trial folders to check the state label of the trial,
+    then save optical transient features during ripple and theta in a dictionary with animal sleeping state as the key.
+    '''
     all_contents = os.listdir(parent_folder)
     # Filter out directories containing the target string
     day_recording_folders = [folder for folder in all_contents if 'Day' in folder]
     # Define a custom sorting key function to sort folders in numeric order
     sorted_folders = sorted(day_recording_folders, key=lambda x: int(x.split('Day')[-1]))
     #Iterate over each sync recording folder
+    'State label as the key to the dictionary'
     List_template={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
     ripple_triggered_optical_peak_value= List_template.copy()
     ripple_triggered_optical_peak_time= List_template.copy()
@@ -99,12 +105,10 @@ def SeparateTrialsByStateAndSave (parent_folder,LFP_channel='LFP_1'):
         pickle.dump(ripple_numbers, file)
     save_path = os.path.join(parent_folder, 'ripple_std_values'+LFP_channel+'.pkl')
     with open(save_path, 'wb') as file:
-        pickle.dump(ripple_std_values, file)
-        
+        pickle.dump(ripple_std_values, file)     
     save_path = os.path.join(parent_folder, 'ripple_duration_values'+LFP_channel+'.pkl')
     with open(save_path, 'wb') as file:
-        pickle.dump(ripple_duration_values, file)    
-        
+        pickle.dump(ripple_duration_values, file)           
     save_path = os.path.join(parent_folder, 'theta_triggered_optical_peak_value_'+LFP_channel+'.pkl')
     with open(save_path, 'wb') as file:
         pickle.dump(theta_triggered_optical_peak_value, file)
@@ -124,11 +128,13 @@ def SeparateTrialsByStateAndSave (parent_folder,LFP_channel='LFP_1'):
     return -1
 
 def PoolDatabyStateAndPlot (parent_folder, LFP_channel, mode='ripple'):
+    '''
+    This function will read the saved dictionary files from the above funcion and plot optical transient features according to state.
+    '''
     if mode=='ripple':
         half_window=0.2 #seconds, for ripple
     if mode=='theta':
         half_window=0.5 #seconds, for theta
-    
     filename = os.path.join(parent_folder, mode+'_triggered_optical_peak_value_'+LFP_channel+'.pkl')
     peak_value=load_pickle_files (filename)
     
@@ -186,12 +192,14 @@ def PoolDatabyStateAndPlot (parent_folder, LFP_channel, mode='ripple'):
         plt.legend()
         figName=f'{key}_Optical_LFP_corr_{mode}_{LFP_channel}.png'
         plt.savefig(os.path.join(savepath,figName))
-        
     return -1
 
-
 def Compare_OpticalPeak_RipplePeak (parent_folder, LFP_channel,side='both', halfwindow=0.01, mode='ripple'):
-
+    '''
+    This function will plot histogram of optical peak density around a ripple peak by animal sleeping state.
+    It will also count the optical peak with a given half window around the ripple peak
+    
+    '''
     filename = os.path.join(parent_folder, mode+'_triggered_optical_peak_time_'+LFP_channel+'.pkl')
     time_dict=load_pickle_files (filename)
     savepath = os.path.join(parent_folder, "ResultsPooled")
@@ -201,20 +209,20 @@ def Compare_OpticalPeak_RipplePeak (parent_folder, LFP_channel,side='both', half
     for key in time_dict:
         time_i = np.concatenate(time_dict[key])
         total_num=len(time_i)
-        # '---plot histogram----'
-        # # Plotting histograms
-        # timepoints_negative = time_i[time_i < 0]
-        # timepoints_positive = time_i[time_i >= 0]
-        # plt.figure(figsize=(8, 6))
-        # # Histogram for timepoints smaller than 0
-        # plt.hist(timepoints_negative, bins=20, color='blue', alpha=0.5, label='Timepoints < 0',density=True)
-        # # Histogram for timepoints larger than or equal to 0
-        # plt.hist(timepoints_positive, bins=20, color='red', alpha=0.5, label='Timepoints >= 0',density=True)
-        # plt.xlabel('Time relevant to LFP ripple peak (seconds)')
-        # plt.ylabel('peak numbers (density)')
-        # plt.title(f'{key}: Histogram of Optical peak times {LFP_channel}')
-        # figName=f'{key}_Optical_peaktime_hist_{mode}_{LFP_channel}.png'
-        # plt.savefig(os.path.join(savepath,figName))
+        '---plot histogram----'
+        # Plotting histograms
+        timepoints_negative = time_i[time_i < 0]
+        timepoints_positive = time_i[time_i >= 0]
+        plt.figure(figsize=(8, 6))
+        # Histogram for timepoints smaller than 0
+        plt.hist(timepoints_negative, bins=20, color='blue', alpha=0.5, label='Timepoints < 0',density=True)
+        # Histogram for timepoints larger than or equal to 0
+        plt.hist(timepoints_positive, bins=20, color='red', alpha=0.5, label='Timepoints >= 0',density=True)
+        plt.xlabel('Time relevant to LFP ripple peak (seconds)')
+        plt.ylabel('peak numbers (density)')
+        plt.title(f'{key}: Histogram of Optical peak times {LFP_channel}')
+        figName=f'{key}_Optical_peaktime_hist_{mode}_{LFP_channel}.png'
+        plt.savefig(os.path.join(savepath,figName))
         '----calculate ripple-optical coocurence----'
         if side=='both':
             time_i=time_i[time_i < halfwindow]

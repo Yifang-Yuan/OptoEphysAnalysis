@@ -27,7 +27,7 @@ def ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', IsTrackin
     # Iterate over each sync recording folder
     for SyncRecordingName in sync_recording_folders:
         # Now you can perform operations on each folder, such as reading files inside it
-        print("Now processing folder:", SyncRecordingName)
+        print("----Now processing folder:", SyncRecordingName)
         Recording1=SyncOEpyPhotometrySession(parent_folder,SyncRecordingName,IsTracking=IsTracking,read_aligned_data_from_file=read_aligned_data_from_file) 
         for i in range (4):
             LFP_channel='LFP_'+str(i+1)
@@ -53,19 +53,7 @@ def ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', IsTrackin
 
 def main():    
     'Put all your parent folders here for batch processing'
-    parent_folder='E:/YYFstudy/Exp1/20240212_Day1'
-    ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', 
-                                          IsTracking=True,read_aligned_data_from_file=False)
-    parent_folder='E:/YYFstudy/Exp1/20240213_Day2'
-    ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', 
-                                          IsTracking=True,read_aligned_data_from_file=False)
-    parent_folder='E:/YYFstudy/Exp1/20240214_Day3'
-    ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', 
-                                          IsTracking=True,read_aligned_data_from_file=False)
-    parent_folder='E:/YYFstudy/Exp1/20240215_Day4'
-    ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', 
-                                          IsTracking=True,read_aligned_data_from_file=False)
-    parent_folder='E:/YYFstudy/Exp1/20240216_Day5'
+    parent_folder="F:/2024MScR_NORtask/1723433_pyPhotometry_mdlxG8f/20231215_Day1/"
     ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', 
                                           IsTracking=True,read_aligned_data_from_file=False)
     

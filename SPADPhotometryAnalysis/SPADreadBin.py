@@ -90,9 +90,11 @@ def RemoveHotPixel(BinData,HotPixelIdx):
     return BinData
 
 def RemoveHotPixelFromTemp(BinData):
-    IdxFilename="C:/SPAD/HotPixelIdx_YuanPCB.csv"
-    #IdxFilename="D:/20220623/HotPixelIdx_MyPCB.csv"
+    current_dir = os.path.dirname(__file__)
+    IdxFilename = os.path.join(current_dir, 'HotPixelIdx_YuanPCB.csv')
     
+    #IdxFilename="C:/SPAD/HotPixelIdx_YuanPCB.csv"
+    #IdxFilename="D:/20220623/HotPixelIdx_MyPCB.csv"
     HotPixelIdx_read=np.genfromtxt(IdxFilename, delimiter=',')
     HotPixelIdx_read=HotPixelIdx_read.astype(int)
     BinData=RemoveHotPixel(BinData,HotPixelIdx_read)
@@ -167,7 +169,6 @@ def plot_trace(trace,ax, fs=9938.4, label="trace"):
 
 def ShowImage(BinData,dpath):
     '''Show the accumulated image'''
-    import cv2
     BinData=RemoveHotPixelFromTemp(BinData)
     PixelArrary=np.sum(BinData, axis=0)
     magify=1
