@@ -45,7 +45,6 @@ def plot_oscillation_epoch_optical_peaks(ax,x_value,optical_peak_times,optical_p
     # Set labels and title
     ax.set_xlabel('Peak Time')
     ax.set_ylabel('Normalised signal')
-    
     ax.set_xlim(-half_window, half_window)
     # Set legend location
     ax.legend(loc='lower right')

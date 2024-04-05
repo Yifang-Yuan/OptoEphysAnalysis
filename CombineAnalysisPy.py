@@ -10,8 +10,8 @@ from SyncOECPySessionClass import SyncOEpyPhotometrySession
 import OpenEphysTools as OE
 import numpy as np
 #%%
-dpath="E:/YYFstudy/Exp1/20240214_Day3/"
-recordingName='SyncRecording6'
+dpath="F:/2024MScR_NORtask/1732333_pyPhotometry/20240214_Day3"
+recordingName='SyncRecording11'
 #dpath="G:/SPAD/SPADData/20230722_SPADOE/SyncRecording0/"
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=True,read_aligned_data_from_file=True) 
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''

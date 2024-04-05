@@ -26,31 +26,37 @@ def SeparateTrialsByStateAndSave (parent_folder,LFP_channel='LFP_1'):
     It will go through all daily folders and trial folders to check the state label of the trial,
     then save optical transient features during ripple and theta in a dictionary with animal sleeping state as the key.
     '''
-    all_contents = os.listdir(parent_folder)
-    # Filter out directories containing the target string
-    day_recording_folders = [folder for folder in all_contents if 'Day' in folder]
-    # Define a custom sorting key function to sort folders in numeric order
-    sorted_folders = sorted(day_recording_folders, key=lambda x: int(x.split('Day')[-1]))
-    #Iterate over each sync recording folder
     'State label as the key to the dictionary'
-    List_template={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
-    ripple_triggered_optical_peak_value= List_template.copy()
-    ripple_triggered_optical_peak_time= List_template.copy()
-    ripple_triggered_zscore= List_template.copy()
-    ripple_triggered_LFP= List_template.copy()
-    ripple_event_corr= List_template.copy()
-    ripple_freq= List_template.copy()
-    ripple_numbers= List_template.copy()
-    ripple_std_values= List_template.copy()
-    ripple_duration_values= List_template.copy()
-    theta_triggered_optical_peak_value=List_template.copy()
-    theta_triggered_optical_peak_time=List_template.copy()
-    theta_triggered_zscore=List_template.copy()
-    theta_triggered_LFP=List_template.copy()
-    theta_event_corr=List_template.copy()
+    #List_template={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    ripple_triggered_optical_peak_value= {'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    ripple_triggered_optical_peak_time= {'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    ripple_triggered_zscore= {'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    ripple_triggered_LFP= {'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    ripple_event_corr= {'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    ripple_freq= {'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    ripple_numbers= {'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    ripple_std_values= {'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    ripple_duration_values= {'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    theta_triggered_optical_peak_value={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    theta_triggered_optical_peak_time={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    theta_triggered_zscore={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
+    #theta_triggered_LFP=List_template.copy()
+    theta_event_corr={'pre_sleep': [], 'pre_awake': [], 'post_sleep': [],'post_awake':[],'openfield_awake':[]}
     
-    for DayRecordingFolder in sorted_folders:
+    # all_contents = os.listdir(parent_folder)
+    # # Filter out directories containing the target string
+    # day_recording_folders = [folder for folder in all_contents if 'Day' in folder]
+    # # Define a custom sorting key function to sort folders in numeric order
+    # sorted_folders = sorted(day_recording_folders, key=lambda x: int(x.split('Day')[-1]))
+    
+    #for DayRecordingFolder in sorted_folders:
+    for i in range(2):
         # Now you can perform operations on each folder, such as reading files inside it
+        if i==0:
+            DayRecordingFolder='20240213_Day2'
+        if i==1:
+            DayRecordingFolder='20240216_Day5'
+ 
         print("Day folder:", DayRecordingFolder)
         day_folder_path= os.path.join(parent_folder, DayRecordingFolder)
         all_contents = os.listdir(day_folder_path)
@@ -66,11 +72,13 @@ def SeparateTrialsByStateAndSave (parent_folder,LFP_channel='LFP_1'):
             with open(Classfilepath, 'rb') as file:
                 Recording1 = pickle.load(file)
                 column_name=Recording1.TrainingState+'_'+Recording1.sleepState
-                ripple_triggered_optical_peak_value [column_name].append(Recording1.ripple_triggered_optical_peak_values)
-                ripple_triggered_optical_peak_time [column_name].append(Recording1.ripple_triggered_optical_peak_times)
-                ripple_triggered_zscore [column_name].append(Recording1.ripple_triggered_zscore_values)
-                ripple_triggered_LFP[column_name].append(Recording1.ripple_triggered_LFP_values)
-                ripple_event_corr[column_name].append(Recording1.ripple_event_corr_array)
+                
+                if hasattr(Recording1, 'ripple_triggered_optical_peak_values'):
+                    ripple_triggered_optical_peak_value [column_name].append(Recording1.ripple_triggered_optical_peak_values)
+                    ripple_triggered_optical_peak_time [column_name].append(Recording1.ripple_triggered_optical_peak_times)
+                    ripple_triggered_zscore [column_name].append(Recording1.ripple_triggered_zscore_values)
+                    ripple_triggered_LFP[column_name].append(Recording1.ripple_triggered_LFP_values_1)
+                    ripple_event_corr[column_name].append(Recording1.ripple_event_corr_array)
                 ripple_freq[column_name].append(Recording1.ripple_freq)
                 ripple_numbers[column_name].append(Recording1.ripple_numbers)
                 ripple_std_values[column_name].append(Recording1.ripple_std_values)
@@ -79,7 +87,7 @@ def SeparateTrialsByStateAndSave (parent_folder,LFP_channel='LFP_1'):
                 theta_triggered_optical_peak_value [column_name].append(Recording1.theta_triggered_optical_peak_values)
                 theta_triggered_optical_peak_time [column_name].append(Recording1.theta_triggered_optical_peak_times)
                 theta_triggered_zscore [column_name].append(Recording1.theta_triggered_zscore_values)
-                theta_triggered_LFP[column_name].append(Recording1.theta_triggered_LFP_values)
+                #theta_triggered_LFP[column_name].append(Recording1.theta_triggered_LFP_values)
                 theta_event_corr[column_name].append(Recording1.theta_event_corr_array)
                 
     save_path = os.path.join(parent_folder, 'ripple_triggered_optical_peak_value_'+LFP_channel+'.pkl')
@@ -119,9 +127,9 @@ def SeparateTrialsByStateAndSave (parent_folder,LFP_channel='LFP_1'):
     with open(save_path, 'wb') as file:
         pickle.dump(theta_triggered_zscore, file)
     save_path = os.path.join(parent_folder, 'theta_triggered_LFP_'+LFP_channel+'.pkl')
-    with open(save_path, 'wb') as file:
-        pickle.dump(theta_triggered_LFP, file) 
-    save_path = os.path.join(parent_folder, 'theta_event_corr_'+LFP_channel+'.pkl')
+    # with open(save_path, 'wb') as file:
+    #     pickle.dump(theta_triggered_LFP, file) 
+    # save_path = os.path.join(parent_folder, 'theta_event_corr_'+LFP_channel+'.pkl')
     with open(save_path, 'wb') as file:
         pickle.dump(theta_event_corr, file) 
     
@@ -325,13 +333,18 @@ def Ripple_Stat_by_State_Bar_plot(parent_folder,LFP_channel,filterOF=True):
     plt.show()
     
     return ripple_freq,ripple_numbers,ripple_std_values
-#%%
-parent_folder='E:/YYFstudy/Exp1'
+
+parent_folder='F:/2024MScR_NORtask/1732333_pyPhotometry/'
 #SeparateTrialsByStateAndSave (parent_folder,LFP_channel='LFP_1')
-#PoolDatabyStateAndPlot (parent_folder, 'LFP_1', mode='theta')
+#%%
+filename = os.path.join(parent_folder, 'ripple_triggered_optical_peak_time_'+'LFP_1'+'.pkl')
+time_dict=load_pickle_files (filename)
+
+#%%
+PoolDatabyStateAndPlot (parent_folder, 'LFP_1', mode='ripple')
 ripple_freq,ripple_numbers,ripple_std_values=Ripple_Stat_by_State_Bar_plot(parent_folder,'LFP_1')
 #%%
-Compare_OpticalPeak_RipplePeak (parent_folder, 'LFP_1',side='both', halfwindow=0.05, mode='ripple')
+Compare_OpticalPeak_RipplePeak (parent_folder, 'LFP_1',side='after', halfwindow=0.01, mode='ripple')
 
 
 
