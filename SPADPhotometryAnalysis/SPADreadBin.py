@@ -11,6 +11,8 @@ pySPAD DO NOT have ExpIndex,yrange,globalshutter at the first three bytes
 import os
 import numpy as np
 from PIL import Image, ImageDraw
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 def SPADreadBin(filename,pyGUI=True):
     binfile = open(filename, "rb") #open binfile
@@ -167,7 +169,7 @@ def plot_trace(trace,ax, fs=9938.4, label="trace"):
     return ax
 
 
-def ShowImage(BinData,dpath):
+def ShowImage(BinData,dpath,xxRange=[0,180],yyRange=[60,240]):
     '''Show the accumulated image'''
     BinData=RemoveHotPixelFromTemp(BinData)
     PixelArrary=np.sum(BinData, axis=0)
@@ -181,6 +183,20 @@ def ShowImage(BinData,dpath):
     img.show()
     filename = os.path.join(dpath, "FOV_image.png")
     img.save(filename) 
+    
+    plt.figure(figsize=(8, 8))
+    plt.imshow(PixelArrary, cmap='gray')
+    plt.colorbar(label='Photon count')
+    plt.title('Image with Selected Region')
+    plt.xlabel('X coordinate')
+    plt.ylabel('Y coordinate')
+    # Add a rectangle around the selected region
+    rect = patches.Rectangle((xxRange[0], yyRange[0]), xxRange[1]-xxRange[0], yyRange[1]-yyRange[0], 
+                              linewidth=2, edgecolor='r', facecolor='none')
+    plt.gca().add_patch(rect)
+    filename = os.path.join(dpath, "FOV_image_ROI.png")
+    plt.savefig(filename)
+
     return img
 
 def find_bright_area(image):

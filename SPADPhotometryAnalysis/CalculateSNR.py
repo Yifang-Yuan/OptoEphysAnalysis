@@ -72,9 +72,9 @@ def calculate_SNR_for_folder_csv (parent_folder):
     SNR_savename='SNR_results.csv'        
     SNR_array = np.array([])
     all_files = os.listdir(parent_folder)
-    trace_files = [file for file in all_files if file.startswith('ROI_trace_') and file.endswith('.csv')]
+    trace_files = [file for file in all_files if file.endswith('.csv')]
     # Sort the CSV files based on the last two digits in their filenames
-    sorted_trace_files = sorted(trace_files, key=lambda x: int(x.split('_')[-1].split('uW')[0]))
+    sorted_trace_files = sorted(trace_files, key=lambda x: int(x.split('_')[0]))
 
     for csv_file in sorted_trace_files:
         csv_filepath = os.path.join(parent_folder, csv_file)
@@ -89,5 +89,6 @@ def calculate_SNR_for_folder_csv (parent_folder):
     plt.xlabel('Light Power (uW)')
     plt.ylabel('SNR')
     return SNR_array
-
-SNR_array=calculate_SNR_for_folder_csv ('C:/SPAD/18032024')
+#%%
+folderpath='D:/SPADdata/SNR_test_5uW/SPCimager/Binned_to500Hz/'
+SNR_array=calculate_SNR_for_folder_csv (folderpath)

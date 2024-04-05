@@ -93,14 +93,14 @@ def pixel_array_plot_hist(pixel_array, plot_min_thre=100):
 
 def get_trace_from_3d_pixel_array(pixel_array_all_frames,xxrange,yyrange):
     import matplotlib.patches as patches
-    plt.figure(figsize=(8, 8))
+    plt.figure(figsize=(6, 6))
     plt.imshow(sum_pixel_array, cmap='gray')
     plt.colorbar(label='Photon count')
     plt.title('Image with Selected Region')
-    plt.xlabel('Y coordinate')
-    plt.ylabel('X coordinate')
+    plt.xlabel('X coordinate')
+    plt.ylabel('Y coordinate')
     # Add a rectangle around the selected region
-    rect = patches.Rectangle((yyrange[0], xxrange[0]), yyrange[1]-yyrange[0], xxrange[1]-xxrange[0], 
+    rect = patches.Rectangle((xxrange[0], yyrange[0]), xxrange[1]-xxrange[0], yyrange[1]-yyrange[0], 
                              linewidth=2, edgecolor='r', facecolor='none')
     plt.gca().add_patch(rect)
     plt.show()
@@ -121,16 +121,16 @@ def plot_trace(trace,ax, fs=1/1017, label="trace"):
     ax.set_ylabel('Photon Count')
     return ax
 #%%
-dpath='C:/SPAD/18032024/Burst-RS-1017frames-1017Hz_16uW/'
-pixel_array_all_frames,sum_pixel_array,avg_pixel_array=decode_atlas_folder (dpath,photoncount_thre=1200)
-xxrange = [50, 80]
-yyrange = [40, 70]
+dpath='D:/SPADdata/SNR_test_5uW/Atlas/20240401_SNR/Burst-RS-5085frames-1017Hz_5uW/'
+pixel_array_all_frames,sum_pixel_array,avg_pixel_array=decode_atlas_folder (dpath,photoncount_thre=3500)
+xxrange = [40, 70]
+yyrange = [50, 80]
 # Slice the pixel array to extract the desired region
 sum_values_over_time=get_trace_from_3d_pixel_array(pixel_array_all_frames,xxrange,yyrange)
-np.savetxt('C:/SPAD/18032024/ROI_trace_16uW.csv', sum_values_over_time, delimiter=',', header='data', comments='')
+np.savetxt('D:/SPADdata/SNR_test_5uW/Atlas/20240401_SNR/8_ROI_trace_5uW.csv', sum_values_over_time, delimiter=',', header='data', comments='')
 # Plot the image of the pixel array
 fig, ax = plt.subplots(figsize=(12, 2.5))
-plot_trace(sum_values_over_time,ax, fs=1017, label="trace")
+plot_trace(sum_values_over_time[0:200],ax, fs=1017, label="trace")
 #%%
 # Display the grayscale image
 show_image_with_pixel_array(pixel_array_all_frames[:,:,800])
