@@ -137,15 +137,15 @@ def DemodTwoTraces (dpath,Green_raw, Red_raw,high_g,low_g,high_r,low_r):
     np.savetxt(fname, Red, delimiter=",")
     return Green, Red
 
-def get_bin_trace (trace,bin_window=10,color='tab:blue'):
+def get_bin_trace (trace,bin_window=10,color='tab:blue',Fs=9938.4):
     '''Basic filter and smooth'''
     trace = trace.astype(np.float64)
     '''reverse the trace (voltron and ASAP3 is reversed)''' 
     # trace_reverse=np.negative(trace_raw)
     # plot_trace(trace_reverse, name='raw_trace_reverse')     
     trace_binned=np.array(trace).reshape(-1, bin_window).mean(axis=1)
-    fig, ax = plt.subplots(figsize=(10,4))
-    ax=plot_trace(trace_binned,ax, fs=9938.4/bin_window,color=color,label="Trace_binned to_"+str(int(10000/bin_window))+"Hz")
+    fig, ax = plt.subplots(figsize=(12,4))
+    ax=plot_trace(trace_binned,ax, fs=Fs/bin_window,label="Trace_binned to "+str(int(Fs/bin_window))+"Hz",color=color)
     ax.set_xlabel('Time(second)')
     ax.set_ylabel('Photon Count')
     return trace_binned
@@ -331,9 +331,14 @@ def plot_PSD_bands_full (trace,fs=9938.4):
 def plot_trace(trace,ax, fs=9938.4, label="trace",color='tab:blue'):
     t=(len(trace)) / fs
     taxis = np.arange(len(trace)) / fs
-    ax.plot(taxis,trace,linewidth=0.5,label=label,color=color)
+    #ax.plot(taxis,trace,linewidth=0.5,label=label,color=color)
+    ax.plot(taxis,trace,linewidth=1,label=label,color=color)
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
+    #ax.spines['left'].set_visible(False)
+    #ax.spines['bottom'].set_visible(False)
+    #ax.xaxis.set_visible(False)  # Hide x-axis
+    #ax.yaxis.set_visible(False)  # Hide x-axis
     ax.set_xlim(0,t)
     ax.legend(loc="upper right", frameon=False)
     ax.set_xlabel('Time(second)')
@@ -432,7 +437,6 @@ def photometry_smooth_plot (raw_reference,raw_signal,sampling_rate=500, smooth_w
     ax2 = fp.plotSingleTrace (ax2, smooth_reference, SamplingRate=sampling_rate,color='purple',Label='Smoothed reference')
     ax3 = fig.add_subplot(313)
     ax3=fp.plotSingleTrace (ax3, zdFF, SamplingRate=sampling_rate,color='black',Label='zscore_signal')
-
     
     return z_signal,smooth_signal,signal
 

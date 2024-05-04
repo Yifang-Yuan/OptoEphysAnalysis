@@ -112,6 +112,7 @@ def readEphysChannel (Directory,recordingNum,Fs=30000):
         'timestamps': timestamps,
         'CamSync': Sync1,
         'SPADSync': Sync2,
+        'AtlasSync': Sync3,
         'LFP_1': LFP_clean1,
         'LFP_2': LFP_clean2,
         'LFP_3': LFP_clean3,
@@ -154,6 +155,7 @@ def readEphysChannel_withSessionInput (session,recordingNum,Fs=30000):
         'timestamps': timestamps,
         'CamSync': Sync1,
         'SPADSync': Sync2,
+        'AtlasSync': Sync3,
         'LFP_1': LFP_clean1,
         'LFP_2': LFP_clean2,
         'LFP_3': LFP_clean3,
@@ -188,6 +190,26 @@ def SPAD_sync_mask (SPAD_Sync, start_lim, end_lim):
 
     plot_trace_in_seconds(SPAD_mask,30000)
     mask_array_bool = np.array(SPAD_mask, dtype=bool)
+    return mask_array_bool
+
+def Atlas_sync_mask (Atlas_Sync, start_lim, end_lim,recordingTime=30):
+    
+    Atlas_mask=np.zeros(len(Atlas_Sync),dtype=np.int)
+    #peak_index = np.argmax(Atlas_Sync > 25000)
+    peak_indices = np.argwhere(Atlas_Sync > 25000).flatten()
+    peak_index=peak_indices[-1]
+    #print ('peak_indices', peak_indices)
+    print ('peak_index', peak_index)
+    duration=int (recordingTime*30000)
+    Atlas_mask[peak_index:peak_index+duration]=1
+    Atlas_mask[0:start_lim]=0
+    Atlas_mask[end_lim:]=0
+    fig, ax = plt.subplots(figsize=(15,5))
+    ax.plot(Atlas_mask)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    plot_trace_in_seconds(Atlas_mask,30000)
+    mask_array_bool = np.array(Atlas_mask, dtype=bool)
     return mask_array_bool
 
 def py_sync_mask (Sync_line, start_lim, end_lim):
@@ -237,7 +259,7 @@ def save_open_ephys_data (dpath, data):
     data.to_pickle(filepath)
     return -1
 
-def getRippleEvents (lfp_raw,Fs,windowlen=500,Low_thres=1,High_thres=10):
+def getRippleEvents (lfp_raw,Fs,windowlen=200,Low_thres=1,High_thres=10):
     ripple_band_filtered = pyna.eeg_processing.bandpass_filter(lfp_raw, 120, 250, Fs)
     squared_signal = np.square(ripple_band_filtered.values)
     window = np.ones(windowlen)/windowlen
@@ -288,8 +310,8 @@ def getThetaEvents (lfp_raw,Fs,windowlen=1000,Low_thres=2,High_thres=10):
     nSS2 = nSS.threshold(Low_thres, method='above')
     nSS3 = nSS2.threshold(High_thres, method='below')
     # Round 2 : Excluding ripples whose length < minRipLen and greater than Maximum Ripple Length
-    minThetaLen = 500 # ms
-    maxThetaLen = 5000 # ms    
+    minThetaLen = 100 # ms
+    maxThetaLen = 10000 # ms    
     rip_ep = nSS3.time_support
     rip_ep = rip_ep.drop_short_intervals(minThetaLen, time_units = 'ms')
     rip_ep = rip_ep.drop_long_intervals(maxThetaLen, time_units = 'ms')

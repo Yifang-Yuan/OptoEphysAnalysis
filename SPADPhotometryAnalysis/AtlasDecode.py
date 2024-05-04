@@ -9,6 +9,8 @@ from scipy.io import loadmat
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
+from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
+from SPADPhotometryAnalysis import photometry_functions as fp
 
 def loadPCFrame (readData):
     '''loads a sensor bytestream file containing a single Photon Count frame
@@ -40,13 +42,20 @@ def remove_hotpixel(readData,photoncount_thre=2000):
     readData[:,:,0][readData[:,:,0] > photoncount_thre] = 0
     return readData
 
-def decode_atlas_folder (folderpath,photoncount_thre=2000):
+def find_hotpixel_idx(hotpixel_path,array_data,photoncount_thre=2000):
+    index_array = np.argwhere(array_data > photoncount_thre)
+    np.savetxt(hotpixel_path, index_array, fmt='%d', delimiter=',')
+    return index_array
+
+def decode_atlas_folder (folderpath,hotpixel_path,photoncount_thre=2000):
     files = os.listdir(folderpath)
     # Filter out the CSV files that match the pattern 'AnimalTracking_*.csv'
     frame_files = [file for file in files if file.startswith('frame_') and file.endswith('.mat')]
-    # Sort the CSV files based on the last two digits in their filenames
+    # Sort the CSV files based on the numerical digits in their filenames
     sorted_mat_files = sorted(frame_files, key=lambda x: int(x.split('_')[-1].split('.')[0]))
+    #print (sorted_mat_files)
     pixel_arrays = []
+    hotpixel_indices= np.loadtxt(hotpixel_path, delimiter=',', dtype=int)
     i=0
     for file in sorted_mat_files:
         #print ('framefile name', file)
@@ -54,11 +63,12 @@ def decode_atlas_folder (folderpath,photoncount_thre=2000):
         matdata = loadmat(single_frame_data_path)
         real_data=matdata['realData']
         readData=loadPCFrame(real_data) #decode data to single pixel frame
-        readData=remove_hotpixel(readData,photoncount_thre)
+        readData=remove_hotpixel(readData,photoncount_thre) #REMOVE hotpixel by a threshold
         single_pixel_array=readData[:,:,0]
+        #single_pixel_array[hotpixel_indices[:, 0], hotpixel_indices[:, 1]] = 0 #REMOVE HOTPIXEL FROM MASK
+        i=i+1
         if i>0:
             pixel_arrays.append(single_pixel_array)
-        i=i+1
     pixel_array_all_frames = np.stack(pixel_arrays, axis=2)
     sum_pixel_array = np.sum(pixel_array_all_frames, axis=2)
     avg_pixel_array =np.mean(pixel_array_all_frames, axis=2)
@@ -66,7 +76,7 @@ def decode_atlas_folder (folderpath,photoncount_thre=2000):
     return pixel_array_all_frames,sum_pixel_array,avg_pixel_array
 
 def show_image_with_pixel_array(pixel_array_2d,showPixel_label=True):
-    plt.imshow(avg_pixel_array, cmap='gray')
+    plt.imshow(pixel_array_2d, cmap='gray')
     # Add color bar with photon count numbers
     cbar = plt.colorbar()
     cbar.set_label('Photon Count')
@@ -91,7 +101,7 @@ def pixel_array_plot_hist(pixel_array, plot_min_thre=100):
     plt.show()
     return -1
 
-def get_trace_from_3d_pixel_array(pixel_array_all_frames,xxrange,yyrange):
+def get_trace_from_3d_pixel_array(pixel_array_all_frames,sum_pixel_array,xxrange,yyrange):
     import matplotlib.patches as patches
     plt.figure(figsize=(6, 6))
     plt.imshow(sum_pixel_array, cmap='gray')
@@ -105,35 +115,72 @@ def get_trace_from_3d_pixel_array(pixel_array_all_frames,xxrange,yyrange):
     plt.gca().add_patch(rect)
     plt.show()
     region_pixel_array = pixel_array_all_frames[xxrange[0]:xxrange[1]+1, yyrange[0]:yyrange[1]+1, :]
+    mean_array=np.mean(region_pixel_array, axis=2)
+    std_array=np.std(region_pixel_array, axis=2)
+    #Check hotpixels
     # Sum along the x and y axes to get the sum of photon counts within the specified range for each frame
     sum_values_over_time = np.sum(region_pixel_array, axis=(0, 1))
-    return sum_values_over_time
+    mean_values_over_time = np.mean(region_pixel_array, axis=(0, 1))
+    return sum_values_over_time,mean_values_over_time,region_pixel_array
 
-def plot_trace(trace,ax, fs=1/1017, label="trace"):
+def plot_trace(trace,ax, fs=1017, label="trace"):
     t=(len(trace)) / fs
     taxis = np.arange(len(trace)) / fs
-    ax.plot(taxis,trace,linewidth=1,label=label)
+    mean_trace = np.mean(trace)
+    #ax.plot(taxis,trace,linewidth=1,label=label)
+    ax.plot(taxis,trace,linewidth=1)
+    #ax.axhline(mean_trace, color='r', linestyle='--', label='Mean Value', linewidth=1.5)
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
+    # ax.spines['left'].set_visible(False)
+    # ax.spines['bottom'].set_visible(False)
+    #ax.xaxis.set_visible(False)  # Hide x-axis
+    #ax.yaxis.set_visible(False)  # Hide x-axis
     ax.set_xlim(0,t)
     ax.legend(loc="upper right", frameon=False)
     ax.set_xlabel('Time(second)')
     ax.set_ylabel('Photon Count')
     return ax
+
+def get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange= [25, 85],yyrange= [30, 90],fs=840):
+    pixel_array_all_frames,sum_pixel_array,_=decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=1000)
+    _,mean_values_over_time,_=get_trace_from_3d_pixel_array(pixel_array_all_frames,sum_pixel_array,xxrange,yyrange)
+    print('original lenth: ', len(mean_values_over_time))
+    Trace_raw=mean_values_over_time[1:]
+    print('trace_raw lenth 1: ', len(Trace_raw))
+    Trace_raw = np.append(Trace_raw, Trace_raw[-1])
+    print('trace_raw lenth 2: ', len(Trace_raw))
+    fig, ax = plt.subplots(figsize=(8, 2))
+    plot_trace(Trace_raw,ax, fs, label="raw_data")
+    
+    lambd = 10e3 # Adjust lambda to get the best fit
+    porder = 1
+    itermax = 15
+    sig_base=fp.airPLS(Trace_raw,lambda_=lambd,porder=porder,itermax=itermax) 
+    signal = (Trace_raw - sig_base)  
+    z_score=(signal - np.median(signal)) / np.std(signal)
+    
+    fig, ax = plt.subplots(figsize=(8, 2))
+    plot_trace(z_score,ax, fs, label="zscore")
+    return Trace_raw,z_score
+
+#%% Workable code, above is testing
+# dpath='F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240429_Day1/Atlas/Burst-RS-25200frames-840Hz_2024-04-29_12-57_1/'
+# #dpath='F:/2024MScR_NORtask/1732333_pyramidal_G8f_Atlas/20240420_Day1/Atlas/Burst-RS-25200frames-840Hz_2024-04-20_11-53_2/'
+# hotpixel_path='F:/SPADdata/Altas_hotpixel.csv'
+# xxrange = [25, 85]
+# yyrange = [30, 90]
+
+# Trace_raw,z_score=get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange= [25, 85],yyrange= [30, 90],fs=840)
+# # Plot the image of the pixel array
+# #%%
+# fig, ax = plt.subplots(figsize=(8, 2))
+# plot_trace(Trace_raw[800:1600],ax, fs=840, label="raw_data")
+# #%%
+# '''Read binary files for single ROI'''
+# # Display the grayscale image
 #%%
-dpath='D:/SPADdata/SNR_test_5uW/Atlas/20240401_SNR/Burst-RS-5085frames-1017Hz_5uW/'
-pixel_array_all_frames,sum_pixel_array,avg_pixel_array=decode_atlas_folder (dpath,photoncount_thre=3500)
-xxrange = [40, 70]
-yyrange = [50, 80]
-# Slice the pixel array to extract the desired region
-sum_values_over_time=get_trace_from_3d_pixel_array(pixel_array_all_frames,xxrange,yyrange)
-np.savetxt('D:/SPADdata/SNR_test_5uW/Atlas/20240401_SNR/8_ROI_trace_5uW.csv', sum_values_over_time, delimiter=',', header='data', comments='')
-# Plot the image of the pixel array
-fig, ax = plt.subplots(figsize=(12, 2.5))
-plot_trace(sum_values_over_time[0:200],ax, fs=1017, label="trace")
-#%%
-# Display the grayscale image
-show_image_with_pixel_array(pixel_array_all_frames[:,:,800])
-pixel_array=pixel_array_all_frames[:,:,800]
-#%%
-pixel_array_plot_hist(pixel_array_all_frames[:,:,1000], plot_min_thre=100)
+#pixel_array_all_frames,sum_pixel_array,avg_pixel_array=decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=1000)
+# show_image_with_pixel_array(pixel_array_all_frames[:,:,800])
+# pixel_array=pixel_array_all_frames[:,:,800]
+# pixel_array_plot_hist(pixel_array_all_frames[:,:,1000], plot_min_thre=100)

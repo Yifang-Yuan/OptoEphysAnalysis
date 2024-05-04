@@ -18,21 +18,56 @@ The final output should be a pandas format EphysData with data recorded by open 
 #%%
 '''Set the folder for the Open Ephys recording, defualt folder names are usually date and time'''
 
-directory = "F:/2024MScR_NORtask/1732333_SPAD/20240304_Day1/Ephys/2024-03-04_15-33-03/"  
+directory = 'F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240430_Day2/Ephys/2024-04-30_12-46-26/'
 
 '''Set the folder your session data, this folder is used to save decoded LFP data, it should include optical signal data and animal tracking data as .csv;
 this folder is now manually created, but I want to make it automatic'''
 
-dpath="F:/2024MScR_NORtask/1732333_SPAD/20240304_Day1/SyncRecording1"  
+dpath='F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240430_Day2/SyncRecording3/'
 
 Ephys_fs=30000 #Ephys sampling rate
 '''recordingNum is the index of recording from the OE recording, start from 0'''
 'EphysData is the LFP data that need to be saved for the sync ananlysis'
-EphysData=OE.readEphysChannel (directory, recordingNum=10)
+EphysData=OE.readEphysChannel (directory, recordingNum=2)
 
 #%% 
-'''PROCESSING SPAD SYNC RECORDINGS, COMMMENT THIS IF YOU USE Pyphotometry'''
-'''This is to check the SPAD mask range and to make sure SPAD sync is correctly recorded by the Open Ephys'''
+'''
+NOTE:SPC IMAGER EPHYS DATA PROCESSING----They are different because the synchronisation methods are different.
+1. PROCESSING ATLAS SENSOR SYNC RECORDINGS
+Check the Cam sync is correct and the threshold for deciding the Cam mask is 29000.
+If not, add a number to EphysData['CamSync'] 
+'''
+fig, ax = plt.subplots(figsize=(15,5))
+ax.plot(EphysData['AtlasSync'])
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+num_ticks = 20  # Adjust the number of ticks as needed
+from matplotlib.ticker import MaxNLocator
+ax.xaxis.set_major_locator(MaxNLocator(num_ticks))
+plt.show()
+#%%
+Atlas_mask = OE.Atlas_sync_mask (EphysData['AtlasSync'], start_lim=0, end_lim=len(EphysData['AtlasSync']),recordingTime=30)
+'''To double check the SPAD mask'''
+fig, ax = plt.subplots(figsize=(15,5))
+ax.plot(Atlas_mask)
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+'''To double check the SPAD mask'''
+OE.check_Optical_mask_length(Atlas_mask)
+#%%
+EphysData['SPAD_mask'] = Atlas_mask
+OE.plot_trace_in_seconds(EphysData['CamSync'],Ephys_fs)
+cam_mask = OE.py_sync_mask (EphysData['CamSync'], start_lim=0, end_lim=len (EphysData['CamSync']))
+OE.check_Optical_mask_length(cam_mask)
+EphysData['cam_mask']=cam_mask
+'SAVE THE open ephys data as .pkl file.'
+OE.save_open_ephys_data (dpath,EphysData)
+
+#%%
+'''
+2. PROCESSING SPAD SYNC RECORDINGS, COMMMENT THIS IF YOU USE Pyphotometry.
+This is to check the SPAD mask range and to make sure SPAD sync is correctly recorded by the Open Ephys.
+'''
 fig, ax = plt.subplots(figsize=(15,5))
 ax.plot(EphysData['SPADSync'])
 ax.spines['top'].set_visible(False)
@@ -65,7 +100,8 @@ EphysData['cam_mask']=cam_mask
 'SAVE THE open ephys data as .pkl file.'
 OE.save_open_ephys_data (dpath,EphysData)
 #%%
-'''PROCESSING pyPhotometry SYNC RECORDINGS
+'''
+3. PROCESSING pyPhotometry SYNC RECORDINGS
 Check the Cam sync is correct and the threshold for deciding the Cam mask is 29000.
 If not, add a number to EphysData['CamSync'] 
 '''

@@ -57,18 +57,9 @@ def main():
     Put all your parent folders here for batch processing.
     recordingMode: 'py' for pyPhotometry recording, 'SPAD' for SPAD-SPC recording
     '''
-    parent_folder="F:/2024MScR_NORtask/1732333_SPAD/20240305_Day2/"
+    parent_folder="F:/2024MScR_NORtask/1732333_pyramidal_G8f_Atlas/20240420_Day1/"
     ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', 
-                                          IsTracking=True,read_aligned_data_from_file=False,recordingMode='SPAD')
-    parent_folder="F:/2024MScR_NORtask/1732333_SPAD/20240306_Day3/"
-    ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', 
-                                          IsTracking=True,read_aligned_data_from_file=False,recordingMode='SPAD')
-    parent_folder="F:/2024MScR_NORtask/1732333_SPAD/20240307_Day4/"
-    ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', 
-                                          IsTracking=True,read_aligned_data_from_file=False,recordingMode='SPAD')
-    parent_folder="F:/2024MScR_NORtask/1732333_SPAD/20240308_Day5/"
-    ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', 
-                                          IsTracking=True,read_aligned_data_from_file=False,recordingMode='SPAD')
+                                          IsTracking=True,read_aligned_data_from_file=False,recordingMode='Atlas')
     
 if __name__ == "__main__":
     main()

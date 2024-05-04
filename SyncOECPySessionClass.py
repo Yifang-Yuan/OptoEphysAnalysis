@@ -35,6 +35,8 @@ class SyncOEpyPhotometrySession:
             self.pyPhotometry_fs = 130
         if self.recordingMode=='SPAD':
             self.Spad_fs = 9938.4
+        if self.recordingMode=='Atlas':
+            self.Spad_fs = 840
             
         self.ephys_fs = 30000
         self.tracking_fs = 10
@@ -42,7 +44,8 @@ class SyncOEpyPhotometrySession:
         self.recordingName=recordingName
         self.dpath=os.path.join(SessionPath, self.recordingName) #Recording pre-processed data path:'SyncRecording*' folder
         self.IsTracking=IsTracking
-        self.ReadTrialAnimalState(SessionPath)
+        if self.IsTracking:
+            self.ReadTrialAnimalState(SessionPath)
         
         if (read_aligned_data_from_file):
             filepath=os.path.join(self.dpath, "Ephys_tracking_photometry_aligned.pkl")
@@ -51,12 +54,10 @@ class SyncOEpyPhotometrySession:
             self.Ephys_data=self.read_open_ephys_data() #read ephys data that we pre-processed from dpath
             if self.recordingMode=='py':
                 self.Sync_ephys_with_pyPhotometry() #output self.spad_align, self.ephys_align
-            elif self.recordingMode=='SPAD':
+            elif self.recordingMode=='SPAD' or self.recordingMode=='Atlas':
                 self.Sync_ephys_with_spad()
-            
-        self.Label_REM_sleep ('LFP_2')
         self.save_data(self.Ephys_tracking_spad_aligned, 'Ephys_tracking_photometry_aligned.pkl')
-        
+        self.Label_REM_sleep ('LFP_2')
         self.savepath = os.path.join(SessionPath, "Results")
         if not os.path.exists(self.savepath):
             os.makedirs(self.savepath) 
@@ -188,7 +189,7 @@ class SyncOEpyPhotometrySession:
         timedeltas_index = pd.to_timedelta(timestamps, unit='s')
         self.photometry_sync_data=self.PhotometryData
         self.photometry_sync_data.index = timedeltas_index
-        return -1
+        return self.photometry_sync_data
         
     def remove_noise(self,start_time,end_time):
         start_idx =int( start_time * self.fs)# Time interval in seconds   
@@ -492,7 +493,7 @@ class SyncOEpyPhotometrySession:
         self.Ephys_tracking_spad_aligned.loc[ThetaDeltaRatio > 1.2, 'REMstate'] = 'REM'
         return ThetaDeltaRatio
     
-    def pynacollada_label_theta (self,LFP_channel,Low_thres=0.5,High_thres=10,save=False,plot_theta=False):
+    def pynacollada_label_theta (self,LFP_channel,Low_thres=0.2,High_thres=10,save=False,plot_theta=False):
         '''NOTE: 
         I applied the pynacollada ripple-detection method, but with the theta band to extract high-theta period.
         Other period are defined as non-theta.
@@ -502,7 +503,7 @@ class SyncOEpyPhotometrySession:
         timestamps=timestamps.to_numpy()
         LFP=nap.Tsd(t = timestamps, d = lfp_data.to_numpy(), time_units = 's')
         'To detect theta'
-        theta_band_filtered,nSS,nSS3,theta_ep,theta_tsd = OE.getThetaEvents (LFP,self.fs,windowlen=2000,Low_thres=Low_thres,High_thres=High_thres)  
+        theta_band_filtered,nSS,nSS3,theta_ep,theta_tsd = OE.getThetaEvents (LFP,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)  
         print ('Label theta part, found theta high epoch number---',len(theta_ep))
         '''METHOD: label theta_ep in the Dataframe'''
         timestamps_round=np.round(timestamps, 2)
@@ -593,10 +594,10 @@ class SyncOEpyPhotometrySession:
         SPAD=nap.Tsd(t = timestamps, d = spad_data.to_numpy(), time_units = 's')
         SPAD_smooth=nap.Tsd(t = timestamps, d = SPAD_smooth_np, time_units = 's')  
         'Calculate theta band for optical signal'
-        SPAD_ripple_band_filtered,nSS_spad,nSS3_spad,rip_ep_spad,rip_tsd_spad = OE.getRippleEvents (SPAD_smooth,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
+        #SPAD_ripple_band_filtered,nSS_spad,nSS3_spad,rip_ep_spad,rip_tsd_spad = OE.getRippleEvents (SPAD_smooth,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
         'To detect ripple'
         ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd = OE.getRippleEvents (LFP,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
-        
+        SPAD_ripple_band_filtered,_,_,_,_ = OE.getRippleEvents (SPAD,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
         if excludeTheta:
             'To remove detected ripples if they are during theta----meaning they are fast gamma'
             drop_index_ep=[]
@@ -671,6 +672,7 @@ class SyncOEpyPhotometrySession:
                     LFP_ep=LFP.restrict(rip_long_ep)
                     SPAD_smooth_ep=SPAD_smooth.restrict(rip_long_ep)
                     ripple_band_filtered_ep=ripple_band_filtered.restrict(rip_long_ep)   
+                    SPAD_ripple_band_filtered_ep=SPAD_ripple_band_filtered.restrict(rip_long_ep)
                     start_time1=event_peak_times[i]-0.05
                     end_time1=event_peak_times[i]+0.05
                     rip_short_ep = nap.IntervalSet(start = start_time1, end = end_time1, time_units = 's') 
@@ -683,14 +685,15 @@ class SyncOEpyPhotometrySession:
                     fig, ax = plt.subplots(3, 1, figsize=(6, 9))
                     #Set the title of ripple feature
                     plot_title = "Optical signal triggerred by ripple" 
-                    sst_ep,frequency_spad,power_spad,global_ws=OE.Calculate_wavelet(SPAD_smooth_ep,lowpassCutoff=SPAD_cutoff,Fs=self.fs,scale=40)
+                    
+                    sst_ep,frequency_spad,power_spad,global_ws=OE.Calculate_wavelet(SPAD_ripple_band_filtered_ep,lowpassCutoff=SPAD_cutoff,Fs=self.fs,scale=40)
                     time = np.arange(-len(sst_ep)/2,len(sst_ep)/2) *(1/self.fs)
                     OE.plot_ripple_overlay (ax[0],LFP_ep,SPAD_smooth_ep,frequency_spad,power_spad,time,ripple_band_filtered_ep,plot_title,plotLFP=False,plotSPAD=True,plotRipple=False)                                   
                     #Set the title of ripple feature
                     plot_title = "Local Field Potential with Spectrogram" 
                     sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_ep,lowpassCutoff=500,Fs=self.fs,scale=40) 
                     OE.plot_ripple_overlay (ax[1],LFP_ep,SPAD_smooth_ep,frequency,power,time,ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=False)
-                    #SPAD_ripple_band_filtered_ep=SPAD_ripple_band_filtered.restrict(rip_short_ep)
+                    
                     sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_short_ep,lowpassCutoff=500,Fs=self.fs,scale=40)                
                     time = np.arange(-len(sst_ep)/2,len(sst_ep)/2) *(1/self.fs)
                     #Set the title of ripple feature
@@ -711,7 +714,7 @@ class SyncOEpyPhotometrySession:
         self.rip_ep=rip_ep
         self.rip_tsd=rip_tsd
         if len(self.rip_tsd)>0:
-            self.Oscillation_triggered_Optical_transient (mode='ripple',lfp_channel=lfp_channel, half_window=0.2, plot_single_trace=True,plotShade='CI')
+            self.Oscillation_triggered_Optical_transient (mode='ripple',lfp_channel=lfp_channel, half_window=0.05, plot_single_trace=True,plotShade='CI')
             self.Oscillation_optical_correlation (mode='ripple',lfp_channel=lfp_channel, half_window=0.2)
         return rip_ep,rip_tsd
     
@@ -874,6 +877,7 @@ class SyncOEpyPhotometrySession:
                 z_score=OE.smooth_signal(segment_zscore,Fs=self.fs,cutoff=20)
                 # normalise to zscore
                 normalized_z_score = OE.getNormalised (z_score)
+                #normalized_z_score = z_score
                 z_score_values.append(normalized_z_score)
                 
                 segment_LFP_1=segment_data['LFP_1']
@@ -902,7 +906,7 @@ class SyncOEpyPhotometrySession:
                 peak_stds.append(peak_std)
                 if plot_single_trace:
                     x = np.linspace(-half_window, half_window, len(z_score))
-                    ax.plot(x,z_score)
+                    ax.plot(x,normalized_z_score)
         if plot_single_trace:
             [plt.axvline(x=0, color='green')]
             plt.xlabel('Time(seconds)')
@@ -930,12 +934,17 @@ class SyncOEpyPhotometrySession:
 
         MakePlots.plot_oscillation_epoch_traces(ax[0,0],x,mean_z_score,mean_LFP_1,std_z_score,
                                                       std_LFP_1,CI_z_score,CI_LFP_1,mode=mode,plotShade=plotShade)
+        ax[0,1].legend().remove()
         MakePlots.plot_oscillation_epoch_traces(ax[0,1],x,mean_z_score,mean_LFP_2,std_z_score,
                                                       std_LFP_2,CI_z_score,CI_LFP_2,mode=mode,plotShade=plotShade)
+        ax[0,1].legend().remove()
         MakePlots.plot_oscillation_epoch_traces(ax[1,0],x,mean_z_score,mean_LFP_3,std_z_score,
                                                       std_LFP_3,CI_z_score,CI_LFP_3,mode=mode,plotShade=plotShade)
+        ax[1,0].legend().remove()
         MakePlots.plot_oscillation_epoch_traces(ax[1,1],x,mean_z_score,mean_LFP_4,std_z_score,
                                                       std_LFP_4,CI_z_score,CI_LFP_4,mode=mode,plotShade=plotShade)
+        ax[1,1].legend().remove()
+        
         ax[0,0].set_title('Electrode 1')
         ax[0,1].set_title('Electrode 2')
         ax[1,0].set_title('Electrode 3')

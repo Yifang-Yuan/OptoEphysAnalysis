@@ -63,10 +63,11 @@ def get_zdFF(reference,signal,smooth_win=10,remove=200,lambd=5e4,porder=1,iterma
   lin = Lasso(alpha=0.0001,precompute=True,max_iter=1000,
               positive=True, random_state=9999, selection='random')
   n = len(reference)
-  if isinstance(signal, pd.DataFrame):
+  if isinstance(signal, pd.Series):
       signal=signal.to_numpy()
-  if isinstance(reference, pd.DataFrame):
+  if isinstance(reference, pd.Series):
       reference=reference.to_numpy()
+      
   lin.fit(reference.reshape(n,1), signal.reshape(n,1))
   reference = lin.predict(reference.reshape(n,1)).reshape(n,)
 
@@ -235,7 +236,7 @@ def read_photometry_data (folder, file_name, readCamSync='True',plot=False,sampl
             ax2 = fig.add_subplot(312)
             ax2 = plotSingleTrace (ax2, raw_reference, SamplingRate=sampling_rate,color='purple',Label='raw_Reference')
             ax3 = fig.add_subplot(313)
-            ax3 = plotSingleTrace (ax3, Cam_Sync, SamplingRate=sampling_rate,color='orange',Label='Camera_Sync')
+            ax3 = plotSingleTrace (ax3, Cam_Sync, SamplingRate=sampling_rate,color='orange',Label='Digital_Sync')
         return raw_signal,raw_reference,Cam_Sync
     else:
         if plot:

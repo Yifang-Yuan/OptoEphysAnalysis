@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import OpenEphysTools as OE
 import pandas as pd
 import os
-
+#%%
 def label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording'):
     LabelFile=os.path.join(save_parent_folder,'TrailLabel.csv')
     LabelData = pd.read_csv(LabelFile)
@@ -77,21 +77,22 @@ def main():
     
     '''Set the folder for the Behaviour recording, defualt folder names are usually date and time'''
     '''Set the parent folder your session results, this should be the same parent folder to save optical data'''
-    
-    save_parent_folder='F:/2024MScR_NORtask/1732333_SPAD/20240307_Day4/'
-    BehaviourData_folder_path='F:/2024MScR_NORtask/1732333_SPAD/20240307_Day4/Behaviour/'
+        
+    save_parent_folder='F:/2024MScR_NORtask/1765508_Jedi2p_Atlas/20240429_Day1/'
+    BehaviourData_folder_path='F:/2024MScR_NORtask/1765508_Jedi2p_Atlas/20240429_Day1//Behaviour/'
     label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
     #plot_multiple_behaviour_files_in_folder(BehaviourData_folder_path,tracking_fs=10)
 if __name__ == "__main__":
     main()
 
 
+#%%
+# save_parent_folder='F:/2024MScR_NORtask/1732333_pyPhotometry/20240212_Day1/'
+# BehaviourData_folder_path='F:/2024MScR_NORtask/1732333_pyPhotometry/20240212_Day1/Behaviour/'
 
-# LabelFile=os.path.join(BehaviourData_folder_path,'E:/YYFstudy/20240214_Day3/Behaviour/TrailLabel.csv')
-# LabelData = pd.read_csv(LabelFile)
 # #%%
 # tracking_fs=10
-# csv_file_path='E:/YYFstudy/20240212_Day1/Behaviour/AnimalTracking_6.csv'
+# csv_file_path='F:/2024MScR_NORtask/1732333_pyPhotometry/20240212_Day1/Behaviour/AnimalTracking_6.csv'
 # '''Read csv file and calculate zscore of the fluorescent signal'''
 # trackingdata = pd.read_csv(csv_file_path, names=['X', 'Y'])
 # trackingdata=trackingdata.fillna(method='ffill')
@@ -109,4 +110,3 @@ if __name__ == "__main__":
 # trackingdata['speed'] = trackingdata['speed'].rolling(window=window_size, min_periods=1).min()
 # #%%
 # plt.plot(trackingdata['speed']) 
-# #%%

@@ -30,7 +30,7 @@ def plotSingleTrace (ax, signal, SamplingRate=30000,color='tab:blue'):
     ax.set_xlabel("seconds",fontsize=10)
     return ax 
 #%%
-directory = "G:/SPAD/SPADData/20230424_Ephys_sleep_ASAPpyPhoto/2023-04-24_18-04-55_9819_sleep"
+directory = "F:/2024MScR_NORtask/1748725_mdlx-G8f-py/Day 1/Ephys/2024-04-08_12-55-15/"
 #directory = "G:/SPAD/SPADData/20230409_OEC_Ephys/2023-04-05_17-02-58_9820-noisy" #Indeed noisy
 #directory = "G:/SPAD/SPADData/20230409_OEC_Ephys/2023-04-05_15-25-32_9819"
 session = Session(directory)

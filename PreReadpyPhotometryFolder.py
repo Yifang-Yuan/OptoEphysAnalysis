@@ -63,8 +63,8 @@ def read_multiple_photometry_files_in_folder(pydata_folder_path,save_parent_fold
     return -1
 
 def main():
-    pydata_folder_path='F:/2024MScR_NORtask/1723433_pyPhotometry_mdlxG8f/20231215_Day1/pyPhotometry'
-    save_parent_folder='F:/2024MScR_NORtask/1723433_pyPhotometry_mdlxG8f/20231215_Day1/'
+    pydata_folder_path='F:/2024MScR_NORtask/1748725_mdlx-G8f-py/20240409_Day2/pyPhotometry/'
+    save_parent_folder='F:/2024MScR_NORtask/1748725_mdlx-G8f-py/20240409_Day2/'
     read_multiple_photometry_files_in_folder(pydata_folder_path,save_parent_folder,sampling_rate=130,new_folder_name='SyncRecording')
 
 if __name__ == "__main__":

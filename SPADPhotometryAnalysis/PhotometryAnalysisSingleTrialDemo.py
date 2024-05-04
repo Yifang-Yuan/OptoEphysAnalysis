@@ -9,23 +9,26 @@ https://github.com/katemartian/Photometry_data_processing
 @author: Yifang
 """
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from SPADPhotometryAnalysis import photometry_functions as fp
 import os
 # Folder with your files
 # Modify it depending on where your file is located
-folder ="D:/pyPhotometryJY/"
+folder ="F:/pyPhotometryJY/"
 # File name
-file_name = '1126ECL5-2024-04-01-182607.csv'
+file_name = '1125EC5CA1-2024-04-19-115526.csv'
 sampling_rate=130
 #%%
 '''Read csv file and calculate zscore of the fluorescent signal'''
 raw_signal,raw_reference,Cam_Sync=fp.read_photometry_data (folder, file_name, readCamSync=True,plot=True)
+plt.tight_layout()
+#%%
 '''Get zdFF directly'''
 zdFF = fp.get_zdFF(raw_reference,raw_signal,smooth_win=2,remove=0,lambd=5e4,porder=1,itermax=50)
-fig = plt.figure(figsize=(16, 5))
-ax1 = fig.add_subplot(111)
-ax1 = fp.plotSingleTrace (ax1, zdFF, SamplingRate=sampling_rate,color='black',Label='zscore_signal')
+# fig = plt.figure(figsize=(16, 5))
+# ax1 = fig.add_subplot(111)
+# ax1 = fp.plotSingleTrace (ax1, zdFF, SamplingRate=sampling_rate,color='black',Label='zscore_signal')
 '''Save signal'''
 # greenfname = os.path.join(folder, "Green_traceAll.csv")
 # np.savetxt(greenfname, raw_signal, delimiter=",")
@@ -44,15 +47,20 @@ def get_part_trace(data,start_time,end_time,fs):
     return sliced_data
 
 '''!!!Skip this part or comment these four lines if you dont want to cut your data'''
-start_time=30
-end_time=90
+start_time=0
+end_time=30
+
 raw_signal=get_part_trace(raw_signal,start_time=start_time,end_time=end_time,fs=sampling_rate)
 raw_reference=get_part_trace(raw_reference,start_time=start_time,end_time=end_time,fs=sampling_rate)
-fig = plt.figure(figsize=(16, 10))
-ax1 = fig.add_subplot(211)
-ax1 = fp.plotSingleTrace (ax1, raw_signal, SamplingRate=sampling_rate,color='blue',Label='Signal')
-ax2 = fig.add_subplot(212)
+Cam_Sync=get_part_trace(Cam_Sync,start_time=start_time,end_time=end_time,fs=sampling_rate).to_numpy()
+fig = plt.figure(figsize=(12, 8))
+ax1 = fig.add_subplot(311)
+ax1 = fp.plotSingleTrace (ax1, raw_signal, SamplingRate=sampling_rate,color='green',Label='Signal')
+ax2 = fig.add_subplot(312)
 ax2 = fp.plotSingleTrace (ax2, raw_reference, SamplingRate=sampling_rate,color='purple',Label='Reference')
+ax3 = fig.add_subplot(313)
+ax3 = fp.plotSingleTrace (ax3, Cam_Sync, SamplingRate=sampling_rate,color='orange',Label='Digital_Sync')
+plt.tight_layout()
 #%%
 '''
 You can get zdFF directly by calling the function fp.get_zdFF()
@@ -72,11 +80,13 @@ reference = (smooth_reference[remove:] - r_base[remove:])
 signal = (smooth_signal[remove:] - s_base[remove:])  
 
 fig = plt.figure(figsize=(16, 10))
-ax1 = fig.add_subplot(211)
+ax1 = fig.add_subplot(311)
 ax1 = fp.plotSingleTrace (ax1, signal, SamplingRate=sampling_rate,color='blue',Label='corrected_signal')
-ax2 = fig.add_subplot(212)
+ax2 = fig.add_subplot(312)
 ax2 = fp.plotSingleTrace (ax2, reference, SamplingRate=sampling_rate,color='purple',Label='corrected_reference')
-
+ax3 = fig.add_subplot(313)
+ax3 = fp.plotSingleTrace (ax3, Cam_Sync, SamplingRate=sampling_rate,color='orange',Label='Digital_Sync')
+plt.tight_layout()
 #%%
 '''Step 3, plot normalised traces'''
 z_reference = (reference - np.median(reference)) / np.std(reference)
@@ -108,15 +118,59 @@ ax1 = fp.plotSingleTrace (ax1, z_reference_fitted, SamplingRate=sampling_rate,co
 #%%
 '''Step 5, plot zscore'''
 zdFF = (z_signal - z_reference_fitted)
-fig = plt.figure(figsize=(16, 5))
-ax1 = fig.add_subplot(111)
+fig = plt.figure(figsize=(12, 6))
+ax1 = fig.add_subplot(211)
 ax1 = fp.plotSingleTrace (ax1, zdFF, SamplingRate=sampling_rate,color='black',Label='zscore_signal')
-
+# ax2 = fig.add_subplot(212)
+# ax2 = fp.plotSingleTrace (ax2, Cam_Sync, SamplingRate=sampling_rate,color='orange',Label='Digital_Sync')
+# plt.tight_layout()
 #%%
-'''Optional, for spectrogram'''
-# f, t, Sxx = scipy.signal.spectrogram(raw_signal, fs=130)
-# plt.pcolormesh(t, f, Sxx, shading='gouraud')
-# plt.ylabel('Frequency [Hz]')
-# plt.xlabel('Time [sec]')
-# plt.ylim(0, 50)
-# plt.show()
+zdFF=pd.Series(zdFF)
+Cam_Sync=pd.Series(Cam_Sync)
+indices = Cam_Sync[Cam_Sync == 1].index
+
+'''plot optical triggered average signal'''
+segments = []
+half_window_seconds=0.5
+for idx in indices:
+    start_idx = max(0, idx - int(half_window_seconds*sampling_rate))
+    end_idx = min(len(zdFF), idx + int(half_window_seconds*sampling_rate) + 1)
+    segment_data = zdFF.iloc[start_idx:end_idx]
+    if start_idx>0 and end_idx<len(zdFF):
+        segments.append(segment_data)
+        
+segments_array = np.vstack(segments)
+
+import matplotlib.pyplot as plt
+
+# Assuming you have already calculated the mean and std for your segments_array
+mean_values = np.mean(segments_array, axis=0)
+std_values = np.std(segments_array, axis=0)
+
+# Calculate the midpoint index
+midpoint_index = len(mean_values) // 2
+
+# Create an x-axis centered around the midpoint
+x_values = np.arange(-midpoint_index, midpoint_index + 1) / sampling_rate  # Convert to seconds
+
+# Plot the mean as a solid line
+plt.plot(x_values, mean_values, label='Mean', color='black')
+
+# Plot the standard deviation as shaded areas
+plt.fill_between(x_values, mean_values - std_values, mean_values + std_values, alpha=0.3, color='black', label='Std')
+
+# Add a vertical line at x=0
+plt.axvline(x=0, color='red', linestyle='--', label='Time Zero')
+
+# Customize the plot (add labels, title, etc.)
+plt.xlabel('Time (seconds)')
+plt.ylabel('zscore')
+plt.title('Mean and Standard Deviation')
+plt.legend()
+
+# Remove top and right borders
+plt.gca().spines['top'].set_visible(False)
+plt.gca().spines['right'].set_visible(False)
+
+# Show the plot
+plt.show()

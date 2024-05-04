@@ -13,7 +13,7 @@ from open_ephys.analysis import Session
 import matplotlib.pylab as plt
 from matplotlib.ticker import MaxNLocator
 
-def read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode='py',Ephys_fs=30000,new_folder_name='SyncRecording'):
+def read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode='py',Ephys_fs=30000,new_folder_name='SyncRecording',recordingTime=30):
     '''
     mode: py--to read session recorded with pyPhotometry
         SPAD--to read session recorded with SPAD (I haven't code for SPAD batch processing yet')
@@ -41,7 +41,7 @@ def read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode
                 os.makedirs(save_folder_path)
             OE.save_open_ephys_data (save_folder_path,EphysData)
     if mode =='SPAD' :
-        print ('---The processing is done with a pyPhotometry or Camera Sync mask---')
+        print ('---The processing is done with a SPAD and a Camera Sync mask---')
         for i in range(totalRecordingNums):
             index=i+1
             print (f'----Processing Recording {index}----')
@@ -52,7 +52,6 @@ def read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode
             ax.spines['top'].set_visible(False)
             ax.spines['right'].set_visible(False)
             num_ticks = 20  # Adjust the number of ticks as needed
-
             ax.xaxis.set_major_locator(MaxNLocator(num_ticks))
             plt.show()
             'This is to find the SPAD mask based on the proxy time range of SPAD sync.  Change the start_lim and end_lim to generate the SPAD mask.'
@@ -82,6 +81,37 @@ def read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode
             if not os.path.exists(save_folder_path):
                 os.makedirs(save_folder_path)
             OE.save_open_ephys_data (save_folder_path,EphysData)
+    if mode =='Atlas' :
+        for i in range(totalRecordingNums):
+            index=i+1
+            print (f'----Processing Recording {index}----')
+            EphysData=OE.readEphysChannel_withSessionInput (thisSession,recordingNum=i)
+            fig, ax = plt.subplots(figsize=(15,5))
+            ax.plot(EphysData['AtlasSync'])
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            num_ticks = 20  # Adjust the number of ticks as needed
+            ax.xaxis.set_major_locator(MaxNLocator(num_ticks))
+            plt.show()
+            Atlas_mask = OE.Atlas_sync_mask (EphysData['AtlasSync'], start_lim=0, end_lim=len(EphysData['AtlasSync']),recordingTime=recordingTime)
+            '''To double check the SPAD mask'''
+            fig, ax = plt.subplots(figsize=(15,5))
+            ax.plot(Atlas_mask)
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            '''To double check the SPAD mask'''
+            OE.check_Optical_mask_length(Atlas_mask)
+            EphysData['SPAD_mask'] = Atlas_mask
+            OE.plot_trace_in_seconds(EphysData['CamSync'],Ephys_fs)
+            cam_mask = OE.py_sync_mask (EphysData['CamSync'], start_lim=0, end_lim=len (EphysData['CamSync']))
+            OE.check_Optical_mask_length(cam_mask)
+            EphysData['cam_mask']=cam_mask
+            'SAVE THE open ephys data as .pkl file.'
+            folder_name = f'{new_folder_name}{index}'
+            save_folder_path = os.path.join(save_parent_folder, folder_name)
+            if not os.path.exists(save_folder_path):
+                os.makedirs(save_folder_path)
+            OE.save_open_ephys_data (save_folder_path,EphysData)
     
     return -1
 
@@ -89,11 +119,28 @@ def read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode
 def main():
     '''Set the folder for the Open Ephys recording, defualt folder names are usually date and time'''
     '''Set the parent folder your session results, this should be the same parent folder to save optical data'''
-    
-    Ephys_folder_path = "F:/2024MScR_NORtask/1732333_SPAD/20240306_Day3/Ephys/2024-03-06_14-51-15/"   
-    save_parent_folder="F:/2024MScR_NORtask/1732333_SPAD/20240306_Day3/" 
     Ephys_fs=30000 #Ephys sampling rate
-    read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode='SPAD',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording')
+    '''IF ATLAS'''
+    Frame_num=25200
+    Fs_atlas=840
+    recordingTime=Frame_num/Fs_atlas
+    
+    Ephys_folder_path = 'F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240429_Day1/Ephys/2024-04-29_12-57-41/'
+    save_parent_folder="F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240429_Day1/" 
+    read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
+    
+    Ephys_folder_path = 'F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240430_Day2/Ephys/2024-04-30_12-46-26/'
+    save_parent_folder="F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240430_Day2/" 
+    read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
+    
+    Ephys_folder_path = 'F:/2024MScR_NORtask/1765508_Jedi2p_Atlas/20240429_Day1/Ephys/2024-04-29_15-00-51/'
+    save_parent_folder="F:/2024MScR_NORtask/1765508_Jedi2p_Atlas/20240429_Day1/" 
+    read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
+    
+        
+    Ephys_folder_path = 'F:/2024MScR_NORtask/1765508_Jedi2p_Atlas/20240430_Day2/Ephys/2024-04-30_14-49-33/'
+    save_parent_folder="F:/2024MScR_NORtask/1765508_Jedi2p_Atlas/20240430_Day2/" 
+    read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
 
 if __name__ == "__main__":
     main()
