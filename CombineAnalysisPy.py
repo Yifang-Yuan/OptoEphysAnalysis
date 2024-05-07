@@ -10,17 +10,16 @@ from SyncOECPySessionClass import SyncOEpyPhotometrySession
 import OpenEphysTools as OE
 import numpy as np
 #%%
-dpath="F:/2024MScR_NORtask/1765508_Jedi2p_Atlas/20240430_Day2/" 
+dpath='F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240430_Day2/'
 #dpath="F:/2024MScR_NORtask/1732333_pyPhotometry/20240214_Day3/" 
 
-recordingName='SavedpostSleepTrials'
+recordingName='SyncRecording6'
 #dpath="G:/SPAD/SPADData/20230722_SPADOE/SyncRecording0/"
-Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,recordingMode='Atlas') 
+Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=False,recordingMode='Atlas',indicator='GECI') 
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
 LFP_channel='LFP_1'
 #%%
 ThetaDeltaRatio=Recording1.Label_REM_sleep (LFP_channel)
-#%%
 import matplotlib.pyplot as plt
 plt.plot(ThetaDeltaRatio[100000:150000]) 
 plt.ylim(0, 3)
@@ -38,14 +37,14 @@ theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_th
 '''RIPPLE DETECTION
 For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
 rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,ep_start=0,ep_end=30,
-                                                                          Low_thres=0.5,High_thres=10,plot_segment=True,
-                                                                          plot_ripple_ep=True,excludeTheta=True)
+                                                                          Low_thres=0.5,High_thres=10,plot_segment=False,
+                                                                          plot_ripple_ep=False,excludeTheta=True)
 #time_duration=transient_trace.index[-1].total_seconds()
 #%% Detect theta event
 '''THETA PEAK DETECTION
 For a rigid threshold to get larger amplitude theta events: Low_thres=1, for more ripple events, Low_thres=0.5'''
 rip_ep,rip_tsd=Recording1.pynappleThetaAnalysis (lfp_channel=LFP_channel,ep_start=0,ep_end=30,
-                                                                         Low_thres=0.5,High_thres=10,plot_segment=True,plot_ripple_ep=True)
+                                                                         Low_thres=0.5,High_thres=10,plot_segment=False,plot_ripple_ep=False)
 #time_duration=transient_trace.index[-1].total_seconds()
 #%%
 '''To plot the feature of a part of the signal'''
@@ -67,7 +66,7 @@ for i in range(viewNum):
 #%%
 '''sliced_recording:choose a segment or a part of your recording, this can be defined with start and end time,
 or just by theta_part, non_theta_part'''
-silced_recording=Recording1.slicing_pd_data (Recording1.Ephys_tracking_spad_aligned,start_time=0, end_time=30)
+silced_recording=Recording1.slicing_pd_data (Recording1.Ephys_tracking_spad_aligned,start_time=0, end_time=60)
 #silced_recording=theta_part
 '''Calculate the cross correlation between two power spectrun over time at a specific frequency'''
 sst_spad,frequency_spad,power_spad,global_ws_spad=OE.Calculate_wavelet(silced_recording['zscore_raw'],lowpassCutoff=500,Fs=10000)
@@ -87,6 +86,7 @@ spad_lowpass= OE.smooth_signal(silced_recording['zscore_raw'],Fs=10000,cutoff=50
 lfp_lowpass = OE.butter_filter(silced_recording[LFP_channel], btype='low', cutoff=50, fs=Recording1.fs, order=5)
 spad_low = pd.Series(spad_lowpass, index=silced_recording['zscore_raw'].index)
 lfp_low = pd.Series(lfp_lowpass, index=silced_recording[LFP_channel].index)
-lags,Corr_mean,Corr_std=Recording1.get_mean_corr_two_traces (spad_low,lfp_low,corr_window=2)
+lags,Corr_mean,Corr_std=Recording1.get_mean_corr_two_traces (spad_low,lfp_low,corr_window=0.5)
 #%%
+
 

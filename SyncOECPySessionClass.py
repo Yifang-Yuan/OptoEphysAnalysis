@@ -15,9 +15,10 @@ import seaborn as sns
 import OpenEphysTools as OE
 import pynapple as nap
 import MakePlots
+import pynacollada as pyna
 
 class SyncOEpyPhotometrySession:
-    def __init__(self, SessionPath,recordingName,IsTracking=False,read_aligned_data_from_file=False, recordingMode='py'):
+    def __init__(self, SessionPath,recordingName,IsTracking=False,read_aligned_data_from_file=False, recordingMode='py',indicator='GECI'):
         '''
         Parameters
         ----------
@@ -30,6 +31,7 @@ class SyncOEpyPhotometrySession:
             set it to true to read aligned data directly.
         '''
         self.recordingMode=recordingMode
+        self.indicator=indicator
         'Define photometry recording sampling rate by recording mode'
         if self.recordingMode=='py':
             self.pyPhotometry_fs = 130
@@ -576,7 +578,8 @@ class SyncOEpyPhotometrySession:
         OE.plot_theta_cycle (silced_recording, LFP_channel,trough_index,half_window=0.1,fs=10000,plotmode='two')
         return -1
     
-    def pynappleAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,Low_thres=1,High_thres=10,plot_segment=False,plot_ripple_ep=True,excludeTheta=True,excludeREM=False):
+    def pynappleAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,
+                          Low_thres=1,High_thres=10,plot_segment=False,plot_ripple_ep=True,excludeTheta=True,excludeREM=False):
         'This is the LFP data that need to be saved for the sync ananlysis'
         data_segment=self.Ephys_tracking_spad_aligned
         #data_segment=self.non_theta_part
@@ -597,7 +600,7 @@ class SyncOEpyPhotometrySession:
         #SPAD_ripple_band_filtered,nSS_spad,nSS3_spad,rip_ep_spad,rip_tsd_spad = OE.getRippleEvents (SPAD_smooth,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
         'To detect ripple'
         ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd = OE.getRippleEvents (LFP,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
-        SPAD_ripple_band_filtered,_,_,_,_ = OE.getRippleEvents (SPAD,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
+        SPAD_ripple_band_filtered = pyna.eeg_processing.bandpass_filter(SPAD, 140, 250, self.fs)
         if excludeTheta:
             'To remove detected ripples if they are during theta----meaning they are fast gamma'
             drop_index_ep=[]
@@ -714,8 +717,8 @@ class SyncOEpyPhotometrySession:
         self.rip_ep=rip_ep
         self.rip_tsd=rip_tsd
         if len(self.rip_tsd)>0:
-            self.Oscillation_triggered_Optical_transient (mode='ripple',lfp_channel=lfp_channel, half_window=0.05, plot_single_trace=True,plotShade='CI')
-            self.Oscillation_optical_correlation (mode='ripple',lfp_channel=lfp_channel, half_window=0.2)
+            self.Oscillation_triggered_Optical_transient (mode='ripple',lfp_channel=lfp_channel, half_window=0.1, plot_single_trace=True,plotShade='CI')
+            self.Oscillation_optical_correlation (mode='ripple',lfp_channel=lfp_channel, half_window=0.1)
         return rip_ep,rip_tsd
     
     def pynappleThetaAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,Low_thres=1,High_thres=10,plot_segment=False, plot_ripple_ep=True):
@@ -900,7 +903,11 @@ class SyncOEpyPhotometrySession:
                 LFP_values_4.append(LFP_normalised_4)
                 #Calculate optical peak triggerred by ripple peak
                 mididx=int(len(normalized_z_score)/2)
-                peak_value, peak_index, peak_std=OE.find_peak_and_std(normalized_z_score[mididx-half_window_len:mididx+half_window_len],half_window_len)
+                if self.indicator=='GECI':
+                    peak_value, peak_index, peak_std=OE.find_peak_and_std(normalized_z_score[mididx-half_window_len:mididx+half_window_len],half_window_len,mode='max')
+                else:
+                    peak_value, peak_index, peak_std=OE.find_peak_and_std(normalized_z_score[mididx-half_window_len:mididx+half_window_len],half_window_len,mode='min')
+                    
                 peak_values.append(peak_value)
                 peak_indexs.append(peak_index)
                 peak_stds.append(peak_std)
@@ -934,7 +941,7 @@ class SyncOEpyPhotometrySession:
 
         MakePlots.plot_oscillation_epoch_traces(ax[0,0],x,mean_z_score,mean_LFP_1,std_z_score,
                                                       std_LFP_1,CI_z_score,CI_LFP_1,mode=mode,plotShade=plotShade)
-        ax[0,1].legend().remove()
+        ax[0,0].legend().remove()
         MakePlots.plot_oscillation_epoch_traces(ax[0,1],x,mean_z_score,mean_LFP_2,std_z_score,
                                                       std_LFP_2,CI_z_score,CI_LFP_2,mode=mode,plotShade=plotShade)
         ax[0,1].legend().remove()
@@ -990,6 +997,10 @@ class SyncOEpyPhotometrySession:
         ax[0,1].set_title('Electrode 2')
         ax[1,0].set_title('Electrode 3')
         ax[1,1].set_title('Electrode 4')
+        ax[0,0].legend().remove()
+        ax[0,1].legend().remove()
+        ax[1,0].legend().remove()
+        ax[1,1].legend().remove()
         fig.suptitle(f'Optical peaks during {mode} Event on {lfp_channel}')
         plt.tight_layout()
         figName=self.recordingName+savename+'peaktime_'+lfp_channel+'.png'

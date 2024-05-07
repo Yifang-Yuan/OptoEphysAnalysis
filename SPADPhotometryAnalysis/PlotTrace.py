@@ -32,7 +32,7 @@ def plot_trace(trace,ax, fs=9938.4, label="trace",color='tab:blue'):
 # Sampling Frequency
 '''Read binary files for single ROI'''
 fs=840
-dpath='F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240429_Day1/SyncRecording1'
+dpath='F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240429_Day1/SyncRecording1/'
 csv_filename='Green_traceAll.csv'
 filepath=Analysis.Set_filename (dpath, csv_filename)
 #filepath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/smallROI_100Hznoise.csv'
@@ -57,14 +57,14 @@ fig, ax = plt.subplots(figsize=(8,2))
 plot_trace(z_score,ax, fs,label='840Hz')
 
 #%%
-fig, ax = plt.subplots(figsize=(8,2))
-plot_trace(Trace_raw[5000:5168],ax, fs,label='840Hz')
+fig, ax = plt.subplots(figsize=(4,2))
+plot_trace(Trace_raw[1*840:5*840],ax, fs,label='840Hz')
 #%%
 bin_window=2
-Signal_bin=Analysis.get_bin_trace(z_score,bin_window=bin_window,Fs=840)
+Signal_bin=Analysis.get_bin_trace(Trace_raw[21*840:25*840],bin_window=bin_window,Fs=840)
 
 bin_window=5
-Signal_bin=Analysis.get_bin_trace(z_score,bin_window=bin_window,Fs=840)
+Signal_bin=Analysis.get_bin_trace(Trace_raw[21*840:25*840],bin_window=bin_window,Fs=840)
 
 #SNR=Analysis.calculate_SNR(Trace_raw[0:9000])
 #ATLAS 840

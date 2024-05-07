@@ -898,17 +898,23 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
         plt.show()
     return -1
 
-def find_peak_and_std(data,half_win_len):
+def find_peak_and_std(data,half_win_len,mode='max'):
     if isinstance(data, pd.Series):
         # If data is a pandas Series
-        peak_index = data.idxmax()
+        if mode=='max':
+            peak_index = data.idxmax()
+        else:
+            peak_index = data.idxmin()
         print ('peak_index',peak_index)
         peak_value = data.iloc[peak_index]
         window_data = data.iloc[max(0, peak_index - half_win_len):min(len(data) - 1, peak_index + half_win_len) + 1]
         peak_std = peak_value/window_data.std()
     elif isinstance(data, np.ndarray):
         # If data is a numpy array
-        peak_index = np.argmax(data)
+        if mode=='max':
+            peak_index = np.argmax(data)
+        else:
+            peak_index = np.argmin(data)
         peak_value = data[peak_index]
         window_start = max(0, peak_index - half_win_len)
         window_end = min(len(data) - 1, peak_index + half_win_len)
