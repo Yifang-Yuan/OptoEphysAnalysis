@@ -29,10 +29,66 @@ def plot_trace(trace,ax, fs=9938.4, label="trace",color='tab:blue'):
     ax.set_ylabel('Photon Count')
     return ax
 
+from scipy.ndimage import uniform_filter1d
+
+def replace_outliers_with_nearest_avg(data, window_size=25000, z_thresh=3):
+    # Calculate the mean and standard deviation of the moving window
+    mean = uniform_filter1d(data, window_size, mode='reflect')
+    std = uniform_filter1d(data**2, window_size, mode='reflect')
+    std = np.sqrt(std - mean**2)
+
+    # Identify the outliers
+    outliers = (np.abs(data - mean) > z_thresh * std)
+
+    # Replace outliers with the average of their nearest non-outlier neighbors
+    for i in np.where(outliers)[0]:
+        j = i - 1
+        while j >= 0 and outliers[j]:
+            j -= 1
+        k = i + 1
+        while k < len(data) and outliers[k]:
+            k += 1
+        if j >= 0 and k < len(data):
+            data[i] = (data[j] + data[k]) / 2
+        elif j >= 0:
+            data[i] = data[j]
+        elif k < len(data):
+            data[i] = data[k]
+
+    return data
+
+
+def replace_outliers_with_avg(data, threshold):
+    # Identify the outliers
+    outliers = np.abs(data) > threshold
+
+    # Get the indices of the outliers
+    outlier_indices = np.where(outliers)[0]
+
+    # Iterate over the outlier indices
+    for index in outlier_indices:
+        # Find the nearest non-outlier value
+        left = index
+        while left > 0 and outliers[left - 1]:
+            left -= 1
+
+        right = index
+        while right < len(data) - 1 and outliers[right + 1]:
+            right += 1
+
+        # If the outlier is not at the boundaries of the array, replace it with the average of its neighbors
+        if left != 0 and right != len(data) - 1:
+            data[index] = (data[left - 1] + data[right + 1]) / 2
+        # If the outlier is at the boundaries of the array, replace it with the nearest non-outlier value
+        else:
+            data[index] = data[left - 1] if left != 0 else data[right + 1]
+
+    return data
+#%%
 # Sampling Frequency
 '''Read binary files for single ROI'''
 fs=840
-dpath='F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240429_Day1/SyncRecording1/'
+dpath='F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day4/SyncRecording16'
 csv_filename='Green_traceAll.csv'
 filepath=Analysis.Set_filename (dpath, csv_filename)
 #filepath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/smallROI_100Hznoise.csv'
@@ -41,8 +97,10 @@ Trace_raw=Trace_raw
 #%%
 fig, ax = plt.subplots(figsize=(8,2))
 plot_trace(Trace_raw,ax, fs,label='840Hz')
-
-    
+Trace_raw=replace_outliers_with_nearest_avg(Trace_raw, window_size=25000, z_thresh=4)
+fig, ax = plt.subplots(figsize=(8,2))
+plot_trace(Trace_raw,ax, fs,label='840Hz')
+#%%
 lambd = 10e3 # Adjust lambda to get the best fit
 porder = 1
 itermax = 15
@@ -51,24 +109,25 @@ signal = (Trace_raw - sig_base)
 z_score=(signal - np.median(signal)) / np.std(signal)
 
 fig, ax = plt.subplots(figsize=(8,2))
-plot_trace(sig_base,ax, fs,label='840Hz')
+plot_trace(z_score,ax, fs,label='z_score')
+#%%
+z_score=replace_outliers_with_avg(z_score, threshold=4)
 
 fig, ax = plt.subplots(figsize=(8,2))
-plot_trace(z_score,ax, fs,label='840Hz')
-
+plot_trace(z_score,ax, fs,label='cleaned')
 #%%
 fig, ax = plt.subplots(figsize=(4,2))
-plot_trace(Trace_raw[1*840:5*840],ax, fs,label='840Hz')
+plot_trace(Trace_raw[1:],ax, fs,label='Trace')
 #%%
 bin_window=2
-Signal_bin=Analysis.get_bin_trace(Trace_raw[21*840:25*840],bin_window=bin_window,Fs=840)
+Signal_bin=Analysis.get_bin_trace(z_score,bin_window=bin_window,Fs=840)
 
 bin_window=5
-Signal_bin=Analysis.get_bin_trace(Trace_raw[21*840:25*840],bin_window=bin_window,Fs=840)
+Signal_bin=Analysis.get_bin_trace(z_score,bin_window=bin_window,Fs=840)
 
 #SNR=Analysis.calculate_SNR(Trace_raw[0:9000])
 #ATLAS 840
-#%%
+
 #%% Wavelet analysis
 import matplotlib.pylab as plt
 import matplotlib.ticker as ticker
@@ -76,7 +135,7 @@ from matplotlib.gridspec import GridSpec
 # from mpl_toolkits.axes_grid1 import make_axes_locatable
 from waveletFunctions import wave_signif, wavelet
 
-signal=Trace_raw[4500:]
+signal=Trace_raw[10*840:]
 sst = Analysis.butter_filter(signal, btype='low', cutoff=300, fs=fs, order=4)
 sst = Analysis.butter_filter(signal, btype='high', cutoff=20, fs=fs, order=4)
 #sst = OE.butter_filter(signal, btype='high', cutoff=30, fs=Recording1.fs, order=5)
@@ -105,7 +164,7 @@ power = (np.abs(wave)) ** 2  # compute wavelet power spectrum
 global_ws = (np.sum(power, axis=1) / n)  # time-average over all times
 frequency=1/period
 
-xlim = ([0,25])  # plotting range
+xlim = ([0,20])  # plotting range
 fig, plt3 = plt.subplots(figsize=(15,5))
 
 levels = [0, 4,20, 100, 200,300]
