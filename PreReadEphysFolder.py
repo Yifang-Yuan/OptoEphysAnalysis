@@ -125,21 +125,19 @@ def main():
     Fs_atlas=840
     recordingTime=Frame_num/Fs_atlas
     
-    Ephys_folder_path = 'F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day1/Ephys/2024-05-06_12-10-42/'
-    save_parent_folder="F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day1/" 
+    Ephys_folder_path = 'F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240501_Day3/Ephys/2024-05-01_13-40-42/'
+    save_parent_folder="F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240501_Day3/" 
     read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
     
-    Ephys_folder_path = 'F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day2/Ephys/2024-05-07_11-25-23/'
-    save_parent_folder="F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day2/" 
+    Ephys_folder_path = 'F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240502_Day4/Ephys/2024-05-02_14-47-39/'
+    save_parent_folder="F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240502_Day4/" 
     read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
     
-    Ephys_folder_path = 'F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day3/Ephys/2024-05-08_10-56-26/'
-    save_parent_folder="F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day3/" 
+    Ephys_folder_path = 'F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240503_Day5/Ephys/2024-05-03_10-53-54/'
+    save_parent_folder="F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240503_Day5/" 
     read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
     
-    Ephys_folder_path = 'F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day4/Ephys/2024-05-09_10-35-18/'
-    save_parent_folder="F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day4/" 
-    read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
+ 
 
 if __name__ == "__main__":
     main()

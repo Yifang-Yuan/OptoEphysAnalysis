@@ -121,8 +121,8 @@ def main():
     xxRange=[25, 80]
     yyRange=[35, 90]
     
-    atlas_parent_folder='F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day1/Atlas/'
-    day_parent_folder='F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day1/'
+    atlas_parent_folder='F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240502_Day4/Atlas/'
+    day_parent_folder='F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240502_Day4/'
     read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,xxRange,yyRange,new_folder_name='SyncRecording')
     
 

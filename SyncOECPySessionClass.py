@@ -150,6 +150,22 @@ class SyncOEpyPhotometrySession:
             self.Ephys_tracking_spad_aligned=pd.concat([self.ephys_align, self.photometry_align], axis=1)
             
         self.Ephys_tracking_spad_aligned.reset_index(drop=True, inplace=True)  
+        
+        OE.plot_two_traces_in_seconds (self.Ephys_tracking_spad_aligned['LFP_1'],self.fs, 
+                                       self.Ephys_tracking_spad_aligned['zscore_raw'], self.fs, label1='LFP_1',label2='zscore')
+        
+        while True: #remove noise by cutting part of the synchronised the data
+            start_time = input("Enter the start time to move noise (or 'q' to quit): ")
+            if start_time.lower() == 'q':
+                break
+            end_time = input("Enter the end time to move noise (or 'q' to quit): ")
+            if end_time.lower() == 'q':
+                break 
+            print(f"Start time: {start_time}, End time: {end_time}")
+            self.remove_noise(start_time=int(start_time),end_time=int(end_time))
+        
+            OE.plot_two_traces_in_seconds (self.Ephys_tracking_spad_aligned['LFP_1'],self.fs, 
+                                       self.Ephys_tracking_spad_aligned['zscore_raw'], self.fs, label1='LFP_1',label2='zscore')
         return -1
     
     def read_open_ephys_data (self):
@@ -157,20 +173,20 @@ class SyncOEpyPhotometrySession:
         self.Ephys_data = pd.read_pickle(filepath)  
         return self.Ephys_data
     
-    def form_ephys_sync_data (self):
-        mask = self.Ephys_data['py_mask'] 
-        self.Ephys_sync_data=self.Ephys_data[mask]
-        OE.plot_two_traces_in_seconds (mask,self.ephys_fs,self.Ephys_data['LFP_1'],self.ephys_fs,
-                                       label1='Cam_mask',label2='LFP_raw_data') 
-        print ('Ephys data length', len(self.Ephys_data)/self.ephys_fs)
-        print ('Ephys synced part data length', len(self.Ephys_sync_data)/self.ephys_fs)
-        return -1         
+    # def form_ephys_sync_data (self):
+    #     mask = self.Ephys_data['py_mask'] 
+    #     self.Ephys_sync_data=self.Ephys_data[mask]
+    #     OE.plot_two_traces_in_seconds (mask,self.ephys_fs,self.Ephys_data['LFP_1'],self.ephys_fs,
+    #                                    label1='Cam_mask',label2='LFP_raw_data') 
+    #     print ('Ephys data length', len(self.Ephys_data)/self.ephys_fs)
+    #     print ('Ephys synced part data length', len(self.Ephys_sync_data)/self.ephys_fs)
+    #     return -1         
     
     def form_ephys_spad_sync_data (self):
         mask = self.Ephys_data['SPAD_mask'] 
         self.Ephys_sync_data=self.Ephys_data[mask]
-        #OE.plot_two_raw_traces (mask,self.Ephys_sync_data['LFP_1'], spad_label='spad_mask',lfp_label='LFP_raw')
-        OE.plot_trace_in_seconds(self.Ephys_sync_data['LFP_1'], self.ephys_fs,title='Ephys sync part data')
+        # OE.plot_two_raw_traces (mask,self.Ephys_sync_data['LFP_1'], spad_label='spad_mask',lfp_label='LFP_raw')
+        # OE.plot_trace_in_seconds(self.Ephys_sync_data['LFP_1'], self.ephys_fs,title='Ephys sync part data')
         print ('Ephys data length', len(self.Ephys_data)/self.ephys_fs)
         print ('Ephys synced part data length', len(self.Ephys_sync_data)/self.ephys_fs)
         return -1  
@@ -194,7 +210,7 @@ class SyncOEpyPhotometrySession:
         return self.photometry_sync_data
         
     def remove_noise(self,start_time,end_time):
-        start_idx =int( start_time * self.fs)# Time interval in seconds   
+        start_idx =int(start_time * self.fs)# Time interval in seconds   
         end_idx = int(end_time * self.fs)# Time interval in seconds
         mask = ~self.Ephys_tracking_spad_aligned.index.isin(range(start_idx, end_idx + 1))
         self.Ephys_tracking_spad_aligned = self.Ephys_tracking_spad_aligned[mask]

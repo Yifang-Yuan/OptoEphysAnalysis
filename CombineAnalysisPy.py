@@ -10,12 +10,12 @@ from SyncOECPySessionClass import SyncOEpyPhotometrySession
 import OpenEphysTools as OE
 import numpy as np
 #%%
-dpath='F:/2024MScR_NORtask/1765508_Jedi2p_Atlas/20240430_Day2/'
+dpath='F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day4/'
 #dpath="F:/2024MScR_NORtask/1732333_pyPhotometry/20240214_Day3/" 
 
-recordingName='SavedpostSleepTrials'
+recordingName='SyncRecording16'
 #dpath="G:/SPAD/SPADData/20230722_SPADOE/SyncRecording0/"
-Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,recordingMode='Atlas',indicator='GEVI') 
+Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=False,recordingMode='Atlas',indicator='GECI') 
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
 LFP_channel='LFP_1'
 #%%
