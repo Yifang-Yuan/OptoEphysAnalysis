@@ -13,7 +13,7 @@ from SyncOECPySessionClass import SyncOEpyPhotometrySession
 import OpenEphysTools as OE
 
 def ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', IsTracking=False,
-                       read_aligned_data_from_file=False,recordingMode='SPAD'):
+                       read_aligned_data_from_file=False,recordingMode='SPAD',indicator='GEVI'):
     
     # List all files and directories in the parent folder
     all_contents = os.listdir(parent_folder)
@@ -29,7 +29,7 @@ def ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', IsTrackin
         # Now you can perform operations on each folder, such as reading files inside it
         print("----Now processing folder:", SyncRecordingName)
         Recording1=SyncOEpyPhotometrySession(parent_folder,SyncRecordingName,IsTracking=IsTracking,
-                                             read_aligned_data_from_file=read_aligned_data_from_file,recordingMode=recordingMode) 
+                                             read_aligned_data_from_file=read_aligned_data_from_file,recordingMode=recordingMode,indicator=indicator) 
         for i in range (4):
             LFP_channel='LFP_'+str(i+1)
             
@@ -57,9 +57,9 @@ def main():
     Put all your parent folders here for batch processing.
     recordingMode: 'py' for pyPhotometry recording, 'SPAD' for SPAD-SPC recording
     '''
-    parent_folder="F:/2024MScR_NORtask/1732333_pyramidal_G8f_Atlas/20240420_Day1/"
+    parent_folder="F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240502_Day4/"
     ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', 
-                                          IsTracking=True,read_aligned_data_from_file=False,recordingMode='Atlas')
+                                          IsTracking=True,read_aligned_data_from_file=False,recordingMode='Atlas',indicator='GECI')
     
 if __name__ == "__main__":
     main()

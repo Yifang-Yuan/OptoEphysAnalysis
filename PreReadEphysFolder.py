@@ -70,7 +70,7 @@ def read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode
             OE.check_Optical_mask_length(SPAD_mask)
             # If the SPAD mask is correct, save spad mask
             EphysData['SPAD_mask'] = SPAD_mask
-            OE.plot_trace_in_seconds(EphysData['CamSync'],Ephys_fs)
+            OE.plot_trace_in_seconds(EphysData['CamSync'],Ephys_fs,title= f'Camera Sync pulse for recording {index}')
             cam_mask = OE.py_sync_mask (EphysData['CamSync'], start_lim=0, end_lim=len (EphysData['CamSync']))
             OE.check_Optical_mask_length(cam_mask)
             EphysData['cam_mask']=cam_mask
@@ -102,7 +102,7 @@ def read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode
             '''To double check the SPAD mask'''
             OE.check_Optical_mask_length(Atlas_mask)
             EphysData['SPAD_mask'] = Atlas_mask
-            OE.plot_trace_in_seconds(EphysData['CamSync'],Ephys_fs)
+            OE.plot_trace_in_seconds(EphysData['CamSync'],Ephys_fs,title= f'Camera Sync pulse for recording {index}')
             cam_mask = OE.py_sync_mask (EphysData['CamSync'], start_lim=0, end_lim=len (EphysData['CamSync']))
             OE.check_Optical_mask_length(cam_mask)
             EphysData['cam_mask']=cam_mask
@@ -125,16 +125,8 @@ def main():
     Fs_atlas=840
     recordingTime=Frame_num/Fs_atlas
     
-    Ephys_folder_path = 'F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240501_Day3/Ephys/2024-05-01_13-40-42/'
-    save_parent_folder="F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240501_Day3/" 
-    read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
-    
-    Ephys_folder_path = 'F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240502_Day4/Ephys/2024-05-02_14-47-39/'
-    save_parent_folder="F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240502_Day4/" 
-    read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
-    
-    Ephys_folder_path = 'F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240503_Day5/Ephys/2024-05-03_10-53-54/'
-    save_parent_folder="F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240503_Day5/" 
+    Ephys_folder_path = 'F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day5/Ephys/2024-05-10_10-35-14'
+    save_parent_folder='F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day5/'
     read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
     
  

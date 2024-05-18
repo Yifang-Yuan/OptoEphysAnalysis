@@ -22,6 +22,7 @@ import pickle
 import seaborn as sns
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy import stats
+from matplotlib.ticker import MaxNLocator
 
 def butter_filter(data, btype='low', cutoff=10, fs=9938.4, order=5): 
     # cutoff and fs in Hz
@@ -38,7 +39,6 @@ def band_pass_filter(data,low_freq,high_freq,Fs):
 
 
 def notchfilter (data,f0=50,bw=10,fs=30000):
-    f0 = 50 # Center frequency of the notch (Hz)
     # Bandwidth of the notch filter (in Hz)   
     Q = f0/bw # Quality factor
     b, a = signal.iirnotch(f0, Q, fs)
@@ -260,7 +260,7 @@ def save_open_ephys_data (dpath, data):
     return -1
 
 def getRippleEvents (lfp_raw,Fs,windowlen=200,Low_thres=1,High_thres=10):
-    ripple_band_filtered = pyna.eeg_processing.bandpass_filter(lfp_raw, 120, 250, Fs)
+    ripple_band_filtered = pyna.eeg_processing.bandpass_filter(lfp_raw, 130, 250, Fs)
     squared_signal = np.square(ripple_band_filtered.values)
     window = np.ones(windowlen)/windowlen
     nSS = filtfilt(window, 1, squared_signal)
@@ -551,10 +551,15 @@ def plot_two_traces_in_seconds (data1,Fs1, data2, Fs2, label1='optical',label2='
     ax1.set_ylabel('z-score')
     ax1.legend()
     sns.lineplot(x=time_seconds_2, y=data2.values, ax=ax2, label=label2, linewidth=1, color=sns.color_palette("husl", 8)[5])
+    num_ticks = 20  # Adjust the number of ticks as needed
+    ax1.xaxis.set_major_locator(MaxNLocator(num_ticks))
     ax2.set_ylabel('Amplitude')
     #ax2.set_title('LFP')
+    num_ticks = 20  # Adjust the number of ticks as needed
+    ax2.xaxis.set_major_locator(MaxNLocator(num_ticks))
     ax2.set_xlabel('Time (s)')
     ax2.legend()
+    
     plt.tight_layout()
     plt.show()
     return fig

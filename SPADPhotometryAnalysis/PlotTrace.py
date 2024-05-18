@@ -93,7 +93,7 @@ csv_filename='Green_traceAll.csv'
 filepath=Analysis.Set_filename (dpath, csv_filename)
 #filepath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/smallROI_100Hznoise.csv'
 Trace_raw=Analysis.getSignalTrace (filepath, traceType='Constant',HighFreqRemoval=False,getBinTrace=False,bin_window=10)
-Trace_raw=Trace_raw
+Trace_raw=Trace_raw[6*840:8*840]
 #%%
 fig, ax = plt.subplots(figsize=(8,2))
 plot_trace(Trace_raw,ax, fs,label='840Hz')
@@ -134,10 +134,13 @@ import matplotlib.ticker as ticker
 from matplotlib.gridspec import GridSpec
 # from mpl_toolkits.axes_grid1 import make_axes_locatable
 from waveletFunctions import wave_signif, wavelet
+import OpenEphysTools as OE
+
 
 signal=Trace_raw[10*840:]
+signal= OE.notchfilter (signal,f0=100,bw=2,fs=840)
 sst = Analysis.butter_filter(signal, btype='low', cutoff=300, fs=fs, order=4)
-sst = Analysis.butter_filter(signal, btype='high', cutoff=20, fs=fs, order=4)
+sst = Analysis.butter_filter(signal, btype='high', cutoff=10, fs=fs, order=4)
 #sst = OE.butter_filter(signal, btype='high', cutoff=30, fs=Recording1.fs, order=5)
 sst = sst - np.mean(sst)
 variance = np.std(sst, ddof=1) ** 2

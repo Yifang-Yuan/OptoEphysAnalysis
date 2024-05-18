@@ -10,14 +10,14 @@ from SyncOECPySessionClass import SyncOEpyPhotometrySession
 import OpenEphysTools as OE
 import numpy as np
 #%%
-dpath='F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day4/'
+dpath="F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day4/"
 #dpath="F:/2024MScR_NORtask/1732333_pyPhotometry/20240214_Day3/" 
 
-recordingName='SyncRecording16'
+recordingName='SyncRecording12'
 #dpath="G:/SPAD/SPADData/20230722_SPADOE/SyncRecording0/"
-Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=False,recordingMode='Atlas',indicator='GECI') 
+Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=True,read_aligned_data_from_file=False,recordingMode='Atlas',indicator='GECI') 
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-LFP_channel='LFP_1'
+LFP_channel='LFP_3'
 #%%
 ThetaDeltaRatio=Recording1.Label_REM_sleep (LFP_channel)
 import matplotlib.pyplot as plt
@@ -36,8 +36,8 @@ theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_th
 #%% Detect ripple event
 '''RIPPLE DETECTION
 For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
-rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,ep_start=0,ep_end=5,
-                                                                          Low_thres=0.5,High_thres=10,plot_segment=False,
+rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,ep_start=20,ep_end=30,
+                                                                          Low_thres=0.5,High_thres=10,plot_segment=True,
                                                                           plot_ripple_ep=False,excludeTheta=True)
 #time_duration=transient_trace.index[-1].total_seconds()
 #%% Detect theta event

@@ -78,17 +78,10 @@ def main():
     '''Set the folder for the Behaviour recording, defualt folder names are usually date and time'''
     '''Set the parent folder your session results, this should be the same parent folder to save optical data'''
     
-    save_parent_folder="F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240501_Day3/" 
-    BehaviourData_folder_path="F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240501_Day3/Behaviour"
+    save_parent_folder='F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240503_Day5/'
+    BehaviourData_folder_path='F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240503_Day5/Behaviour'
     label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
     
-    save_parent_folder="F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240502_Day4/" 
-    BehaviourData_folder_path="F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240502_Day4/Behaviour"
-    label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
-    
-    save_parent_folder="F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240502_Day4/" 
-    BehaviourData_folder_path="F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240502_Day4/Behaviour"
-    label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
     #plot_multiple_behaviour_files_in_folder(BehaviourData_folder_path,tracking_fs=10)
 if __name__ == "__main__":
     main()

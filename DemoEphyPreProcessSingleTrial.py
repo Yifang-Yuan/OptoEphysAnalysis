@@ -18,21 +18,21 @@ The final output should be a pandas format EphysData with data recorded by open 
 #%%
 '''Set the folder for the Open Ephys recording, defualt folder names are usually date and time'''
 
-directory = 'F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240430_Day2/Ephys/2024-04-30_12-46-26/'
+directory = 'F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day1/Ephys/2024-05-06_12-10-42'
 
 '''Set the folder your session data, this folder is used to save decoded LFP data, it should include optical signal data and animal tracking data as .csv;
 this folder is now manually created, but I want to make it automatic'''
 
-dpath='F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240430_Day2/SyncRecording3/'
+#dpath='F:/2024MScR_NORtask/1765508_Jedi2p_Atlas/20240503_Day5/SyncRecording4/'
 
 Ephys_fs=30000 #Ephys sampling rate
 '''recordingNum is the index of recording from the OE recording, start from 0'''
 'EphysData is the LFP data that need to be saved for the sync ananlysis'
-EphysData=OE.readEphysChannel (directory, recordingNum=2)
+EphysData=OE.readEphysChannel (directory, recordingNum=13)
 
 #%% 
 '''
-NOTE:SPC IMAGER EPHYS DATA PROCESSING----They are different because the synchronisation methods are different.
+NOTE:USE DIFFERENT CELL FOR DIFF IMAGERS EPHYS DATA PROCESSING----They are different because the synchronisation methods are different.
 1. PROCESSING ATLAS SENSOR SYNC RECORDINGS
 Check the Cam sync is correct and the threshold for deciding the Cam mask is 29000.
 If not, add a number to EphysData['CamSync'] 
@@ -56,10 +56,13 @@ ax.spines['right'].set_visible(False)
 OE.check_Optical_mask_length(Atlas_mask)
 #%%
 EphysData['SPAD_mask'] = Atlas_mask
+#%%
 OE.plot_trace_in_seconds(EphysData['CamSync'],Ephys_fs)
+#%%
 cam_mask = OE.py_sync_mask (EphysData['CamSync'], start_lim=0, end_lim=len (EphysData['CamSync']))
 OE.check_Optical_mask_length(cam_mask)
 EphysData['cam_mask']=cam_mask
+#%%
 'SAVE THE open ephys data as .pkl file.'
 OE.save_open_ephys_data (dpath,EphysData)
 

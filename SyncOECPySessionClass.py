@@ -151,8 +151,8 @@ class SyncOEpyPhotometrySession:
             
         self.Ephys_tracking_spad_aligned.reset_index(drop=True, inplace=True)  
         
-        OE.plot_two_traces_in_seconds (self.Ephys_tracking_spad_aligned['LFP_1'],self.fs, 
-                                       self.Ephys_tracking_spad_aligned['zscore_raw'], self.fs, label1='LFP_1',label2='zscore')
+        OE.plot_two_traces_in_seconds (self.Ephys_tracking_spad_aligned['zscore_raw'],self.fs, 
+                                       self.Ephys_tracking_spad_aligned['LFP_1'], self.fs, label1='zscore_raw',label2='LFP_1')
         
         while True: #remove noise by cutting part of the synchronised the data
             start_time = input("Enter the start time to move noise (or 'q' to quit): ")
@@ -164,23 +164,14 @@ class SyncOEpyPhotometrySession:
             print(f"Start time: {start_time}, End time: {end_time}")
             self.remove_noise(start_time=int(start_time),end_time=int(end_time))
         
-            OE.plot_two_traces_in_seconds (self.Ephys_tracking_spad_aligned['LFP_1'],self.fs, 
-                                       self.Ephys_tracking_spad_aligned['zscore_raw'], self.fs, label1='LFP_1',label2='zscore')
+            OE.plot_two_traces_in_seconds (self.Ephys_tracking_spad_aligned['zscore_raw'],self.fs, 
+                                       self.Ephys_tracking_spad_aligned['LFP_1'], self.fs, label1='zscore_raw',label2='LFP_1')
         return -1
     
     def read_open_ephys_data (self):
         filepath=os.path.join(self.dpath, "open_ephys_read_pd.pkl")
         self.Ephys_data = pd.read_pickle(filepath)  
-        return self.Ephys_data
-    
-    # def form_ephys_sync_data (self):
-    #     mask = self.Ephys_data['py_mask'] 
-    #     self.Ephys_sync_data=self.Ephys_data[mask]
-    #     OE.plot_two_traces_in_seconds (mask,self.ephys_fs,self.Ephys_data['LFP_1'],self.ephys_fs,
-    #                                    label1='Cam_mask',label2='LFP_raw_data') 
-    #     print ('Ephys data length', len(self.Ephys_data)/self.ephys_fs)
-    #     print ('Ephys synced part data length', len(self.Ephys_sync_data)/self.ephys_fs)
-    #     return -1         
+        return self.Ephys_data       
     
     def form_ephys_spad_sync_data (self):
         mask = self.Ephys_data['SPAD_mask'] 
@@ -226,6 +217,10 @@ class SyncOEpyPhotometrySession:
         sig_data = np.genfromtxt(self.sig_csv_filename, delimiter=',')
         ref_data = np.genfromtxt(self.ref_csv_filename, delimiter=',')
         zscore_data = np.genfromtxt(self.zscore_csv_filename, delimiter=',')
+        if self.recordingMode=='Atlas':
+            zscore_data=OE.notchfilter (zscore_data,f0=100,bw=2,fs=840)
+            sig_data=OE.notchfilter (sig_data,f0=100,bw=2,fs=840)
+            ref_data=OE.notchfilter (ref_data,f0=100,bw=2,fs=840)
         sig_raw = pd.Series(sig_data)
         ref_raw = pd.Series(ref_data)
         zscore_raw = pd.Series(zscore_data)
@@ -245,6 +240,7 @@ class SyncOEpyPhotometrySession:
                 'ref_raw': ref_raw,
                 'zscore_raw': zscore_raw,
             })
+          
         return self.PhotometryData
     
     def form_photometry_sync_data (self):
@@ -616,7 +612,10 @@ class SyncOEpyPhotometrySession:
         #SPAD_ripple_band_filtered,nSS_spad,nSS3_spad,rip_ep_spad,rip_tsd_spad = OE.getRippleEvents (SPAD_smooth,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
         'To detect ripple'
         ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd = OE.getRippleEvents (LFP,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
-        SPAD_ripple_band_filtered = pyna.eeg_processing.bandpass_filter(SPAD, 140, 250, self.fs)
+        SPAD_ripple_band_filtered = pyna.eeg_processing.bandpass_filter(SPAD, 130, 250, self.fs)
+        # SPAD_ripple_band_filtered = OE.band_pass_filter(SPAD,120,300,self.fs)
+        # SPAD_ripple_band_filtered=nap.Tsd(t = timestamps, d = SPAD_ripple_band_filtered, time_units = 's')
+        
         if excludeTheta:
             'To remove detected ripples if they are during theta----meaning they are fast gamma'
             drop_index_ep=[]
@@ -732,7 +731,7 @@ class SyncOEpyPhotometrySession:
           
         self.rip_ep=rip_ep
         self.rip_tsd=rip_tsd
-        if len(self.rip_tsd)>0:
+        if len(self.rip_tsd)>2:
             self.Oscillation_triggered_Optical_transient (mode='ripple',lfp_channel=lfp_channel, half_window=0.1, plot_single_trace=True,plotShade='CI')
             self.Oscillation_optical_correlation (mode='ripple',lfp_channel=lfp_channel, half_window=0.1)
         return rip_ep,rip_tsd
