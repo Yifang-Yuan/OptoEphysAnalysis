@@ -25,7 +25,7 @@ def plot_oscillation_epoch_traces(ax,x_value,data1_mean,data2_mean,data1_std,dat
     ax.set_xlabel('Time (seconds)')
     ax.set_ylabel('z-score')
     # Set legend location
-    ax.legend(loc='upper right')
+    #ax.legend(loc='upper right')
     return ax
 
 
@@ -47,7 +47,7 @@ def plot_oscillation_epoch_optical_peaks(ax,x_value,optical_peak_times,optical_p
     ax.set_ylabel('Normalised signal')
     ax.set_xlim(-half_window, half_window)
     # Set legend location
-    ax.legend(loc='lower right')
+    #ax.legend(loc='lower right')
 
     return ax
 

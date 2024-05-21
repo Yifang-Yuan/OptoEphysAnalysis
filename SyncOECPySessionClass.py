@@ -584,10 +584,14 @@ class SyncOEpyPhotometrySession:
     
     def plot_theta_correlation(self,LFP_channel):
         silced_recording=self.theta_part
+        silced_recording=silced_recording.reset_index(drop=True)
+        #print (silced_recording.index)
         silced_recording['theta_angle']=OE.calculate_theta_phase_angle(silced_recording[LFP_channel], theta_low=5, theta_high=9)
         OE.plot_trace_in_seconds(silced_recording['theta_angle'],Fs=10000,title='theta angle')
         trough_index = OE.calculate_theta_trough_index(silced_recording,Fs=10000)
+        #print (trough_index)
         OE.plot_theta_cycle (silced_recording, LFP_channel,trough_index,half_window=0.1,fs=10000,plotmode='two')
+     
         return -1
     
     def pynappleAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,
@@ -732,8 +736,8 @@ class SyncOEpyPhotometrySession:
         self.rip_ep=rip_ep
         self.rip_tsd=rip_tsd
         if len(self.rip_tsd)>2:
-            self.Oscillation_triggered_Optical_transient (mode='ripple',lfp_channel=lfp_channel, half_window=0.1, plot_single_trace=True,plotShade='CI')
-            self.Oscillation_optical_correlation (mode='ripple',lfp_channel=lfp_channel, half_window=0.1)
+            self.Oscillation_triggered_Optical_transient (mode='ripple',lfp_channel=lfp_channel, half_window=0.2, plot_single_trace=True,plotShade='CI')
+            self.Oscillation_optical_correlation (mode='ripple',lfp_channel=lfp_channel, half_window=0.2)
         return rip_ep,rip_tsd
     
     def pynappleThetaAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,Low_thres=1,High_thres=10,plot_segment=False, plot_ripple_ep=True):
