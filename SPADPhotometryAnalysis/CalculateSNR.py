@@ -80,7 +80,7 @@ def calculate_SNR_for_folder_csv (parent_folder):
         csv_filepath = os.path.join(parent_folder, csv_file)
         print(csv_filepath)
         raw_signal = np.genfromtxt(csv_filepath, delimiter=',', skip_header=1)
-        SNR=calculate_SNR(raw_signal)
+        SNR=calculate_SNR(raw_signal[-1680:-840])
         SNR_array = np.append(SNR_array, SNR)
     csv_savename = os.path.join(parent_folder, SNR_savename)
     np.savetxt(csv_savename, SNR_array, delimiter=',')
@@ -90,5 +90,5 @@ def calculate_SNR_for_folder_csv (parent_folder):
     plt.ylabel('SNR')
     return SNR_array
 #%%
-folderpath='D:/SPADdata/SNR_test_5uW/SPCimager/Binned_to500Hz/'
+folderpath='G:/YY/Atlas_small_size'
 SNR_array=calculate_SNR_for_folder_csv (folderpath)

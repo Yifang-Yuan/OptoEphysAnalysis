@@ -88,16 +88,15 @@ def replace_outliers_with_avg(data, threshold):
 # Sampling Frequency
 '''Read binary files for single ROI'''
 fs=840
-dpath='F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day4/SyncRecording16'
+dpath='G:/YY/New/1765508_Jedi2p_CompareSystem/Day4_Atlas/SyncRecording1'
+# fs=1000
+# dpath='G:/YY/New/1765508_Jedi2p_CompareSystem/Day2_pyPhotometry/SyncRecording4'
 csv_filename='Green_traceAll.csv'
 filepath=Analysis.Set_filename (dpath, csv_filename)
 #filepath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/smallROI_100Hznoise.csv'
 Trace_raw=Analysis.getSignalTrace (filepath, traceType='Constant',HighFreqRemoval=False,getBinTrace=False,bin_window=10)
-Trace_raw=Trace_raw[6*840:8*840]
+Trace_raw=Trace_raw[4*840:14*840]
 #%%
-fig, ax = plt.subplots(figsize=(8,2))
-plot_trace(Trace_raw,ax, fs,label='840Hz')
-Trace_raw=replace_outliers_with_nearest_avg(Trace_raw, window_size=25000, z_thresh=4)
 fig, ax = plt.subplots(figsize=(8,2))
 plot_trace(Trace_raw,ax, fs,label='840Hz')
 #%%
@@ -110,20 +109,13 @@ z_score=(signal - np.median(signal)) / np.std(signal)
 
 fig, ax = plt.subplots(figsize=(8,2))
 plot_trace(z_score,ax, fs,label='z_score')
-#%%
-z_score=replace_outliers_with_avg(z_score, threshold=4)
 
-fig, ax = plt.subplots(figsize=(8,2))
-plot_trace(z_score,ax, fs,label='cleaned')
-#%%
-fig, ax = plt.subplots(figsize=(4,2))
-plot_trace(Trace_raw[1:],ax, fs,label='Trace')
 #%%
 bin_window=2
-Signal_bin=Analysis.get_bin_trace(z_score,bin_window=bin_window,Fs=840)
+Signal_bin=Analysis.get_bin_trace(Trace_raw,bin_window=bin_window,Fs=840)
 
 bin_window=5
-Signal_bin=Analysis.get_bin_trace(z_score,bin_window=bin_window,Fs=840)
+Signal_bin=Analysis.get_bin_trace(Trace_raw,bin_window=bin_window,Fs=840)
 
 #SNR=Analysis.calculate_SNR(Trace_raw[0:9000])
 #ATLAS 840
@@ -136,61 +128,12 @@ from matplotlib.gridspec import GridSpec
 from waveletFunctions import wave_signif, wavelet
 import OpenEphysTools as OE
 
-
-signal=Trace_raw[10*840:]
-signal= OE.notchfilter (signal,f0=100,bw=2,fs=840)
-sst = Analysis.butter_filter(signal, btype='low', cutoff=300, fs=fs, order=4)
-sst = Analysis.butter_filter(signal, btype='high', cutoff=10, fs=fs, order=4)
-#sst = OE.butter_filter(signal, btype='high', cutoff=30, fs=Recording1.fs, order=5)
-sst = sst - np.mean(sst)
-variance = np.std(sst, ddof=1) ** 2
-print("variance = ", variance)
-# ----------C-O-M-P-U-T-A-T-I-O-N------S-T-A-R-T-S------H-E-R-E---------------
-if 0:
-    variance = 1.0
-    sst = sst / np.std(sst, ddof=1)
-n = len(sst)
-dt = 1/fs
-time = np.arange(len(sst)) * dt   # construct time array
-
-pad = 1  # pad the time series with zeroes (recommended), do not need to change
-dj = 0.25 # this will do 4 sub-octaves per octave, 
-s0 = 2 * dt  # 
-j1 = 7 / dj  # this says do 7 powers-of-two with dj sub-octaves each
-lag1 = 0.1  # lag-1 autocorrelation for red noise background
-print("lag1 = ", lag1)
-mother = 'MORLET'
-
-# Wavelet transform:
-wave, period, scale, coi = wavelet(sst, dt, pad, dj, s0, j1, mother)
-power = (np.abs(wave)) ** 2  # compute wavelet power spectrum
-global_ws = (np.sum(power, axis=1) / n)  # time-average over all times
-frequency=1/period
-
-xlim = ([0,20])  # plotting range
-fig, plt3 = plt.subplots(figsize=(15,5))
-
-levels = [0, 4,20, 100, 200,300]
-# *** or use 'contour'
-CS = plt.contourf(time, frequency, power, len(levels))
-
-plt.xlabel('Time (seconds)')
-plt.ylabel('Frequency (Hz)')
-plt.title('Wavelet Power Spectrum')
-plt.xlim(xlim[:])
-#plt3.set_yscale('log', base=2, subs=None)
-plt.ylim([np.min(frequency), np.max(frequency)])
-plt.ylim([0, 300])
-ax = plt.gca().yaxis
-ax.set_major_formatter(ticker.ScalarFormatter())
-#plt3.ticklabel_format(axis='y', style='plain')
-#plt3.invert_yaxis()
-# set up the size and location of the colorbar
-position=fig.add_axes([0.2,0.01,0.4,0.02])
-plt.colorbar(CS, cax=position, orientation='horizontal', fraction=0.05, pad=0.5)
-plt.subplots_adjust(right=0.7, top=0.9)
+signal=Trace_raw
+signal_smooth= OE.butter_filter(signal, btype='high', cutoff=3, fs=fs, order=1)
 
 
+fig, ax = plt.subplots(figsize=(8,2))
 
-
+sst,frequency,power,global_ws=OE.Calculate_wavelet(signal_smooth,lowpassCutoff=20,Fs=fs,scale=40)
+OE.plot_wavelet(ax,sst,frequency,power,Fs=fs,colorBar=False,logbase=False)
 

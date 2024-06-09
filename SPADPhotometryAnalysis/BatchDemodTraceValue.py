@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Mar 22 11:03:58 2024
-
 @author: Yifang
+This file is used for demodulate tieme-division recording performed by SPC imager in a batch
+You need to do BatchPreReadSPADfolder.py first to read all .bin files
 """
 import pandas as pd
 import matplotlib.pyplot as plt

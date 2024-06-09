@@ -109,7 +109,7 @@ def smooth_signal(x,window_len=10,window='flat'):
     if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
         raise(ValueError, "Window is one of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'")
 
-    s=np.r_[x[window_len-1:0:-1],x,x[-2:-window_len-1:-1]]
+    s=np.r_[x.loc[window_len-1:0:-1],x,x.loc[-2:-window_len-1:-1]]
 
     if window == 'flat': # Moving average
         w=np.ones(window_len,'d')
@@ -278,26 +278,37 @@ def Cut_photometry_data (data, CamSync):
 
 def read_cheeseboard_from_COLD (folder, COLD_filename):
     '''This code read the cheeseboard timing data from the COLD pipeline results'''
-    cheeseboard_data = pd.read_excel(folder+COLD_filename,index_col=False)
+    filename=os.path.join(folder,COLD_filename)
+    cheeseboard_data = pd.read_excel(filename,index_col=False)
     return cheeseboard_data
 
-def sync_photometry_Cam(zdFF,Cam_Sync,CamSync_LED,CamFs):
+def sync_photometry_Cam(zdFF,pyCam_Sync,CamSync_LED,CamFs):
     '''This code returns the synchronised z-score from the photometry recording, 
     and the sync start frame index/time of the LED recorded by the behavoral camera'''
-    zscore_sync=Cut_photometry_data (zdFF, Cam_Sync)
-    Sync_index_inCam = CamSync_LED.idxmax()
-    Sync_Start_time=Sync_index_inCam/CamFs
-    return zscore_sync,Sync_index_inCam,Sync_Start_time
+    first_sync_idx_py = pyCam_Sync.idxmax()
+    last_sync_idx_py = pyCam_Sync[::-1].idxmax()
+    sync_length_py=(last_sync_idx_py-first_sync_idx_py)/130
+    print ('Sync pulses in pyPhotometry Digital: ', sync_length_py)
+    zscore_sync=Cut_photometry_data (zdFF, pyCam_Sync)
+    first_sync_idx_inCam = CamSync_LED.idxmax()
+    last_sync_idx_inCam= CamSync_LED[::-1].idxmax()
+    sync_length_Cam=(last_sync_idx_inCam-first_sync_idx_inCam)/CamFs
+    print ('Sync pulses in LED recorded by Camera ',sync_length_Cam)
+    Sync_Start_time=first_sync_idx_inCam/CamFs
+    return zscore_sync,first_sync_idx_inCam,Sync_Start_time
 
 def adjust_time_to_photometry(cheeaseboard_session_data,trial_index,Sync_Start_time):
     '''This code adjust the cheeseboard timing from the COLD to sync with the photometry trace
     The returned time points are the time in the photometry trace'''
-    startingtime_COLD=cheeaseboard_session_data['startingtime'][trial_index]
-    well1time_COLD=cheeaseboard_session_data['well1time'][trial_index]
-    well2time_COLD=cheeaseboard_session_data['well2time'][trial_index]
-    entertime=startingtime_COLD*1.25-Sync_Start_time
-    well1time=(well1time_COLD+startingtime_COLD)*1.25-Sync_Start_time
-    well2time=(well2time_COLD++startingtime_COLD)*1.25-Sync_Start_time
+    startingtime_COLD=cheeaseboard_session_data['startingtime_s'][trial_index]
+    well1time_COLD=cheeaseboard_session_data['well1time_s'][trial_index]
+    well2time_COLD=cheeaseboard_session_data['well2time_s'][trial_index]
+    entertime=startingtime_COLD-Sync_Start_time
+    well1time=(well1time_COLD+startingtime_COLD)-Sync_Start_time
+    well2time=(well2time_COLD+startingtime_COLD)-Sync_Start_time
+    print ('startingtime_py', entertime)
+    print ('well1time_py', well1time)
+    print ('well2time_py', well2time)
     return entertime, well1time, well2time
 
 def PETH_plot_zscore(ax, zscore_sync,centre_time, half_timewindow, fs,color,Label='zscore'):
@@ -378,16 +389,22 @@ def read_all_photometry_files(folder_path, py_target_string,sync_target_string,C
     photometry_df = pd.DataFrame([])
     for file in filtered_files:
         # Extract the last number from the file name
-        target_index = str(''.join(filter(str.isdigit, file)))[-1]
-        print(file+str(target_index))
+        last_underscore_index = file.rfind('_')
+        target_index_str = file[last_underscore_index + 1:file.rfind('.csv')]
+        target_index = int(target_index_str)
+        #target_index = str(''.join(filter(str.isdigit, file)))[-1]
+        print(file+target_index_str)
         # Read the CSV file with photometry read
         raw_signal,raw_reference,Cam_Sync=read_photometry_data (folder_path, file, readCamSync='True',plot=False,sampling_rate=130)
         zdFF = get_zdFF(raw_reference,raw_signal,smooth_win=10,remove=0,lambd=5e4,porder=1,itermax=50)
         filtered_files_sync = [file for file in files if sync_target_string in file]
         for Sync_file in filtered_files_sync:
-            last_number = str(''.join(filter(str.isdigit, Sync_file)))[-1]            
-            if last_number is target_index:
-                print(Sync_file+last_number)
+            syncfile_last_underscore_index = Sync_file.rfind('_')
+            syncfile_target_index_str = Sync_file[syncfile_last_underscore_index + 1:Sync_file.rfind('.csv')]
+            syncfile_target_index=int(syncfile_target_index_str)
+            #last_number = str(''.join(filter(str.isdigit, Sync_file)))[-1]            
+            if syncfile_target_index == target_index:
+                print(Sync_file+syncfile_target_index_str)
                 CamSync_LED=read_Bonsai_Sync (folder_path,Sync_file,plot=False)
                 zscore_sync,Sync_index_inCam,Sync_Start_time=sync_photometry_Cam(zdFF,Cam_Sync,CamSync_LED,CamFs=CamFs)
                 zscore_series=pd.Series(zscore_sync)
@@ -404,11 +421,11 @@ def read_all_photometry_files(folder_path, py_target_string,sync_target_string,C
                     # Both numbers are real, so find the larger one
                     real_well1time = np.minimum(well1time, well2time)
                     real_well2time=np.maximum(well1time, well2time)
-                photometry_df['pyData'+target_index]=zscore_series
-                photometry_df['SyncStartTimeInVideo'+target_index]=Sync_Start_time_series
-                photometry_df['entertime'+target_index]=pd.Series(entertime)
-                photometry_df['well1time'+target_index]=pd.Series(real_well1time)
-                photometry_df['well2time'+target_index]=pd.Series(real_well2time)
+                photometry_df['pyData'+target_index_str]=zscore_series
+                photometry_df['SyncStartTimeInVideo'+target_index_str]=Sync_Start_time_series
+                photometry_df['entertime'+target_index_str]=pd.Series(entertime)
+                photometry_df['well1time'+target_index_str]=pd.Series(real_well1time)
+                photometry_df['well2time'+target_index_str]=pd.Series(real_well2time)
     return photometry_df
 
 def Plot_multiple_PETH(df_py_cheese,half_timewindow,fs=130, animalID='(Mouse 100)'):
@@ -502,8 +519,8 @@ def Plot_multiple_PETH_different_window(df_py_cheese,before_window,after_window,
     #time_in_seconds = np.arange(num_samples) / fs
     time_in_seconds = np.linspace(-before_window, after_window, num_samples)
     # Set the x-axis tick positions and labels
-    plt.figure(figsize=(10, 6))
-    plt.plot(time_in_seconds,main_signal, label='Mean Signal', color='blue')
+    plt.figure(figsize=(6, 6))
+    plt.plot(time_in_seconds,main_signal, label='Mean Signal', color='blue',linewidth=1)
     plt.fill_between(time_in_seconds, main_signal - std_deviation, main_signal + std_deviation, color='lightblue', alpha=0.5, label='Standard Deviation')
     plt.axvline(x=event_time, color='red', linestyle='--', label='Event Time')
     plt.xlabel('Time (second)')

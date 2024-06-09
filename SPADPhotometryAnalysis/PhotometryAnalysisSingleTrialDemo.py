@@ -15,9 +15,9 @@ from SPADPhotometryAnalysis import photometry_functions as fp
 import os
 # Folder with your files
 # Modify it depending on where your file is located
-folder ="F:/pyPhotometryJY/"
+folder ="G:/pyPhotometryJY/1746062_chemoInhibit_Rbp4_EC5a/"
 # File name
-file_name = '1125EC5CA1-2024-04-19-115526.csv'
+file_name = '1746062inh-2024-05-31-163322.csv'
 sampling_rate=130
 #%%
 '''Read csv file and calculate zscore of the fluorescent signal'''
@@ -47,8 +47,8 @@ def get_part_trace(data,start_time,end_time,fs):
     return sliced_data
 
 '''!!!Skip this part or comment these four lines if you dont want to cut your data'''
-start_time=0
-end_time=30
+start_time=50
+end_time=120
 
 raw_signal=get_part_trace(raw_signal,start_time=start_time,end_time=end_time,fs=sampling_rate)
 raw_reference=get_part_trace(raw_reference,start_time=start_time,end_time=end_time,fs=sampling_rate)
