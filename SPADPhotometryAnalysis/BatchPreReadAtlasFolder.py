@@ -92,7 +92,8 @@ def read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixe
     i=0
     for directory in directories:
         print("Folder:", directory)
-        Trace_raw,z_score=AtlasDecode.get_zscore_from_atlas_continuous (directory,hotpixel_path,xxrange= xxRange,yyrange= yyRange,fs=840)
+        Trace_raw,z_score=AtlasDecode.get_zscore_from_atlas_continuous (directory,hotpixel_path,
+                                                                        xxrange= xxRange,yyrange= yyRange,fs=840,photoncount_thre=500)
         
         i=i+1
         folder_name = f'{new_folder_name}{i}'
@@ -118,14 +119,16 @@ def main():
     
     'Reading SPAD binary data'
     hotpixel_path='F:/SPADdata/Altas_hotpixel.csv'
-    xxRange=[25, 80]
-    yyRange=[35, 90]
+    # xxrange = [50, 80]   
+    # yyrange = [50, 80]
     
-    atlas_parent_folder='F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240502_Day4/Atlas/'
-    day_parent_folder='F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240502_Day4/'
-    read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,xxRange,yyRange,new_folder_name='SyncRecording')
+    xxrange = [40, 90]
+    yyrange = [40, 90]
     
-
-
+    atlas_parent_folder='G:/YY/Atlas_small_size/data'
+    day_parent_folder='G:/YY/Atlas_small_size/'
+    read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,xxrange,yyrange,new_folder_name='SyncRecording')
+    
+    
 if __name__ == "__main__":
     main()

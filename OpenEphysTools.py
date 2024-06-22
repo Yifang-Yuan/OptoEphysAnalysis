@@ -492,7 +492,7 @@ def plot_trace_in_seconds(data,Fs,title='Trace in seconds'):
 def plot_trace_in_seconds_ax (ax,data, Fs, label='data',color='b',ylabel='z-score',xlabel=True):
     num_samples = len(data)
     time_seconds = np.arange(num_samples) / Fs
-    sns.lineplot(x=time_seconds, y=data.values, ax=ax, label=label, linewidth=1, color=color)
+    sns.lineplot(x=time_seconds, y=data.values, ax=ax, label=label, linewidth=2, color=color)
     ax.set_ylabel(ylabel)
     ax.spines['top'].set_visible(False)    # Hide the top spine
     ax.spines['right'].set_visible(False)  # Hide the right spine
@@ -504,7 +504,7 @@ def plot_trace_in_seconds_ax (ax,data, Fs, label='data',color='b',ylabel='z-scor
         ax.set_xlabel('')  # Hide x-axis label
         ax.spines['bottom'].set_visible(False)  # Show the bottom spine
     ax.set_xlim(time_seconds.min(), time_seconds.max())  # Set x-limits
-    ax.legend(loc='upper right')
+    ax.legend(loc='lower right')
     return ax
 
 def plot_timedelta_trace_in_seconds (data,ax,label='data',color='b',ylabel='z-score',xlabel=True):
@@ -644,7 +644,7 @@ def plot_wavelet(ax,sst,frequency,power,Fs=10000,colorBar=False,logbase=False):
     CS = ax.contourf(time, frequency, power, level)
     #ax.set_xlabel('Time (seconds)')
     ax.set_ylabel('Frequency (Hz)')
-    ax.set_title('Wavelet Power Spectrum')
+    #ax.set_title('Wavelet Power Spectrum')
     #ax.set_xlim(xlim[:])
     if logbase:
         ax.set_yscale('log', base=2, subs=None)
@@ -780,23 +780,25 @@ def plot_wavelet_feature_ripple(sst,frequency,power,global_ws,time,sst_filtered)
         plt.show()
         return -1
     
-def plot_ripple_overlay(ax, sst, SPAD_ep, frequency, power, time, sst_filtered, title='Wavelet Power Spectrum',plotLFP=True,plotSPAD=False,plotRipple=False):
-    levels = 6
-    CS = ax.contourf(time, frequency, power, levels)
-    ax.set_xlabel('Time (second)')
+def plot_ripple_overlay(ax, sst, SPAD_ep, frequency, power, time, sst_filtered, title='Wavelet Power Spectrum',plotLFP=True,plotSPAD=False,plotRipple=False,plotColorMap=True):
+    time=time*1000
+    if plotColorMap:
+        levels = 6
+        CS = ax.contourf(time, frequency, power, levels)
+        cbar = plt.colorbar(CS, ax=ax)
+        cbar.set_label('Power/Frequency (mV2/Hz)')    
+    ax.set_xlabel('Time (ms)')
     ax.set_ylabel('Frequency (Hz)')
     ax.set_title(title)
-    cbar = plt.colorbar(CS, ax=ax)
-    cbar.set_label('Power/Frequency (mV2/Hz)')    
     normalized_sst = (sst - sst.min()) / (sst.max() - sst.min()) * (frequency.max() - frequency.min()) + frequency.min()
     normalized_sst_filtered = (sst_filtered - sst_filtered.min()) / (sst_filtered.max() - sst_filtered.min()) * (frequency.max() - frequency.min()) + frequency.min()
     normalized_SPAD_ep=(SPAD_ep - SPAD_ep.min()) / (SPAD_ep.max() - SPAD_ep.min()) * (frequency.max() - frequency.min()) + frequency.min()
     if plotLFP:
-        ax.plot(time, normalized_sst, 'white')
+        ax.plot(time, normalized_sst, 'k',linewidth=2.5)
     if plotSPAD:
-        ax.plot(time, normalized_SPAD_ep, 'lime')
+        ax.plot(time, normalized_SPAD_ep, 'lime',linewidth=2.5)
     if plotRipple:
-        ax.plot(time, normalized_sst_filtered, 'k', linewidth=2)
+        ax.plot(time, normalized_sst_filtered, 'k', linewidth=2.5)
     return ax
 
 def plot_theta_overlay(ax, sst, SPAD_ep, frequency, power, time, sst_filtered, title='Wavelet Power Spectrum',plotLFP=True,plotSPAD=False,plotTheta=False):
@@ -809,6 +811,15 @@ def plot_theta_overlay(ax, sst, SPAD_ep, frequency, power, time, sst_filtered, t
     ax.set_ylim([np.min(frequency), y_max])
     cbar = plt.colorbar(CS, ax=ax)
     cbar.set_label('Power/Frequency (mV2/Hz)')    
+    
+
+    # Remove the plot frame
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+
+
     normalized_sst = (sst - sst.min()) / (sst.max() - sst.min()) * (y_max - frequency.min()) + frequency.min()
     normalized_sst_filtered = (sst_filtered - sst_filtered.min()) / (sst_filtered.max() - sst_filtered.min()) * (y_max - frequency.min()) + frequency.min()
     normalized_SPAD_ep=(SPAD_ep - SPAD_ep.min()) / (SPAD_ep.max() - SPAD_ep.min()) * (y_max - frequency.min()) + frequency.min()
@@ -855,51 +866,41 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
             cycle_data_values_lfp.append(cycle_lfp_np)
     cycle_data_values_zscore_np = np.vstack(cycle_data_values_zscore)
     cycle_data_values_lfp_np = np.vstack(cycle_data_values_lfp)
-
-    mean_z_score = np.mean(cycle_data_values_zscore_np, axis=0)
-    std_z_score = np.std(cycle_data_values_zscore_np, axis=0)
-    mean_lfp = np.mean(cycle_data_values_lfp_np, axis=0)
-    std_lfp = np.std(cycle_data_values_lfp_np, axis=0)
-    x = np.linspace(-half_window, half_window, len(mean_z_score))
-    if plotmode=='one':
-        # Create a figure with two y-axes
-        fig, ax1 = plt.subplots(figsize=(10, 5))
     
-        # Plot mean z-score on the first y-axis
-        ax1.plot(x, mean_z_score, color='g', label='Mean z-score')
-        ax1.fill_between(x, mean_z_score - std_z_score, mean_z_score + std_z_score, color='gray', alpha=0.3,
-                         label='Standard Deviation')
-        ax1.axvline(x=0, color='green')
-        ax1.set_xlabel('Time (seconds)')
-        ax1.set_ylabel('z-score', color='g')
-        ax1.set_title('Mean z-score and Mean LFP during a theta cycle')
-        ax1.legend(loc='upper left')
-        #ax1.grid()    
-        # Create a second y-axis and plot mean LFP on it
-        ax2 = ax1.twinx()
-        ax2.plot(x, mean_lfp, color='b', label='Mean LFP')
-        ax2.fill_between(x, mean_lfp - std_lfp, mean_lfp + std_lfp, color='lightblue', alpha=0.3,
-                         label='Standard Deviation')
-        ax2.set_ylabel('Amplitude (uV)', color='b')
-        ax2.legend(loc='upper right')
-        plt.show()
+    mean_zscore,std_zscore, CI_zscore=calculateStatisticNumpy (cycle_data_values_zscore_np)
+    mean_lfp,std_lfp, CI_LFP=calculateStatisticNumpy (cycle_data_values_lfp_np)
+
+    x = np.linspace(-half_window, half_window, len(mean_zscore))
     if plotmode=='two':
-        fig, (ax1,ax2) = plt.subplots(2,1,figsize=(10, 10))
+        fig, (ax1,ax2) = plt.subplots(2,1,figsize=(8, 8))
         # Plot mean z-score on the first y-axis
-        ax1.plot(x, mean_z_score, color='g', label='Mean z-score')
-        ax1.fill_between(x, mean_z_score - std_z_score, mean_z_score + std_z_score, color='gray', alpha=0.3,                         label='Standard Deviation')
-        ax1.axvline(x=0, color='green')
-        ax1.set_xlabel('Time (seconds)')
-        ax1.set_ylabel('z-score', color='g')
+        ax1.plot(x, mean_zscore, color=sns.color_palette("husl", 8)[3], label='Mean zscore')
+        ax1.fill_between(x, CI_zscore[0], CI_zscore[1], color=sns.color_palette("husl", 8)[3], alpha=0.3,label='0.95 CI')
+        ax1.axvline(x=0, color='k',linestyle='--')
+        
+        ax1.set_ylabel('Zscore', color='k',fontsize=16)
         ax1.set_title('Mean z-score and Mean LFP during a theta cycle')
-        ax1.legend(loc='upper left')
+        ax1.legend(loc='upper right',frameon=False)
         # Create a second y-axis and plot mean LFP on it
-        ax2.plot(x, mean_lfp, color='b', label='Mean LFP')
-        ax2.fill_between(x, mean_lfp - std_lfp, mean_lfp + std_lfp, color='lightblue', alpha=0.3,
-                         label='Standard Deviation')
-        ax2.set_ylabel('Amplitude (uV)', color='b')
-        ax2.axvline(x=0, color='green')
-        ax2.legend(loc='upper right')
+        ax2.plot(x, mean_lfp, color=sns.color_palette("husl", 8)[5], label='Mean LFP')
+        ax2.fill_between(x, CI_LFP[0], CI_LFP[1], color=sns.color_palette("husl", 8)[5], alpha=0.3,label='0.95 CI')
+        ax2.set_ylabel('Amplitude (μV)', color='k',fontsize=16)
+        ax2.axvline(x=0, color='k',linestyle='--')
+        ax2.legend(loc='upper right',frameon=False)
+        ax2.set_xlabel('Time (seconds)',fontsize=14)
+        # ax1.legend().set_visible(False)
+        # ax2.legend().set_visible(False)
+        ax1.spines['top'].set_visible(False)
+        ax1.spines['right'].set_visible(False)
+        #ax1.spines['bottom'].set_visible(False)
+        #ax1.spines['left'].set_visible(False)
+        ax2.spines['top'].set_visible(False)
+        ax2.spines['right'].set_visible(False)
+        ax1.set_xlim([-0.15,0.15])
+        ax2.set_xlim([-0.15,0.15])
+        #ax2.spines['bottom'].set_visible(False)
+        #ax2.spines['left'].set_visible(False)
+        
         plt.show()
     return -1
 

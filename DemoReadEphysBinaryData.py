@@ -30,7 +30,7 @@ def plotSingleTrace (ax, signal, SamplingRate=30000,color='tab:blue'):
     ax.set_xlabel("seconds",fontsize=10)
     return ax 
 #%%
-directory = "F:/2024MScR_NORtask/1748725_mdlx-G8f-py/Day 1/Ephys/2024-04-08_12-55-15/"
+directory = "G:/YY/New/Jedi_test/2024-05-24_12-56-22/"
 #directory = "G:/SPAD/SPADData/20230409_OEC_Ephys/2023-04-05_17-02-58_9820-noisy" #Indeed noisy
 #directory = "G:/SPAD/SPADData/20230409_OEC_Ephys/2023-04-05_15-25-32_9819"
 session = Session(directory)
@@ -60,7 +60,7 @@ Sync4=samples[:,19]
 #%% 
 '''begin:232585; end:3251250'''
 fig, ax = plt.subplots(figsize=(12, 2.5))
-ax.plot(Sync1[3251970:3252000],linewidth=1,alpha=0.8)
+ax.plot(LFP2[1528000:1535000],linewidth=1,alpha=0.8)
 ax.set_xlabel("Open Ephys sample numbers",fontsize=10)
 #%%
 LFP_SPADsync=LFP4[232585:3251250]

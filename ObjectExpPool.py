@@ -52,9 +52,9 @@ def SeparateTrialsByStateAndSave (parent_folder,LFP_channel='LFP_1'):
     for DayRecordingFolder in sorted_folders:
     # for i in range(2):
     #     if i==0:
-    #         DayRecordingFolder='20240213_Day2'
+    #         DayRecordingFolder='20240430_Day2'
     #     if i==1:
-    #         DayRecordingFolder='20240216_Day5'
+    #         DayRecordingFolder='20240501_Day3'
             
         print("Day folder:", DayRecordingFolder)
         day_folder_path= os.path.join(parent_folder, DayRecordingFolder)
@@ -338,17 +338,17 @@ def Ripple_Stat_by_State_Bar_plot(parent_folder,LFP_channel,filterOF=True):
     
     return ripple_freq,ripple_numbers,ripple_std_values
 #%%
-parent_folder='F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/'
-SeparateTrialsByStateAndSave (parent_folder,LFP_channel='LFP_2')
+parent_folder='F:/2024MScR_NORtask/1765508_Jedi2p_Atlas/'
+SeparateTrialsByStateAndSave (parent_folder,LFP_channel='LFP_1')
 #%%
-filename = os.path.join(parent_folder, 'ripple_triggered_optical_peak_time_'+'LFP_2'+'.pkl')
+filename = os.path.join(parent_folder, 'ripple_triggered_optical_peak_time_'+'LFP_1'+'.pkl')
 time_dict=load_pickle_files (filename)
 
-PoolDatabyStateAndPlot (parent_folder, 'LFP_2', mode='ripple')
+PoolDatabyStateAndPlot (parent_folder, 'LFP_1', mode='ripple')
 #%%
-ripple_freq,ripple_numbers,ripple_std_values=Ripple_Stat_by_State_Bar_plot(parent_folder,'LFP_2')
+ripple_freq,ripple_numbers,ripple_std_values=Ripple_Stat_by_State_Bar_plot(parent_folder,'LFP_1')
 #%%
-Compare_OpticalPeak_RipplePeak (parent_folder, 'LFP_2',side='after', halfwindow=0.1, mode='theta')
+Compare_OpticalPeak_RipplePeak (parent_folder, 'LFP_1',side='after', halfwindow=0.1, mode='ripple')
 
 
 
