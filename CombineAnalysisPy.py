@@ -10,12 +10,18 @@ from SyncOECPySessionClass import SyncOEpyPhotometrySession
 import OpenEphysTools as OE
 import numpy as np
 #%%
-dpath='G:/YY/New/1756735_PVCre_Jedi2p_Compare/Day2Atlas_Sleep/'
+'''
+recordingMode: use py, Atlas, SPAD for different systems
+'''
+dpath='G:/YY/2024MScR_NORtask/1756735_PVCre_Jedi2p_Compare/Day1Atlas_OF/'
+#dpath='F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day5/'
+#dpath='G:/YY/New/1756735_PVCre_Jedi2p_Compare/Day2Atlas_OF/'
 #dpath="F:/2024MScR_NORtask/1732333_pyPhotometry/20240214_Day3/" 
-recordingName='SavedPostSleepTrials'
+recordingName='SavedOpenFieldTrials'
 #dpath="G:/SPAD/SPADData/20230722_SPADOE/SyncRecording0/"
-Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,recordingMode='py',indicator='GEVI') 
+Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,recordingMode='Atlas',indicator='GEVI') 
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
+#%%
 LFP_channel='LFP_2'
 #%%
 # ThetaDeltaRatio=Recording1.Label_REM_sleep (LFP_channel)
@@ -26,25 +32,25 @@ LFP_channel='LFP_2'
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined as theta period.
 nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=1,High_thres=8,save=False,plot_theta=True)
+theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.1,High_thres=8,save=False,plot_theta=True)
 #%% Detect ripple event
-'''RIPPLE plot
+'''Gamma plot
 For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
-rip_ep,rip_tsd=Recording1.pynappleAnalysis_plot (lfp_channel=LFP_channel,ep_start=0,ep_end=30,
-                                                                          Low_thres=1,High_thres=5,plot_segment=True,
-                                                                          plot_ripple_ep=True,excludeTheta=True)
+rip_ep,rip_tsd=Recording1.pynappleGammaAnalysis (lfp_channel=LFP_channel,ep_start=0,ep_end=10,
+                                                                          Low_thres=0,High_thres=8,plot_segment=True,
+                                                                          plot_ripple_ep=True,excludeTheta=False,excludeNonTheta=True)
 #%% Detect ripple event
 '''RIPPLE DETECTION
 For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
 rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,ep_start=0,ep_end=25,
-                                                                          Low_thres=2,High_thres=10,plot_segment=True,
-                                                                          plot_ripple_ep=False,excludeTheta=True)
-#time_duration=transient_trace.index[-1].total_seconds()
+                                                                          Low_thres=1,High_thres=10,plot_segment=True,
+                                                                          plot_ripple_ep=True,excludeTheta=True)
+#%%
 #%% Detect theta event
 '''THETA PEAK DETECTION
 For a rigid threshold to get larger amplitude theta events: Low_thres=1, for more ripple events, Low_thres=0.5'''
 theta_ep,theta_tsd=Recording1.pynappleThetaAnalysis (lfp_channel=LFP_channel,ep_start=0,ep_end=30,
-                                                                         Low_thres=0.5,High_thres=5,plot_segment=True,plot_ripple_ep=True)
+                                                                         Low_thres=1,High_thres=5,plot_segment=True,plot_ripple_ep=True)
 #time_duration=transient_trace.index[-1].total_seconds()
 #%%
 '''To plot the feature of a part of the signal'''

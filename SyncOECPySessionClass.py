@@ -643,8 +643,8 @@ class SyncOEpyPhotometrySession:
         lfp_data=data_segment[lfp_channel]
         spad_data=data_segment['zscore_raw']
         lfp_data=lfp_data/1000 #change the unit from uV to mV
-        SPAD_cutoff=100
-        SPAD_smooth_np = OE.smooth_signal(spad_data,Fs=self.fs,cutoff=SPAD_cutoff)
+        SPAD_cutoff=200
+        SPAD_smooth_np = OE.smooth_signal(spad_data,Fs=self.fs,cutoff=100)
         'To align LFP and SPAD raw data to pynapple format'
         LFP=nap.Tsd(t = timestamps, d = lfp_data.to_numpy(), time_units = 's')
         SPAD=nap.Tsd(t = timestamps, d = spad_data.to_numpy(), time_units = 's')
@@ -716,6 +716,8 @@ class SyncOEpyPhotometrySession:
             
         self.ripple_std_values=[]
         self.ripple_duration_values=[]
+        self.ripple_optic_power_values=[]
+        self.ripple_LFP_power_values=[]
 
         event_peak_times=rip_tsd.index.to_numpy()
         for i in range(len(rip_ep)):
@@ -723,17 +725,17 @@ class SyncOEpyPhotometrySession:
             ripple_duration=((rip_ep.iloc[[i]]['end']-rip_ep.iloc[[i]]['start'])*1000)[0]  #second to ms
             self.ripple_std_values.append(ripple_std)
             self.ripple_duration_values.append(ripple_duration)
-            if event_peak_times[i]-timestamps[0]>0.25 and timestamps[-1]-event_peak_times[i]>0.25:
+            if event_peak_times[i]-timestamps[0]>0.1 and timestamps[-1]-event_peak_times[i]>0.1:
                 if plot_ripple_ep:
-                    start_time=event_peak_times[i]-0.25
-                    end_time=event_peak_times[i]+0.25
+                    start_time=event_peak_times[i]-0.1
+                    end_time=event_peak_times[i]+0.1
                     rip_long_ep = nap.IntervalSet(start = start_time, end = end_time, time_units = 's') 
                     LFP_ep=LFP.restrict(rip_long_ep)
                     SPAD_smooth_ep=SPAD_smooth.restrict(rip_long_ep)
                     ripple_band_filtered_ep=ripple_band_filtered.restrict(rip_long_ep)   
                     SPAD_ripple_band_filtered_ep=SPAD_ripple_band_filtered.restrict(rip_long_ep)
-                    start_time1=event_peak_times[i]-0.05
-                    end_time1=event_peak_times[i]+0.05
+                    start_time1=event_peak_times[i]-0.1
+                    end_time1=event_peak_times[i]+0.1
                     rip_short_ep = nap.IntervalSet(start = start_time1, end = end_time1, time_units = 's') 
                     LFP_short_ep=LFP.restrict(rip_short_ep)
                     SPAD_short_ep=SPAD.restrict(rip_short_ep)
@@ -750,21 +752,23 @@ class SyncOEpyPhotometrySession:
                     OE.plot_ripple_overlay (ax[0],LFP_ep,SPAD_smooth_ep,frequency_spad,power_spad,time,ripple_band_filtered_ep,plot_title,plotLFP=False,plotSPAD=True,plotRipple=False)                                   
                     #Set the title of ripple feature
                     plot_title = "Local Field Potential with Spectrogram" 
-                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_ep,lowpassCutoff=500,Fs=self.fs,scale=40) 
-                    OE.plot_ripple_overlay (ax[1],LFP_ep,SPAD_smooth_ep,frequency,power,time,ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=False)
+                    sst_ep,frequency,power_LFP,global_ws=OE.Calculate_wavelet(ripple_band_filtered_ep,lowpassCutoff=400,Fs=self.fs,scale=40) 
+                    OE.plot_ripple_overlay (ax[1],LFP_ep,SPAD_smooth_ep,frequency,power_LFP,time,ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=False)
                     
-                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_short_ep,lowpassCutoff=500,Fs=self.fs,scale=40)                
+                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_short_ep,lowpassCutoff=400,Fs=self.fs,scale=40)                
                     time = np.arange(-len(sst_ep)/2,len(sst_ep)/2) *(1/self.fs)
                     #Set the title of ripple feature
                     plot_title = f"Ripple Peak std:{ripple_std:.2f}, Ripple Duration:{ripple_duration:.2f} ms" 
                     #OE.plot_ripple_overlay (ax[2],ripple_band_filtered_ep,SPAD_ep,frequency,power,time,SPAD_ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=True)
                     OE.plot_ripple_overlay (ax[2],LFP_short_ep,SPAD_short_ep,frequency,power,time,ripple_band_filtered_short_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=True)         
-                    ax[0].axvline(0, color='white',linewidth=2)
-                    ax[1].axvline(0, color='white',linewidth=2)
-                    ax[2].axvline(0, color='white',linewidth=2) 
+                    ax[0].axvline(0, color='white',linewidth=1)
+                    ax[1].axvline(0, color='white',linewidth=1)
+                    ax[2].axvline(0, color='white',linewidth=1) 
                     plt.tight_layout() 
                     figName=self.recordingName+'_Ripple'+str(i)+'.png'
                     fig.savefig(os.path.join(save_ripple_path,figName))
+                    self.ripple_optic_power_values.append(power_spad)
+                    self.ripple_LFP_power_values.append(power_LFP)
 
         if len(self.ripple_std_values) !=0:
             self.ripple_std_mean= sum(self.ripple_std_values) / len(self.ripple_std_values)
@@ -775,10 +779,38 @@ class SyncOEpyPhotometrySession:
         if len(self.rip_tsd)>2:
             self.Oscillation_triggered_Optical_transient (mode='ripple',lfp_channel=lfp_channel, half_window=0.2, plot_single_trace=True,plotShade='CI')
             self.Oscillation_optical_correlation (mode='ripple',lfp_channel=lfp_channel, half_window=0.2)
+        if plot_ripple_ep:
+            'plot averaged power spectrum'
+            shapes = [arr.shape for arr in self.ripple_LFP_power_values]
+            print(f"Shapes of arrays: {shapes}")
+            # Ensure all arrays have the same shape
+            expected_shape = (29, 2001)
+            for i, arr in enumerate(self.ripple_LFP_power_values):
+                if arr.shape != expected_shape:
+                    print(f"Array at index {i} has shape {arr.shape}, resizing to {expected_shape}")
+                    self.ripple_LFP_power_values[i] = np.resize(arr, expected_shape)
+            # Calculate the average of the arrays
+            average_LFP_powerSpectrum = np.mean(self.ripple_LFP_power_values, axis=0)
+            fig, ax = plt.subplots(1, 1, figsize=(6, 3))
+            OE.plot_power_spectrum (ax,time,frequency, average_LFP_powerSpectrum,colorbar=True)
+            
+            shapes = [arr.shape for arr in self.ripple_optic_power_values]
+            print(f"Shapes of arrays: {shapes}")
+            # Ensure all arrays have the same shape
+            expected_shape = (29, 2001)
+            for i, arr in enumerate(self.ripple_optic_power_values):
+                if arr.shape != expected_shape:
+                    print(f"Array at index {i} has shape {arr.shape}, resizing to {expected_shape}")
+                    self.ripple_optic_power_values[i] = np.resize(arr, expected_shape)
+            # Calculate the average of the arrays
+            average_optic_powerSpectrum = np.mean(self.ripple_optic_power_values, axis=0)
+            fig, ax = plt.subplots(1, 1, figsize=(6, 3))
+            OE.plot_power_spectrum (ax,time,frequency, average_optic_powerSpectrum,colorbar=True)
         return rip_ep,rip_tsd
     
-    def pynappleAnalysis_plot (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,
-                          Low_thres=1,High_thres=10,plot_segment=False,plot_ripple_ep=True,excludeTheta=True,excludeREM=False):
+    def pynappleGammaAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,
+                          Low_thres=1,High_thres=10,plot_segment=False,plot_ripple_ep=True,excludeTheta=True,
+                          excludeREM=False,excludeNonTheta=False):
         'This is the LFP data that need to be saved for the sync ananlysis'
         data_segment=self.Ephys_tracking_spad_aligned
         #data_segment=self.non_theta_part
@@ -789,17 +821,18 @@ class SyncOEpyPhotometrySession:
         lfp_data=data_segment[lfp_channel]
         spad_data=data_segment['zscore_raw']
         lfp_data=lfp_data/1000 #change the unit from uV to mV
-        SPAD_cutoff=200
+        SPAD_cutoff=100
         SPAD_smooth_np = OE.smooth_signal(spad_data,Fs=self.fs,cutoff=SPAD_cutoff)
         'To align LFP and SPAD raw data to pynapple format'
         LFP=nap.Tsd(t = timestamps, d = lfp_data.to_numpy(), time_units = 's')
         SPAD=nap.Tsd(t = timestamps, d = spad_data.to_numpy(), time_units = 's')
         SPAD_smooth=nap.Tsd(t = timestamps, d = SPAD_smooth_np, time_units = 's')  
         'Calculate theta band for optical signal'
-        #SPAD_ripple_band_filtered,nSS_spad,nSS3_spad,rip_ep_spad,rip_tsd_spad = OE.getRippleEvents (SPAD_smooth,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
         'To detect ripple'
-        ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd = OE.getRippleEvents (LFP,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
-        SPAD_ripple_band_filtered = pyna.eeg_processing.bandpass_filter(SPAD, 130, 170, self.fs)
+        ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd = OE.getRippleEvents (LFP,self.fs,windowlen=1000,
+                                                                           Low_thres=Low_thres,High_thres=High_thres,
+                                                                           low_freq=50,high_freq=150)
+        SPAD_ripple_band_filtered = pyna.eeg_processing.bandpass_filter(SPAD, 50, 150, self.fs)
         # SPAD_ripple_band_filtered = OE.band_pass_filter(SPAD,120,300,self.fs)
         # SPAD_ripple_band_filtered=nap.Tsd(t = timestamps, d = SPAD_ripple_band_filtered, time_units = 's')
         
@@ -816,6 +849,22 @@ class SyncOEpyPhotometrySession:
                     drop_index_ep.append(i)
                     drop_index_std.append(ripple_std_time)
                     print ('Romeve rip_ep near theta, peak time is --', ripple_std_time)    
+            rip_ep = rip_ep.drop(drop_index_ep)
+            rip_tsd = rip_tsd.drop(drop_index_std)
+            
+        if excludeNonTheta:
+            'To remove detected ripples if they are during theta----meaning they are fast gamma'
+            drop_index_ep=[]
+            drop_index_std=[]
+            for i in range (len(rip_ep)):
+                ripple_std_time=rip_tsd.index[i]
+                #close_timestamps_mask = np.abs(data_segment['timestamps'] -data_segment['timestamps'][0]- ripple_std_time) <= 0.01     
+                close_timestamps_mask = np.abs(data_segment['timestamps'] - ripple_std_time) <= 0.01      
+                close_timestamps_df = data_segment[close_timestamps_mask]
+                if 'nontheta' in close_timestamps_df['BrainState'].values:
+                    drop_index_ep.append(i)
+                    drop_index_std.append(ripple_std_time)
+                    print ('Romeve rip_ep near non-theta, peak time is --', ripple_std_time)    
             rip_ep = rip_ep.drop(drop_index_ep)
             rip_tsd = rip_tsd.drop(drop_index_std)
             
@@ -869,8 +918,8 @@ class SyncOEpyPhotometrySession:
             ripple_duration=((rip_ep.iloc[[i]]['end']-rip_ep.iloc[[i]]['start'])*1000)[0]  #second to ms
             self.ripple_std_values.append(ripple_std)
             self.ripple_duration_values.append(ripple_duration)
-            half_window_long=0.1
-            half_window_short=0.1
+            half_window_long=0.5
+            half_window_short=0.5
             if event_peak_times[i]-timestamps[0]>half_window_long and timestamps[-1]-event_peak_times[i]>half_window_long:
                 if plot_ripple_ep:
                     start_time=event_peak_times[i]-half_window_long
@@ -890,30 +939,29 @@ class SyncOEpyPhotometrySession:
                     save_ripple_path = os.path.join(self.savepath, self.recordingName+'_Ripples_'+lfp_channel)
                     if not os.path.exists(save_ripple_path):
                         os.makedirs(save_ripple_path)
-                    fig, ax = plt.subplots(3, 1, figsize=(6, 9))
+                    fig, ax = plt.subplots(6, 1, figsize=(6, 12))
                     #Set the title of ripple feature
-                    plot_title = "Optical signal triggerred by ripple" 
-                    
-                    sst_ep,frequency_spad,power_spad,global_ws=OE.Calculate_wavelet(SPAD_ripple_band_filtered_ep,lowpassCutoff=SPAD_cutoff,Fs=self.fs,scale=40)
+                    plot_title = "Optical signal triggerred by gamma" 
+                    sst_ep,frequency_spad,power_spad,global_ws=OE.Calculate_wavelet(SPAD_ripple_band_filtered_ep,lowpassCutoff=150,Fs=self.fs,scale=40)
                     time = np.arange(-len(sst_ep)/2,len(sst_ep)/2) *(1/self.fs)
-                    OE.plot_ripple_overlay (ax[0],LFP_ep,SPAD_smooth_ep,frequency_spad,power_spad,time,
-                                            ripple_band_filtered_ep,plot_title,plotLFP=False,plotSPAD=True,plotRipple=False)                                   
+                    OE.plot_ripple_trace(ax[0],time,SPAD_smooth_ep,color='green')
+                    OE.plot_power_spectrum (ax[1],time,frequency_spad, power_spad,colorbar=False)                                   
                     #Set the title of ripple feature
                     plot_title = "Local Field Potential with Spectrogram" 
-                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_ep,lowpassCutoff=500,Fs=self.fs,scale=40) 
-                    OE.plot_ripple_overlay (ax[1],LFP_ep,SPAD_smooth_ep,frequency,power,time,
-                                            ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=False)
+                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_ep,lowpassCutoff=150,Fs=self.fs,scale=40) 
+                    OE.plot_ripple_trace(ax[2],time,LFP_ep,color='black')
+                    OE.plot_power_spectrum (ax[3],time,frequency, power,colorbar=False)  
                     
-                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_short_ep,lowpassCutoff=500,Fs=self.fs,scale=40)                
-                    time = np.arange(-len(sst_ep)/2,len(sst_ep)/2) *(1/self.fs)
+                    # sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_short_ep,lowpassCutoff=500,Fs=self.fs,scale=40)                
+                    # time = np.arange(-len(sst_ep)/2,len(sst_ep)/2) *(1/self.fs)
                     #Set the title of ripple feature
-                    plot_title = f"Ripple Peak std:{ripple_std:.2f}, Ripple Duration:{ripple_duration:.2f} ms" 
-                    #OE.plot_ripple_overlay (ax[2],ripple_band_filtered_ep,SPAD_ep,frequency,power,time,SPAD_ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=True)
-                    OE.plot_ripple_overlay (ax[2],ripple_band_filtered_short_ep,SPAD_ripple_band_filtered_short_ep,
-                                            frequency,power,time,ripple_band_filtered_short_ep,plot_title,plotLFP=True,plotSPAD=True,plotRipple=False,plotColorMap=False)         
-                    ax[0].axvline(0, color='white',linewidth=2)
-                    ax[1].axvline(0, color='white',linewidth=2)
-                    ax[2].axvline(0, color='white',linewidth=2) 
+                    plot_title = f"Filtered Gamma Band" 
+                    OE.plot_ripple_trace(ax[4],time,SPAD_ripple_band_filtered_short_ep,color='green')
+                    OE.plot_ripple_trace(ax[5],time,ripple_band_filtered_short_ep,color='black')
+                 
+                    # ax[0].axvline(0, color='white',linewidth=2)
+                    # ax[1].axvline(0, color='white',linewidth=2)
+                    # ax[2].axvline(0, color='white',linewidth=2) 
                     plt.tight_layout() 
                     figName=self.recordingName+'_Ripple'+str(i)+'.png'
                     fig.savefig(os.path.join(save_ripple_path,figName))

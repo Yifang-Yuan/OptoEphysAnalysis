@@ -15,29 +15,28 @@ from SPADPhotometryAnalysis import photometry_functions as fp
 import os
 # Folder with your files
 # Modify it depending on where your file is located
-folder ="G:/pyPhotometryJY/1746062_chemoInhibit_Rbp4_EC5a/"
+folder ="G:/pyPhotometry_data/1746062_chemoInhibit_Rbp4_EC5a/"
 # File name
 file_name = '1746062inh-2024-05-31-163322.csv'
 sampling_rate=130
-#%%
 '''Read csv file and calculate zscore of the fluorescent signal'''
 raw_signal,raw_reference,Cam_Sync=fp.read_photometry_data (folder, file_name, readCamSync=True,plot=True)
 plt.tight_layout()
 #%%
 '''Get zdFF directly'''
 zdFF = fp.get_zdFF(raw_reference,raw_signal,smooth_win=2,remove=0,lambd=5e4,porder=1,itermax=50)
-# fig = plt.figure(figsize=(16, 5))
-# ax1 = fig.add_subplot(111)
-# ax1 = fp.plotSingleTrace (ax1, zdFF, SamplingRate=sampling_rate,color='black',Label='zscore_signal')
+fig = plt.figure(figsize=(16, 5))
+ax1 = fig.add_subplot(111)
+ax1 = fp.plotSingleTrace (ax1, zdFF, SamplingRate=sampling_rate,color='black',Label='zscore_signal')
 '''Save signal'''
-# greenfname = os.path.join(folder, "Green_traceAll.csv")
-# np.savetxt(greenfname, raw_signal, delimiter=",")
-# redfname = os.path.join(folder, "Red_traceAll.csv")
-# np.savetxt(redfname, raw_reference, delimiter=",")
-# zscorefname = os.path.join(folder, "Zscore_traceAll.csv")
-# np.savetxt(zscorefname, zdFF, delimiter=",")
-# CamSyncfname = os.path.join(folder, "CamSync_photometry.csv")
-# np.savetxt(CamSyncfname, Cam_Sync, fmt='%d',delimiter=",")
+greenfname = os.path.join(folder, "Green_traceAll.csv")
+np.savetxt(greenfname, raw_signal, delimiter=",")
+redfname = os.path.join(folder, "Red_traceAll.csv")
+np.savetxt(redfname, raw_reference, delimiter=",")
+zscorefname = os.path.join(folder, "Zscore_traceAll.csv")
+np.savetxt(zscorefname, zdFF, delimiter=",")
+CamSyncfname = os.path.join(folder, "CamSync_photometry.csv")
+np.savetxt(CamSyncfname, Cam_Sync, fmt='%d',delimiter=",")
 #%%
 '''Define the segments you want to zoom in, in seconds'''
 def get_part_trace(data,start_time,end_time,fs):

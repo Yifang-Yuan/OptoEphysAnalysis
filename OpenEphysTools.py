@@ -259,8 +259,8 @@ def save_open_ephys_data (dpath, data):
     data.to_pickle(filepath)
     return -1
 
-def getRippleEvents (lfp_raw,Fs,windowlen=200,Low_thres=1,High_thres=10):
-    ripple_band_filtered = pyna.eeg_processing.bandpass_filter(lfp_raw, 130, 250, Fs)
+def getRippleEvents (lfp_raw,Fs,windowlen=200,Low_thres=1,High_thres=10,low_freq=130,high_freq=250):
+    ripple_band_filtered = pyna.eeg_processing.bandpass_filter(lfp_raw, low_freq, high_freq, Fs) #for ripple:130Hz-250Hz
     squared_signal = np.square(ripple_band_filtered.values)
     window = np.ones(windowlen)/windowlen
     nSS = filtfilt(window, 1, squared_signal)
@@ -273,7 +273,7 @@ def getRippleEvents (lfp_raw,Fs,windowlen=200,Low_thres=1,High_thres=10):
     nSS3 = nSS2.threshold(High_thres, method='below')
     # Round 2 : Excluding ripples whose length < minRipLen and greater than Maximum Ripple Length
     minRipLen = 10 # ms
-    maxRipLen = 200 # ms    
+    maxRipLen = 500 # ms   //200ms 
     rip_ep = nSS3.time_support
     rip_ep = rip_ep.drop_short_intervals(minRipLen, time_units = 'ms')
     rip_ep = rip_ep.drop_long_intervals(maxRipLen, time_units = 'ms')
@@ -779,6 +779,23 @@ def plot_wavelet_feature_ripple(sst,frequency,power,global_ws,time,sst_filtered)
 
         plt.show()
         return -1
+def plot_ripple_trace(ax,time,trace_ep,color='k'):
+    time=time*1000
+    ax.plot(time, trace_ep, color,linewidth=1)
+    #ax.set_xlabel('Time (ms)')
+    return -1
+
+def plot_power_spectrum (ax,time,frequency, power,colorbar=True):
+    time=time*1000
+    levels = 6
+    CS = ax.contourf(time, frequency, power, levels)
+    if colorbar:
+        cbar = plt.colorbar(CS, ax=ax)
+        cbar.set_label('Power/Frequency (mV2/Hz)')  
+    ax.set_xlabel('Time (ms)')
+    ax.set_ylabel('Frequency (Hz)')
+    ax.set_ylim([np.min(frequency), np.max(frequency)])
+    return -1
     
 def plot_ripple_overlay(ax, sst, SPAD_ep, frequency, power, time, sst_filtered, title='Wavelet Power Spectrum',plotLFP=True,plotSPAD=False,plotRipple=False,plotColorMap=True):
     time=time*1000
@@ -794,11 +811,11 @@ def plot_ripple_overlay(ax, sst, SPAD_ep, frequency, power, time, sst_filtered, 
     normalized_sst_filtered = (sst_filtered - sst_filtered.min()) / (sst_filtered.max() - sst_filtered.min()) * (frequency.max() - frequency.min()) + frequency.min()
     normalized_SPAD_ep=(SPAD_ep - SPAD_ep.min()) / (SPAD_ep.max() - SPAD_ep.min()) * (frequency.max() - frequency.min()) + frequency.min()
     if plotLFP:
-        ax.plot(time, normalized_sst, 'k',linewidth=2.5)
+        ax.plot(time, normalized_sst, 'k',linewidth=1)
     if plotSPAD:
-        ax.plot(time, normalized_SPAD_ep, 'lime',linewidth=2.5)
+        ax.plot(time, normalized_SPAD_ep, 'g',linewidth=1)
     if plotRipple:
-        ax.plot(time, normalized_sst_filtered, 'k', linewidth=2.5)
+        ax.plot(time, normalized_sst_filtered, 'white', linewidth=1)
     return ax
 
 def plot_theta_overlay(ax, sst, SPAD_ep, frequency, power, time, sst_filtered, title='Wavelet Power Spectrum',plotLFP=True,plotSPAD=False,plotTheta=False):

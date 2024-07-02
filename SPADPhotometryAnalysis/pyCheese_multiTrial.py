@@ -20,9 +20,9 @@ import os
 #folder = 'C:/SPAD/pyPhotometry_v0.3.1/data/' # Modify it depending on where your file is located
 #folder ='E:/Qingren/1002/Day2/'
 #COLD_folder='E:/Qingren/'
-folder ='G:/CB_EC5aFibre_1721126/1721126_day5/'
-COLD_folder='G:/CB_EC5aFibre_1721126/workingfolder/'
-COLD_filename='Training Data_Day5.xlsx'
+folder ="G:/CB_EC5aFibre_1756074/1756074_day4/1756074CB/"
+COLD_folder='G:/CB_EC5aFibre_1756074/workingfolder/'
+COLD_filename='Training Data_Day4.xlsx'
 
 pyFs=130
 CamFs=24
@@ -34,8 +34,8 @@ animalID='(1721126 MEC GCamp8m)'
 df_py_cheese=fp.read_all_photometry_files(folder, '2024-','sync',CamFs,pyFs,COLD_folder,COLD_filename)
 #%%
 #Enter the value 
-before_window=10
-after_window=10
+before_window=6
+after_window=6
 event_window_traces=fp.Plot_multiple_PETH_different_window(df_py_cheese,before_window,after_window,fs=pyFs,animalID=animalID)
 '''save the pkl file for the PETH data with half window time specified'''
 #%%

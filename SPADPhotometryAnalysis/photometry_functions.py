@@ -202,7 +202,7 @@ def photometry_smooth_plot (raw_reference,raw_signal,sampling_rate=500, smooth_w
     smooth_reference = smooth_signal(raw_reference, smooth_win)
     smooth_Signal = smooth_signal(raw_signal, smooth_win)
     
-    lambd = 10e3 # Adjust lambda to get the best fit
+    lambd = 10e4 # Adjust lambda to get the best fit
     porder = 1
     itermax = 15
     
@@ -396,7 +396,7 @@ def read_all_photometry_files(folder_path, py_target_string,sync_target_string,C
         print(file+target_index_str)
         # Read the CSV file with photometry read
         raw_signal,raw_reference,Cam_Sync=read_photometry_data (folder_path, file, readCamSync='True',plot=False,sampling_rate=130)
-        zdFF = get_zdFF(raw_reference,raw_signal,smooth_win=10,remove=0,lambd=5e4,porder=1,itermax=50)
+        zdFF = get_zdFF(raw_reference,raw_signal,smooth_win=10,remove=0,lambd=10e4,porder=1,itermax=50)
         filtered_files_sync = [file for file in files if sync_target_string in file]
         for Sync_file in filtered_files_sync:
             syncfile_last_underscore_index = Sync_file.rfind('_')
