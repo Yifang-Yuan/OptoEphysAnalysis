@@ -628,7 +628,6 @@ class SyncOEpyPhotometrySession:
         trough_index = OE.calculate_theta_trough_index(silced_recording,Fs=10000)
         #print (trough_index)
         OE.plot_theta_cycle (silced_recording, LFP_channel,trough_index,half_window=0.15,fs=10000,plotmode='two')
-     
         return -1
     
     def pynappleAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,
@@ -828,7 +827,7 @@ class SyncOEpyPhotometrySession:
         SPAD=nap.Tsd(t = timestamps, d = spad_data.to_numpy(), time_units = 's')
         SPAD_smooth=nap.Tsd(t = timestamps, d = SPAD_smooth_np, time_units = 's')  
         'Calculate theta band for optical signal'
-        'To detect ripple'
+        'To detect gamma'
         ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd = OE.getRippleEvents (LFP,self.fs,windowlen=1000,
                                                                            Low_thres=Low_thres,High_thres=High_thres,
                                                                            low_freq=50,high_freq=150)
@@ -1063,6 +1062,97 @@ class SyncOEpyPhotometrySession:
             self.Oscillation_triggered_Optical_transient  (mode='theta',lfp_channel=lfp_channel,half_window=0.5,plot_single_trace=True,plotShade='CI')
             self.Oscillation_optical_correlation (mode='theta',lfp_channel=lfp_channel, half_window=0.5)
         return rip_ep,rip_tsd
+    
+    def PlotThetaNestedGamma (self,lfp_channel='LFP_2',Low_thres=1,High_thres=10,plot_segment=False, plot_ripple_ep=True):
+        'This is the LFP data that need to be saved for the sync ananlysis'
+        data_segment=self.Ephys_tracking_spad_aligned
+        #data_segment=self.theta_part
+        timestamps=data_segment['timestamps'].copy()
+        timestamps=timestamps.to_numpy()
+        #timestamps=timestamps-timestamps[0]
+        #Use non-theta part to detect ripple
+        lfp_data=data_segment[lfp_channel]
+        spad_data=data_segment['zscore_raw']
+        lfp_data=lfp_data/1000 #change the unit from uV to mV
+        SPAD_cutoff=50
+        SPAD_smooth_np = OE.smooth_signal(spad_data,Fs=self.fs,cutoff=SPAD_cutoff)
+        'To align LFP and SPAD raw data to pynapple format'
+        LFP=nap.Tsd(t = timestamps, d = lfp_data.to_numpy(), time_units = 's')
+        SPAD=nap.Tsd(t = timestamps, d = spad_data.to_numpy(), time_units = 's')
+        SPAD_smooth=nap.Tsd(t = timestamps, d = SPAD_smooth_np, time_units = 's')
+        'Calculate theta band for optical signal'
+        theta_band_filtered_spad,_,_,_,_ = OE.getThetaEvents (SPAD,self.fs,windowlen=2000,
+                                                                              Low_thres=Low_thres,High_thres=High_thres)
+        gamma_band_filtered_spad,_,_,_,_ = OE.getRippleEvents (SPAD,self.fs,windowlen=1000,
+                                                                            Low_thres=0,High_thres=8,
+                                                                            low_freq=50,high_freq=150)
+        'To detect theta by LFP'
+        theta_band_filtered,_,_,rip_ep,rip_tsd = OE.getThetaEvents (LFP,self.fs,windowlen=2000,
+                                                                         Low_thres=Low_thres,High_thres=High_thres)  
+        gamma_band_filtered,_,_,_,_ = OE.getRippleEvents (LFP,self.fs,windowlen=1000,
+                                                                            Low_thres=0,High_thres=8,
+                                                                            low_freq=50,high_freq=150)
+
+        '''To calculate cross-correlation'''
+        event_peak_times=rip_tsd.index.to_numpy()
+        print ('Total theta number:',len(event_peak_times))
+        for i in range(len(rip_ep)):
+            if event_peak_times[i]-timestamps[0]>=0.5 and timestamps[-1]-event_peak_times[i]>=0.5:
+                if plot_ripple_ep:
+                    start_time=event_peak_times[i]-0.5
+                    end_time=event_peak_times[i]+0.5
+                    rip_long_ep = nap.IntervalSet(start = start_time, end = end_time, time_units = 's') 
+                    LFP_ep=LFP.restrict(rip_long_ep)
+                    SPAD_smooth_ep=SPAD_smooth.restrict(rip_long_ep)
+                    theta_band_filtered_spad_ep=theta_band_filtered_spad.restrict(rip_long_ep)  
+                    gamma_band_filtered_spad_ep=gamma_band_filtered_spad.restrict(rip_long_ep)
+                    theta_band_filtered_ep=theta_band_filtered.restrict(rip_long_ep)  
+                    gamma_band_filtered_ep=gamma_band_filtered.restrict(rip_long_ep)
+                    save_theta_path = os.path.join(self.savepath, self.recordingName+'_Thetas_'+lfp_channel)
+                    if not os.path.exists(save_theta_path):
+                        os.makedirs(save_theta_path)
+                   
+
+                    fig, ax = plt.subplots(6, 1, figsize=(9, 12))
+                    #Set the title of ripple feature
+                    plot_title = "Theta nested gamma (Optical)" 
+                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(gamma_band_filtered_spad_ep,lowpassCutoff=400,Fs=self.fs,scale=40)
+                    time = np.arange(-len(sst_ep)/2,len(sst_ep)/2) *(1/self.fs)
+                    
+                    OE.plot_two_trace_overlay(ax[0], time,SPAD_smooth_ep,theta_band_filtered_spad_ep, title='Theta band optical',color1='lime', color2='black')   
+                    OE.plot_ripple_trace(ax[1],time,gamma_band_filtered_spad_ep,color='red')
+                    OE.plot_theta_nested_gamma_overlay (ax[2],LFP_ep,gamma_band_filtered_spad_ep,frequency,power,time,
+                                           theta_band_filtered_spad_ep,plot_title,plotLFP=False,plotSPAD=False,plotTheta=True)   
+                        
+                    #Set the title of ripple feature
+                    plot_title = "Theta nested gamma (Ephys)" 
+                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(gamma_band_filtered_ep,lowpassCutoff=400,Fs=self.fs,scale=40) 
+                    OE.plot_two_trace_overlay(ax[3], time,LFP_ep,theta_band_filtered_ep, title='Theta band LFP',color1='blue', color2='black')   
+                    OE.plot_ripple_trace(ax[4],time,gamma_band_filtered_ep,color='red')
+                    OE.plot_theta_nested_gamma_overlay (ax[5],gamma_band_filtered_ep,gamma_band_filtered_ep,frequency,power,time,
+                                           theta_band_filtered_ep,plot_title,plotLFP=False,plotSPAD=False,plotTheta=True)
+
+                    # Optionally remove ticks
+                    ax[0].tick_params(left=True, bottom=False, labelleft=True, labelbottom=False)
+                    ax[1].tick_params(left=True, bottom=False, labelleft=True, labelbottom=False)
+                    
+                    plt.tight_layout()
+                    figName=self.recordingName+'ThetaNestedGamma'+str(i)+'.png'
+                    fig.savefig(os.path.join(save_theta_path,figName))
+     
+        return rip_ep,rip_tsd
+    
+    def plot_average_theta_nested_gamma(self,LFP_channel,plotFeature='LFP'):
+        silced_recording=self.theta_part
+        silced_recording=silced_recording.reset_index(drop=True)
+        #print (silced_recording.index)
+        silced_recording['theta_angle']=OE.calculate_theta_phase_angle(silced_recording[LFP_channel], theta_low=5, theta_high=9)
+        OE.plot_trace_in_seconds(silced_recording['theta_angle'],Fs=10000,title='theta angle')
+        trough_index = OE.calculate_theta_trough_index(silced_recording,Fs=10000)
+        #print (trough_index)
+        OE.plot_theta_nested_average_gamma_power (self.fs,silced_recording, LFP_channel,trough_index,half_window=0.15,fs=10000,plotFeature=plotFeature)
+        return -1
+
 
     def get_mean_corr_two_traces (self, spad_data,lfp_data,corr_window):
         # corr_window as second

@@ -33,7 +33,7 @@ def butter_filter(data, btype='low', cutoff=10, fs=9938.4, order=5):
     return y
 
 def band_pass_filter(data,low_freq,high_freq,Fs):
-    data_high=butter_filter(data, btype='high', cutoff=low_freq,fs=Fs, order=1)
+    data_high=butter_filter(data, btype='high', cutoff=low_freq,fs=Fs, order=5)
     data_low=butter_filter(data_high, btype='low', cutoff=high_freq, fs=Fs, order=5)
     return data_low
 
@@ -782,6 +782,11 @@ def plot_wavelet_feature_ripple(sst,frequency,power,global_ws,time,sst_filtered)
 def plot_ripple_trace(ax,time,trace_ep,color='k'):
     time=time*1000
     ax.plot(time, trace_ep, color,linewidth=1)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.margins(x=0)
     #ax.set_xlabel('Time (ms)')
     return -1
 
@@ -796,7 +801,22 @@ def plot_power_spectrum (ax,time,frequency, power,colorbar=True):
     ax.set_ylabel('Frequency (Hz)')
     ax.set_ylim([np.min(frequency), np.max(frequency)])
     return -1
-    
+
+def plot_two_trace_overlay(ax, time,trace1,trace2, title='Wavelet Power Spectrum',color1='black', color2='lime'):
+    # Remove the plot frame
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+
+    normalized_trace1 = (trace1 - trace1.min()) / (trace1.max() - trace1.min()) 
+    normalized_trace2 = (trace2 - trace2.min()) / (trace2.max() - trace2.min()) 
+    ax.plot(time, normalized_trace1, color1)
+    ax.plot(time, normalized_trace2, color2)
+    ax.margins(x=0)
+
+    return ax
+
 def plot_ripple_overlay(ax, sst, SPAD_ep, frequency, power, time, sst_filtered, title='Wavelet Power Spectrum',plotLFP=True,plotSPAD=False,plotRipple=False,plotColorMap=True):
     time=time*1000
     if plotColorMap:
@@ -819,6 +839,7 @@ def plot_ripple_overlay(ax, sst, SPAD_ep, frequency, power, time, sst_filtered, 
     return ax
 
 def plot_theta_overlay(ax, sst, SPAD_ep, frequency, power, time, sst_filtered, title='Wavelet Power Spectrum',plotLFP=True,plotSPAD=False,plotTheta=False):
+    'sst is LFP, sst filtered is filtered LFP'
     levels = 6
     CS = ax.contourf(time, frequency, power, levels)
     ax.set_xlabel('Time (second)')
@@ -828,7 +849,6 @@ def plot_theta_overlay(ax, sst, SPAD_ep, frequency, power, time, sst_filtered, t
     ax.set_ylim([np.min(frequency), y_max])
     cbar = plt.colorbar(CS, ax=ax)
     cbar.set_label('Power/Frequency (mV2/Hz)')    
-    
 
     # Remove the plot frame
     ax.spines['top'].set_visible(False)
@@ -836,8 +856,36 @@ def plot_theta_overlay(ax, sst, SPAD_ep, frequency, power, time, sst_filtered, t
     ax.spines['bottom'].set_visible(False)
     ax.spines['left'].set_visible(False)
 
-
     normalized_sst = (sst - sst.min()) / (sst.max() - sst.min()) * (y_max - frequency.min()) + frequency.min()
+    normalized_sst_filtered = (sst_filtered - sst_filtered.min()) / (sst_filtered.max() - sst_filtered.min()) * (y_max - frequency.min()) + frequency.min()
+    normalized_SPAD_ep=(SPAD_ep - SPAD_ep.min()) / (SPAD_ep.max() - SPAD_ep.min()) * (y_max - frequency.min()) + frequency.min()
+    if plotLFP:
+        ax.plot(time, normalized_sst, 'white')
+    if plotSPAD:
+        ax.plot(time, normalized_SPAD_ep, 'lime')
+    if plotTheta:
+        ax.plot(time, normalized_sst_filtered, 'k', linewidth=2)
+    return ax
+
+def plot_theta_nested_gamma_overlay(ax, LFP_ep, SPAD_ep, frequency, power, time, sst_filtered, title='Wavelet Power Spectrum',plotLFP=True,plotSPAD=False,plotTheta=False):
+    'sst is LFP, sst filtered is filtered LFP'
+    levels = 6
+    CS = ax.contourf(time, frequency, power, levels)
+    ax.set_xlabel('Time (second)')
+    ax.set_ylabel('Frequency (Hz)')
+    ax.set_title(title)
+    y_max=200
+    ax.set_ylim([np.min(frequency), y_max])
+    # cbar = plt.colorbar(CS, ax=ax)
+    # cbar.set_label('Power/Frequency (mV2/Hz)')    
+
+    # Remove the plot frame
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+
+    normalized_sst = (LFP_ep - LFP_ep.min()) / (LFP_ep.max() - LFP_ep.min()) * (y_max - frequency.min()) + frequency.min()
     normalized_sst_filtered = (sst_filtered - sst_filtered.min()) / (sst_filtered.max() - sst_filtered.min()) * (y_max - frequency.min()) + frequency.min()
     normalized_SPAD_ep=(SPAD_ep - SPAD_ep.min()) / (SPAD_ep.max() - SPAD_ep.min()) * (y_max - frequency.min()) + frequency.min()
     if plotLFP:
@@ -919,6 +967,68 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
         #ax2.spines['left'].set_visible(False)
         
         plt.show()
+    return -1
+
+def plot_theta_nested_average_gamma_power(Fs,df, LFP_channel, trough_index, half_window, fs=10000,plotFeature='LFP'):
+    half_window = half_window  # second
+    # Initialize lists to store cycle data
+    cycle_data_values_zscore = []
+    cycle_data_values_lfp = []
+    gamma_power_values=[]
+    gamma_power_values_spad=[]
+    #half_cycle_time = pd.to_timedelta(half_window, unit='s')
+    half_cycle_time=half_window
+    # Extract A values for each cycle and calculate mean and std
+    for i in range(len(trough_index)):
+        start = int(trough_index[i] - half_cycle_time*fs)
+        end = int(trough_index[i] + half_cycle_time*fs)
+        cycle_zscore = df['zscore_raw'].loc[start:end]
+        print ('length of the cycle',len(cycle_zscore))
+        cycle_zscore=smooth_signal(cycle_zscore,10000,cutoff=50,window='flat')
+        cycle_lfp = df[LFP_channel].loc[start:end]
+        #cycle_zscore_np = cycle_zscore.to_numpy()
+        cycle_zscore_np = cycle_zscore
+        cycle_lfp_np = cycle_lfp.to_numpy()
+        gamma_band_filtered_cycle_lfp=band_pass_filter(cycle_lfp_np,low_freq=50,high_freq=150,Fs=Fs)
+        _,frequency,power_cycle,_=Calculate_wavelet(gamma_band_filtered_cycle_lfp,lowpassCutoff=400,Fs=Fs,scale=40) 
+        
+        gamma_band_filtered_cycle_spad=band_pass_filter(cycle_zscore_np,low_freq=50,high_freq=150,Fs=Fs)
+        _,frequency_spad,power_cycle_spad,_=Calculate_wavelet(gamma_band_filtered_cycle_spad,lowpassCutoff=400,Fs=Fs,scale=40) 
+        if len(cycle_lfp_np) > half_window * fs * 2:
+            cycle_data_values_zscore.append(cycle_zscore_np)
+            cycle_data_values_lfp.append(cycle_lfp_np)
+            gamma_power_values.append(power_cycle)
+            gamma_power_values_spad.append(power_cycle_spad)
+    cycle_data_values_zscore_np = np.vstack(cycle_data_values_zscore)
+    cycle_data_values_lfp_np = np.vstack(cycle_data_values_lfp)
+  
+    mean_zscore,std_zscore, CI_zscore=calculateStatisticNumpy (cycle_data_values_zscore_np)
+    mean_lfp,std_lfp, CI_LFP=calculateStatisticNumpy (cycle_data_values_lfp_np)
+    # shapes = [arr.shape for arr in self.ripple_optic_power_values]
+    # print(f"Shapes of arrays: {shapes}")
+    # # Ensure all arrays have the same shape
+    # expected_shape = (29, 2001)
+    # for i, arr in enumerate(self.ripple_optic_power_values):
+    #     if arr.shape != expected_shape:
+    #         print(f"Array at index {i} has shape {arr.shape}, resizing to {expected_shape}")
+    #         self.ripple_optic_power_values[i] = np.resize(arr, expected_shape)
+    # Calculate the average of the arrays
+    average_gamma_powerSpectrum = np.mean(gamma_power_values, axis=0)
+    average_gamma_powerSpectrum_spad = np.mean(gamma_power_values_spad, axis=0)
+    
+    fig, ax = plt.subplots(1,1,figsize=(8, 4))
+    time = np.linspace(-half_window, half_window, len(mean_zscore))
+    #time = np.arange(-half_cycle_time*fs,half_cycle_time*fs) *(1/Fs)
+    if plotFeature =='LFP':
+        plot_title='Theta nested gamma (LFP)'
+        plot_theta_nested_gamma_overlay (ax,mean_lfp,mean_zscore,frequency,average_gamma_powerSpectrum,time,
+                               mean_lfp,plot_title,plotLFP=True,plotSPAD=False,plotTheta=False)   
+    if plotFeature =='SPAD':
+        plot_title='Theta nested gamma (Optical)'
+        plot_theta_nested_gamma_overlay (ax,mean_lfp,mean_zscore,frequency,average_gamma_powerSpectrum_spad,time,
+                               mean_lfp,plot_title,plotLFP=True,plotSPAD=True,plotTheta=False)  
+
+    plt.show()
     return -1
 
 def find_peak_and_std(data,half_win_len,mode='max'):

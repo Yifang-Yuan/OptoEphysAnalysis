@@ -13,7 +13,7 @@ import numpy as np
 '''
 recordingMode: use py, Atlas, SPAD for different systems
 '''
-dpath='G:/YY/2024MScR_NORtask/1756735_PVCre_Jedi2p_Compare/Day1Atlas_OF/'
+dpath='F:/2024MScR_NORtask/1765508_Jedi2p_Atlas/20240430_Day2'
 #dpath='F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day5/'
 #dpath='G:/YY/New/1756735_PVCre_Jedi2p_Compare/Day2Atlas_OF/'
 #dpath="F:/2024MScR_NORtask/1732333_pyPhotometry/20240214_Day3/" 
@@ -22,12 +22,7 @@ recordingName='SavedOpenFieldTrials'
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,recordingMode='Atlas',indicator='GEVI') 
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
 #%%
-LFP_channel='LFP_2'
-#%%
-# ThetaDeltaRatio=Recording1.Label_REM_sleep (LFP_channel)
-# import matplotlib.pyplot as plt
-# plt.plot(ThetaDeltaRatio[100000:150000]) 
-# plt.ylim(0, 3)
+LFP_channel='LFP_1'
 #%%
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined as theta period.
@@ -35,7 +30,7 @@ nonthetha_thres: the theta band power should be smaller than 50% to be defined a
 theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.1,High_thres=8,save=False,plot_theta=True)
 #%% Detect ripple event
 '''Gamma plot
-For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
+For a rigid threshold to get larger amplitude Gamma events: Low_thres=1, for more ripple events, Low_thres=0'''
 rip_ep,rip_tsd=Recording1.pynappleGammaAnalysis (lfp_channel=LFP_channel,ep_start=0,ep_end=10,
                                                                           Low_thres=0,High_thres=8,plot_segment=True,
                                                                           plot_ripple_ep=True,excludeTheta=False,excludeNonTheta=True)
@@ -45,7 +40,12 @@ For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for mo
 rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,ep_start=0,ep_end=25,
                                                                           Low_thres=1,High_thres=10,plot_segment=True,
                                                                           plot_ripple_ep=True,excludeTheta=True)
+#%% Detect theta nested gamma event
+'''Thete nested Gamma plot
+For a rigid threshold to get larger amplitude Gamma events: Low_thres=1, for more ripple events, Low_thres=0'''
+rip_ep,rip_tsd=Recording1.PlotThetaNestedGamma (lfp_channel=LFP_channel,Low_thres=0.5,High_thres=10,plot_segment=False, plot_ripple_ep=True)
 #%%
+Recording1.plot_average_theta_nested_gamma(LFP_channel=LFP_channel,plotFeature='LFP')
 #%% Detect theta event
 '''THETA PEAK DETECTION
 For a rigid threshold to get larger amplitude theta events: Low_thres=1, for more ripple events, Low_thres=0.5'''
