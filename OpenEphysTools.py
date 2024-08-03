@@ -1004,15 +1004,7 @@ def plot_theta_nested_average_gamma_power(Fs,df, LFP_channel, trough_index, half
   
     mean_zscore,std_zscore, CI_zscore=calculateStatisticNumpy (cycle_data_values_zscore_np)
     mean_lfp,std_lfp, CI_LFP=calculateStatisticNumpy (cycle_data_values_lfp_np)
-    # shapes = [arr.shape for arr in self.ripple_optic_power_values]
-    # print(f"Shapes of arrays: {shapes}")
-    # # Ensure all arrays have the same shape
-    # expected_shape = (29, 2001)
-    # for i, arr in enumerate(self.ripple_optic_power_values):
-    #     if arr.shape != expected_shape:
-    #         print(f"Array at index {i} has shape {arr.shape}, resizing to {expected_shape}")
-    #         self.ripple_optic_power_values[i] = np.resize(arr, expected_shape)
-    # Calculate the average of the arrays
+
     average_gamma_powerSpectrum = np.mean(gamma_power_values, axis=0)
     average_gamma_powerSpectrum_spad = np.mean(gamma_power_values_spad, axis=0)
     
@@ -1022,10 +1014,10 @@ def plot_theta_nested_average_gamma_power(Fs,df, LFP_channel, trough_index, half
     if plotFeature =='LFP':
         plot_title='Theta nested gamma (LFP)'
         plot_theta_nested_gamma_overlay (ax,mean_lfp,mean_zscore,frequency,average_gamma_powerSpectrum,time,
-                               mean_lfp,plot_title,plotLFP=True,plotSPAD=False,plotTheta=False)   
+                               mean_lfp,plot_title,plotLFP=True,plotSPAD=True,plotTheta=False)   
     if plotFeature =='SPAD':
         plot_title='Theta nested gamma (Optical)'
-        plot_theta_nested_gamma_overlay (ax,mean_lfp,mean_zscore,frequency,average_gamma_powerSpectrum_spad,time,
+        plot_theta_nested_gamma_overlay (ax,mean_lfp,mean_zscore,frequency_spad,average_gamma_powerSpectrum_spad,time,
                                mean_lfp,plot_title,plotLFP=True,plotSPAD=True,plotTheta=False)  
 
     plt.show()

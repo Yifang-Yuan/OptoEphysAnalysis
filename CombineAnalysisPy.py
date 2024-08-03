@@ -13,21 +13,21 @@ import numpy as np
 '''
 recordingMode: use py, Atlas, SPAD for different systems
 '''
-dpath='F:/2024MScR_NORtask/1765508_Jedi2p_Atlas/20240430_Day2'
-#dpath='F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day5/'
-#dpath='G:/YY/New/1756735_PVCre_Jedi2p_Compare/Day2Atlas_OF/'
+dpath='G:/YY/2024MScR_NORtask/1756735_PVCre_Jedi2p_Compare/Day1Atlas_Sleep/'
+#dpath='F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day2/'
+#dpath='G:/YY/2024MScR_NORtask/1765508_Jedi2p_CompareSystem/Day3_SPC_1765508/'
 #dpath="F:/2024MScR_NORtask/1732333_pyPhotometry/20240214_Day3/" 
-recordingName='SavedOpenFieldTrials'
+recordingName='SavedPostSleepTrials'
 #dpath="G:/SPAD/SPADData/20230722_SPADOE/SyncRecording0/"
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,recordingMode='Atlas',indicator='GEVI') 
-'''You can try LFP1,2,3,4 and plot theta to find the best channel'''
 #%%
+'''You can try LFP1,2,3,4 and plot theta to find the best channel'''
 LFP_channel='LFP_1'
 #%%
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined as theta period.
 nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.1,High_thres=8,save=False,plot_theta=True)
+theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.5,High_thres=8,save=False,plot_theta=True)
 #%% Detect ripple event
 '''Gamma plot
 For a rigid threshold to get larger amplitude Gamma events: Low_thres=1, for more ripple events, Low_thres=0'''
@@ -41,11 +41,13 @@ rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,ep_start=0,e
                                                                           Low_thres=1,High_thres=10,plot_segment=True,
                                                                           plot_ripple_ep=True,excludeTheta=True)
 #%% Detect theta nested gamma event
-'''Thete nested Gamma plot
+'''Theta nested Gamma plot
 For a rigid threshold to get larger amplitude Gamma events: Low_thres=1, for more ripple events, Low_thres=0'''
 rip_ep,rip_tsd=Recording1.PlotThetaNestedGamma (lfp_channel=LFP_channel,Low_thres=0.5,High_thres=10,plot_segment=False, plot_ripple_ep=True)
 #%%
-Recording1.plot_average_theta_nested_gamma(LFP_channel=LFP_channel,plotFeature='LFP')
+Recording1.plot_average_theta_nested_gamma(LFP_channel=LFP_channel,plotFeature='SPAD')
+#%% This is to calculate and plot the trace around theta trough
+Recording1.plot_theta_correlation(LFP_channel)
 #%% Detect theta event
 '''THETA PEAK DETECTION
 For a rigid threshold to get larger amplitude theta events: Low_thres=1, for more ripple events, Low_thres=0.5'''
@@ -61,8 +63,7 @@ Recording1.plot_segment_feature (LFP_channel,start_time,end_time,SPAD_cutoff=50,
 #%%
 'To plot the feature of theta-band and ripple-band of the segment signal'
 Recording1.plot_band_power_feature (LFP_channel,start_time,end_time,LFP=True)
-#%% This is to calculate and plot the trace around theta trough
-Recording1.plot_theta_correlation(LFP_channel)
+
 #%%
 '''Here for the spectrum, I used a 0.5Hz high pass filter to process both signals'''
 timewindow=5 #the duration of the segment, in seconds

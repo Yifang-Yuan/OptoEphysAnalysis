@@ -123,7 +123,7 @@ class SyncOEpyPhotometrySession:
                 
         while True: #remove noise by cutting part of the synchronised the data
             OE.plot_two_traces_in_seconds (self.Ephys_tracking_spad_aligned['zscore_raw'],self.fs, 
-                                       self.Ephys_tracking_spad_aligned['LFP_2'], self.fs, label1='zscore_raw',label2='LFP_2')
+                                       self.Ephys_tracking_spad_aligned['LFP_4'], self.fs, label1='zscore_raw',label2='LFP_4')
             start_time = input("Enter the start time to move noise (or 'q' to quit): ")
             if start_time.lower() == 'q':
                 break
@@ -166,7 +166,7 @@ class SyncOEpyPhotometrySession:
         self.Ephys_tracking_spad_aligned.reset_index(drop=True, inplace=True)  
         
         OE.plot_two_traces_in_seconds (self.Ephys_tracking_spad_aligned['zscore_raw'],self.fs, 
-                                       self.Ephys_tracking_spad_aligned['LFP_1'], self.fs, label1='zscore_raw',label2='LFP_1')
+                                       self.Ephys_tracking_spad_aligned['LFP_4'], self.fs, label1='zscore_raw',label2='LFP_4')
         
         while True: #remove noise by cutting part of the synchronised the data
             start_time = input("Enter the start time to move noise (or 'q' to quit): ")
@@ -179,7 +179,7 @@ class SyncOEpyPhotometrySession:
             self.remove_noise(start_time=int(start_time),end_time=int(end_time))
         
             OE.plot_two_traces_in_seconds (self.Ephys_tracking_spad_aligned['zscore_raw'],self.fs, 
-                                       self.Ephys_tracking_spad_aligned['LFP_1'], self.fs, label1='zscore_raw',label2='LFP_1')
+                                       self.Ephys_tracking_spad_aligned['LFP_4'], self.fs, label1='zscore_raw',label2='LFP_4')
         return -1
     
     def read_open_ephys_data (self):
@@ -780,26 +780,21 @@ class SyncOEpyPhotometrySession:
             self.Oscillation_optical_correlation (mode='ripple',lfp_channel=lfp_channel, half_window=0.2)
         if plot_ripple_ep:
             'plot averaged power spectrum'
-            shapes = [arr.shape for arr in self.ripple_LFP_power_values]
-            print(f"Shapes of arrays: {shapes}")
             # Ensure all arrays have the same shape
             expected_shape = (29, 2001)
             for i, arr in enumerate(self.ripple_LFP_power_values):
                 if arr.shape != expected_shape:
-                    print(f"Array at index {i} has shape {arr.shape}, resizing to {expected_shape}")
+                    #print(f"Array at index {i} has shape {arr.shape}, resizing to {expected_shape}")
                     self.ripple_LFP_power_values[i] = np.resize(arr, expected_shape)
             # Calculate the average of the arrays
             average_LFP_powerSpectrum = np.mean(self.ripple_LFP_power_values, axis=0)
             fig, ax = plt.subplots(1, 1, figsize=(6, 3))
             OE.plot_power_spectrum (ax,time,frequency, average_LFP_powerSpectrum,colorbar=True)
-            
-            shapes = [arr.shape for arr in self.ripple_optic_power_values]
-            print(f"Shapes of arrays: {shapes}")
             # Ensure all arrays have the same shape
             expected_shape = (29, 2001)
             for i, arr in enumerate(self.ripple_optic_power_values):
                 if arr.shape != expected_shape:
-                    print(f"Array at index {i} has shape {arr.shape}, resizing to {expected_shape}")
+                    #print(f"Array at index {i} has shape {arr.shape}, resizing to {expected_shape}")
                     self.ripple_optic_power_values[i] = np.resize(arr, expected_shape)
             # Calculate the average of the arrays
             average_optic_powerSpectrum = np.mean(self.ripple_optic_power_values, axis=0)
@@ -1221,6 +1216,8 @@ class SyncOEpyPhotometrySession:
             fig, ax = plt.subplots(1, 1, figsize=(8, 4))
         for i in range(len(event_peak_times)):
             if event_peak_times[i]-timestamps[0]>=half_window and event_peak_times[i]<=timestamps.iloc[-1]-half_window:
+                print ('Trial:',i,'-event_peak_times is:',event_peak_times[i])
+                print ('timestamps[0]:',timestamps[0])
                 self.Ephys_tracking_spad_aligned['abs_diff'] = abs(self.Ephys_tracking_spad_aligned['timestamps'] - event_peak_times[i])
                 closest_index = self.Ephys_tracking_spad_aligned['abs_diff'].idxmin()
                 start_idx=closest_index-int(half_window*self.fs)

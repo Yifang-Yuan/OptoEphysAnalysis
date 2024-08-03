@@ -440,10 +440,5 @@ def photometry_smooth_plot (raw_reference,raw_signal,sampling_rate=500, smooth_w
     
     return z_signal,smooth_signal,signal
 
-'find opto stimulation'
-from scipy.signal import find_peaks
-def find_optoPeak (filename,Height,Distance):  
-    trace=Read_trace (filename,mode="SPAD")
-    peaks, _ = find_peaks(trace, height=Height, distance=Distance)
-    return peaks
+
 

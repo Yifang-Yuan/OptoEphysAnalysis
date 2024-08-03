@@ -33,7 +33,7 @@ def ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', IsTrackin
                                              recordingMode=recordingMode,indicator=indicator) 
         for i in range (1):
             #LFP_channel='LFP_'+str(i+1)
-            LFP_channel='LFP_2'
+            LFP_channel='LFP_4'
             theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.5,High_thres=10)
             '''RIPPLE DETECTION
             For a rigid threshold to get larger amplitude ripple events: Low_thres=3'''
@@ -59,7 +59,7 @@ def main():
     Put all your parent folders here for batch processing.
     recordingMode: 'py' for pyPhotometry recording, 'SPAD' for SPAD-SPC recording
     '''
-    parent_folder='G:/YY/2024MScR_NORtask/1756735_PVCre_Jedi2p_Compare/Day3Atlas_Sleep24/'
+    parent_folder='G:/YY/2024MScR_NORtask/1765508_Jedi2p_CompareSystem/Day5_Atlas_EphysGood/'
     ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', 
                                           IsTracking=True,read_aligned_data_from_file=False,recordingMode='Atlas',indicator='GEVI')
     

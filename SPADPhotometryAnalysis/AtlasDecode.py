@@ -198,30 +198,3 @@ def get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange= [25, 85],yyra
     plot_trace(z_score,ax, fs, label="zscore")
     return Trace_raw,z_score
 
-#%% Workable code, above is testin
-# dpath='G:/YY/2024MScR_NORtask/1756735_PVCre_Jedi2p_Compare/Day3Atlas_OF/Atlas/Burst-RS-4200frames-840Hz_2024-06-13_13-43_OF/'
-# #dpath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/Burst-RS-1017frames-1017Hz_4uW/'
-# hotpixel_path='F:/SPADdata/Altas_hotpixel.csv'
-# xxrange = [40, 90]
-# yyrange = [40, 90]
-
-# #Trace_raw,z_score=get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange=xxrange,yyrange=yyrange,fs=840,photoncount_thre=100)
-# #%%
-# # Plot the image of the pixel array
-# # fig, ax = plt.subplots(figsize=(8, 2))
-# # plot_trace(Trace_raw[800:1600],ax, fs=840, label="raw_data")
-# '''Read binary files for single ROI'''
-# # Display the grayscale image
-# pixel_array_all_frames,sum_pixel_array,avg_pixel_array=decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=50)
-# #%%
-# show_image_with_pixel_array(avg_pixel_array,showPixel_label=True)
-#%%
-# sum_values_over_time,mean_values_over_time,region_pixel_array=get_trace_from_3d_pixel_array(pixel_array_all_frames,avg_pixel_array,xxrange,yyrange)
-# fig, ax = plt.subplots(figsize=(8, 2))
-# plot_trace(sum_values_over_time[1:],ax, fs=840, label="raw_data")
-#%%
-# for i in range(21):
-#     show_image_with_pixel_array(pixel_array_all_frames[:,:,187+i],showPixel_label=True)
-#pixel_array=pixel_array_all_frames[:,:,800]
-#pixel_array_plot_hist(pixel_array_all_frames[:,:,1000], plot_min_thre=100)
-    
