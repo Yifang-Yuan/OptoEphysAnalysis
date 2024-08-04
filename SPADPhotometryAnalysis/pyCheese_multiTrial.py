@@ -20,8 +20,9 @@ import os
 #folder = 'C:/SPAD/pyPhotometry_v0.3.1/data/' # Modify it depending on where your file is located
 #folder ='E:/Qingren/1002/Day2/'
 #COLD_folder='E:/Qingren/'
-folder ="G:/CB_EC5aFibre_1756074/1756074_day4/1756074CB/"
-COLD_folder='G:/CB_EC5aFibre_1756074/workingfolder/'
+folder ="D:/CB_EC5aFibre/CB_EC5aFibre_1756074/1756074_day4/1756074CB/"
+
+COLD_folder='D:/CB_EC5aFibre/CB_EC5aFibre_1756074/workingfolder/'
 COLD_filename='Training Data_Day4.xlsx'
 
 pyFs=130
