@@ -23,7 +23,7 @@ directory = 'F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day1/Ephys/2024-05-06_1
 '''Set the folder your session data, this folder is used to save decoded LFP data, it should include optical signal data and animal tracking data as .csv;
 this folder is now manually created, but I want to make it automatic'''
 
-#dpath='F:/2024MScR_NORtask/1765508_Jedi2p_Atlas/20240503_Day5/SyncRecording4/'
+dpath='F:/2024MScR_NORtask/1765508_Jedi2p_Atlas/20240503_Day5/SyncRecording4/'
 
 Ephys_fs=30000 #Ephys sampling rate
 '''recordingNum is the index of recording from the OE recording, start from 0'''

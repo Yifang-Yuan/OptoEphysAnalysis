@@ -271,22 +271,22 @@ def plot_PSD_bands (trace,fs=9938.4):
     ax[0,0].yaxis.set_tick_params(labelsize=8)
     
     ax[0,1].plot(faxis, Sxx.real)                 # Plot spectrum vs frequency
-    ax[0,1].set_xlim([0, 28])
-    #ax[0,1].set_ylim([0, 20000])                    # Select frequency range
+    ax[0,1].set_xlim([2, 15])
+    #ax[0,1].set_ylim([0, 0.005])                    # Select frequency range
     ax[0,1].set_title("Theta band",fontsize=8)
     ax[0,1].xaxis.set_tick_params(labelsize=8)
     ax[0,1].yaxis.set_tick_params(labelsize=8)
     
     ax[1,0].plot(faxis, Sxx.real)                 # Plot spectrum vs frequency
     ax[1,0].set_xlim([30, 80])
-    ax[1,0].set_ylim([0, 5000])                    # Select frequency range
+    #ax[1,0].set_ylim([0, 0.005])                    # Select frequency range
     ax[1,0].set_title("Gamma band",fontsize=8)
     ax[1,0].xaxis.set_tick_params(labelsize=8)
     ax[1,0].yaxis.set_tick_params(labelsize=8)
     
     ax[1,1].plot(faxis, Sxx.real)                 # Plot spectrum vs frequency
-    ax[1,1].set_xlim([100, 220])
-    ax[1,1].set_ylim([0, 3000])                    # Select frequency range
+    ax[1,1].set_xlim([150, 250])
+    #ax[1,1].set_ylim([0, 0.005])                    # Select frequency range
     ax[1,1].set_title("Ripple band",fontsize=8)
     ax[1,1].xaxis.set_tick_params(labelsize=8)
     ax[1,1].yaxis.set_tick_params(labelsize=8)
@@ -364,7 +364,7 @@ def plotSpectrum (signal,Fs=9938.4):
     spectrum = np.abs(np.fft.fft(signal))**2
     # Reshape the spectrum as a 2D array
     time_bins = 10
-    freq_bins = 2
+    freq_bins = 10
     spectrum_2d = spectrum.reshape(time_bins, freq_bins)
     
     # Plot the power spectrum heatmap over time
@@ -441,4 +441,59 @@ def photometry_smooth_plot (raw_reference,raw_signal,sampling_rate=500, smooth_w
     return z_signal,smooth_signal,signal
 
 
-
+def plot_wavelet_data(data,sampling_rate,cutoff):
+    import matplotlib.ticker as ticker
+    # from mpl_toolkits.axes_grid1 import make_axes_locatable
+    from waveletFunctions import wavelet
+    import OpenEphysTools as OE
+    if isinstance(data, np.ndarray):
+        signal=data
+    else:
+        signal=data.to_numpy()
+    sst = OE.butter_filter(signal, btype='low', cutoff=cutoff, fs=sampling_rate, order=5)
+    #sst = OE.butter_filter(signal, btype='high', cutoff=30, fs=Recording1.fs, order=5)
+    
+    sst = sst - np.mean(sst)
+    variance = np.std(sst, ddof=1) ** 2
+    print("variance = ", variance)
+    # ----------C-O-M-P-U-T-A-T-I-O-N------S-T-A-R-T-S------H-E-R-E---------------
+    if 0:
+        variance = 1.0
+        sst = sst / np.std(sst, ddof=1)
+    n = len(sst)
+    dt = 1/sampling_rate
+    time = np.arange(len(sst)) * dt   # construct time array
+    
+    pad = 1  # pad the time series with zeroes (recommended)
+    dj = 0.25  # this will do 4 sub-octaves per octave
+    s0 = 10 * dt  # this says start at a scale of 6 months
+    j1 = 7 / dj  # this says do 7 powers-of-two with dj sub-octaves each
+    lag1 = 0.1  # lag-1 autocorrelation for red noise background
+    print("lag1 = ", lag1)
+    mother = 'MORLET'
+    # Wavelet transform:
+    wave, period, scale, coi = wavelet(sst, dt, pad, dj, s0, j1, mother)
+    power = (np.abs(wave)) ** 2  # compute wavelet power spectrum
+    global_ws = (np.sum(power, axis=1) / n)  # time-average over all times
+    frequency=1/period
+    xlim = ([0,8])  # plotting range
+    fig, plt3 = plt.subplots(figsize=(15,5))
+    levels = [0, 4,20, 100, 200, 300]
+    # *** or use 'contour'
+    CS = plt.contourf(time, frequency, power, len(levels))
+    plt.xlabel('Time (seconds)')
+    plt.ylabel('Frequency (Hz)')
+    plt.title('Wavelet Power Spectrum')
+    plt3.set_yscale('log', base=2, subs=None)
+    plt.ylim([np.min(frequency), np.max(frequency)])
+    plt.xlim(xlim)
+    ax = plt.gca().yaxis
+    ax.set_major_formatter(ticker.ScalarFormatter())
+    plt3.ticklabel_format(axis='y', style='plain')
+    #plt3.invert_yaxis()
+    # set up the size and location of the colorbar
+    position=fig.add_axes([0.2,0.01,0.4,0.02])
+    plt.colorbar(CS, cax=position, orientation='horizontal', fraction=0.05, pad=0.5)
+    
+    plt.subplots_adjust(right=0.7, top=0.9)
+    return -1

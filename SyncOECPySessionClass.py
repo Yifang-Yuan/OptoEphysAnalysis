@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Jul 27 12:03:35 2023
+@author: Yifang
+
 This is the Class that used to form a synchronised dataset including LFP channel signals, pyPhotometry recorded optical signal as zscore, and animal position.
 Note:
 Some of the functions are named as SPAD*** just because I made this for SPAD-ephys analysis first, then modified it for pyPhotometry recordings.
 I named it as SyncOECSessionClass but it is actually a single recording trial. 
-@author: Yifang
 """
 import os
 import pandas as pd
