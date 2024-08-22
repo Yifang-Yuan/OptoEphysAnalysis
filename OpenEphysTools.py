@@ -310,7 +310,7 @@ def getThetaEvents (lfp_raw,Fs,windowlen=1000,Low_thres=2,High_thres=10):
     nSS2 = nSS.threshold(Low_thres, method='above')
     nSS3 = nSS2.threshold(High_thres, method='below')
     # Round 2 : Excluding ripples whose length < minRipLen and greater than Maximum Ripple Length
-    minThetaLen = 100 # ms
+    minThetaLen = 80 # ms
     maxThetaLen = 10000 # ms    
     rip_ep = nSS3.time_support
     rip_ep = rip_ep.drop_short_intervals(minThetaLen, time_units = 'ms')
@@ -916,6 +916,8 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
     #half_cycle_time = pd.to_timedelta(half_window, unit='s')
     half_cycle_time=half_window
     # Extract A values for each cycle and calculate mean and std
+    # zscore_filtered=band_pass_filter(df['zscore_raw'],4,20,fs)
+    # df['zscore_raw']=zscore_filtered
     for i in range(len(trough_index)):
         start = int(trough_index[i] - half_cycle_time*fs)
         end = int(trough_index[i] + half_cycle_time*fs)

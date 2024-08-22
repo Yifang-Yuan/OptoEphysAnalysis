@@ -622,6 +622,7 @@ class SyncOEpyPhotometrySession:
     
     def plot_theta_correlation(self,LFP_channel):
         silced_recording=self.theta_part
+        #silced_recording=self.Ephys_tracking_spad_aligned
         silced_recording=silced_recording.reset_index(drop=True)
         #print (silced_recording.index)
         silced_recording['theta_angle']=OE.calculate_theta_phase_angle(silced_recording[LFP_channel], theta_low=5, theta_high=9)
@@ -983,7 +984,7 @@ class SyncOEpyPhotometrySession:
         lfp_data=data_segment[lfp_channel]
         spad_data=data_segment['zscore_raw']
         lfp_data=lfp_data/1000 #change the unit from uV to mV
-        SPAD_cutoff=50
+        SPAD_cutoff=20
         SPAD_smooth_np = OE.smooth_signal(spad_data,Fs=self.fs,cutoff=SPAD_cutoff)
         'To align LFP and SPAD raw data to pynapple format'
         LFP=nap.Tsd(t = timestamps, d = lfp_data.to_numpy(), time_units = 's')
@@ -1362,9 +1363,11 @@ class SyncOEpyPhotometrySession:
         if mode=='ripple':
             savename='_Ripple_'
             event_peak_times=self.rip_tsd.index.to_numpy()
+            cutoff=150
         if mode=='theta':
             savename='_Theta_'
             event_peak_times=self.theta_tsd.index.to_numpy()
+            cutoff=20
         cross_corr_values = []
         timestamps=self.Ephys_tracking_spad_aligned['timestamps']
         for i in range(len(event_peak_times)):
@@ -1376,7 +1379,7 @@ class SyncOEpyPhotometrySession:
                 segment_data = self.Ephys_tracking_spad_aligned[start_idx:end_idx]
                 segment_zscore=segment_data['zscore_raw']
                 segment_LFP=segment_data[lfp_channel]
-                z_score=OE.smooth_signal(segment_zscore,Fs=self.fs,cutoff=50)
+                z_score=OE.smooth_signal(segment_zscore,Fs=self.fs,cutoff=cutoff)
                 lags,cross_corr =OE.calculate_correlation_with_detrend (z_score,segment_LFP)
                 cross_corr_values.append(cross_corr)
         cross_corr_values = np.array(cross_corr_values,dtype=float)
