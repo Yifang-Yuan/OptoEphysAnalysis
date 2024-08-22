@@ -811,8 +811,8 @@ def plot_two_trace_overlay(ax, time,trace1,trace2, title='Wavelet Power Spectrum
 
     normalized_trace1 = (trace1 - trace1.min()) / (trace1.max() - trace1.min()) 
     normalized_trace2 = (trace2 - trace2.min()) / (trace2.max() - trace2.min()) 
-    ax.plot(time, normalized_trace1, color1)
-    ax.plot(time, normalized_trace2, color2)
+    ax.plot(time, normalized_trace1, color1,linewidth=2)
+    ax.plot(time, normalized_trace2, color2,linewidth=2)
     ax.margins(x=0)
 
     return ax
@@ -831,11 +831,11 @@ def plot_ripple_overlay(ax, sst, SPAD_ep, frequency, power, time, sst_filtered, 
     normalized_sst_filtered = (sst_filtered - sst_filtered.min()) / (sst_filtered.max() - sst_filtered.min()) * (frequency.max() - frequency.min()) + frequency.min()
     normalized_SPAD_ep=(SPAD_ep - SPAD_ep.min()) / (SPAD_ep.max() - SPAD_ep.min()) * (frequency.max() - frequency.min()) + frequency.min()
     if plotLFP:
-        ax.plot(time, normalized_sst, 'k',linewidth=1)
+        ax.plot(time, normalized_sst, 'k',linewidth=2)
     if plotSPAD:
-        ax.plot(time, normalized_SPAD_ep, 'lime',linewidth=1)
+        ax.plot(time, normalized_SPAD_ep, 'lime',linewidth=2)
     if plotRipple:
-        ax.plot(time, normalized_sst_filtered, 'white', linewidth=1)
+        ax.plot(time, normalized_sst_filtered, 'white', linewidth=2)
     return ax
 
 def plot_theta_overlay(ax, sst, SPAD_ep, frequency, power, time, sst_filtered, title='Wavelet Power Spectrum',plotLFP=True,plotSPAD=False,plotTheta=False):
