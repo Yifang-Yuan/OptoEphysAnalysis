@@ -833,7 +833,7 @@ def plot_ripple_overlay(ax, sst, SPAD_ep, frequency, power, time, sst_filtered, 
     if plotLFP:
         ax.plot(time, normalized_sst, 'k',linewidth=1)
     if plotSPAD:
-        ax.plot(time, normalized_SPAD_ep, 'g',linewidth=1)
+        ax.plot(time, normalized_SPAD_ep, 'lime',linewidth=1)
     if plotRipple:
         ax.plot(time, normalized_sst_filtered, 'white', linewidth=1)
     return ax
