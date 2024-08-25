@@ -53,6 +53,9 @@ class SyncOEpyPhotometrySession:
         if (read_aligned_data_from_file):
             filepath=os.path.join(self.dpath, "Ephys_tracking_photometry_aligned.pkl")
             self.Ephys_tracking_spad_aligned = pd.read_pickle(filepath)
+            
+            duration= len(self.Ephys_tracking_spad_aligned['timestamps'])/self.fs
+            self.Ephys_tracking_spad_aligned['timestamps']= np.linspace(0, duration, len(self.Ephys_tracking_spad_aligned['timestamps']), endpoint=False)
         else:
             self.Ephys_data=self.read_open_ephys_data() #read ephys data that we pre-processed from dpath
             if self.recordingMode=='py':
@@ -978,9 +981,10 @@ class SyncOEpyPhotometrySession:
         'This is the LFP data that need to be saved for the sync ananlysis'
         data_segment=self.Ephys_tracking_spad_aligned
         #data_segment=self.theta_part
+        # duration= len(data_segment['timestamps'])/self.fs
+        # timestamps = np.linspace(0, duration, len(data_segment['timestamps']), endpoint=False)
         timestamps=data_segment['timestamps'].copy()
         timestamps=timestamps.to_numpy()
-        #timestamps=timestamps-timestamps[0]
         #Use non-theta part to detect ripple
         lfp_data=data_segment[lfp_channel]
         spad_data=data_segment['zscore_raw']
@@ -1059,7 +1063,7 @@ class SyncOEpyPhotometrySession:
         if len(self.theta_tsd)>0:
             self.Oscillation_triggered_Optical_transient  (mode='theta',lfp_channel=lfp_channel,half_window=0.5,plot_single_trace=True,plotShade='CI')
             self.Oscillation_optical_correlation (mode='theta',lfp_channel=lfp_channel, half_window=0.5)
-        return rip_ep,rip_tsd
+        return data_segment,timestamps
     
     def PlotThetaNestedGamma (self,lfp_channel='LFP_2',Low_thres=1,High_thres=10,plot_segment=False, plot_ripple_ep=True):
         'This is the LFP data that need to be saved for the sync ananlysis'
@@ -1288,8 +1292,7 @@ class SyncOEpyPhotometrySession:
         mean_LFP_3,std_LFP_3, CI_LFP_3=OE.calculateStatisticNumpy (LFP_values_3)
         mean_LFP_4,std_LFP_4, CI_LFP_4=OE.calculateStatisticNumpy (LFP_values_4)
         'Plot LFP and optical signal during ripple/theta events'
-        print (len(mean_z_score))
-        print (len(mean_LFP_1))
+
         x = np.linspace(-half_window, half_window, len(mean_z_score))
         
         fig, ax = plt.subplots(2, 2, figsize=(10, 8))

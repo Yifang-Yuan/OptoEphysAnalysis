@@ -84,19 +84,23 @@ def replace_outliers_with_avg(data, threshold):
             data[index] = data[left - 1] if left != 0 else data[right + 1]
 
     return data
+
+
 #%%
 # Sampling Frequency
 '''Read binary files for single ROI'''
 fs=840
-dpath='G:/YY/New/1765508_Jedi2p_CompareSystem/Day4_Atlas/SyncRecording1'
+dpath='G:/GEVItest/1804114_JediCA1_2/'
 # fs=1000
 # dpath='G:/YY/New/1765508_Jedi2p_CompareSystem/Day2_pyPhotometry/SyncRecording4'
 csv_filename='Green_traceAll.csv'
 filepath=Analysis.Set_filename (dpath, csv_filename)
 #filepath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/smallROI_100Hznoise.csv'
 Trace_raw=Analysis.getSignalTrace (filepath, traceType='Constant',HighFreqRemoval=False,getBinTrace=False,bin_window=10)
-Trace_raw=Trace_raw[4*840:14*840]
+
 #%%
+fs=840
+Trace_raw=Trace_raw[fs*10:fs*12]
 fig, ax = plt.subplots(figsize=(8,2))
 plot_trace(Trace_raw,ax, fs,label='840Hz')
 #%%
@@ -129,11 +133,11 @@ from waveletFunctions import wave_signif, wavelet
 import OpenEphysTools as OE
 
 signal=Trace_raw
-signal_smooth= OE.butter_filter(signal, btype='high', cutoff=3, fs=fs, order=1)
-
+signal_smooth= OE.butter_filter(signal, btype='high', cutoff=4, fs=fs, order=2)
+signal_smooth= OE.butter_filter(signal_smooth, btype='low', cutoff=20, fs=fs, order=3)
+'scale also change the frequency range you can get'
+sst,frequency,power,global_ws=OE.Calculate_wavelet(signal_smooth,lowpassCutoff=100,Fs=fs,scale=5)
 
 fig, ax = plt.subplots(figsize=(8,2))
-
-sst,frequency,power,global_ws=OE.Calculate_wavelet(signal_smooth,lowpassCutoff=20,Fs=fs,scale=40)
-OE.plot_wavelet(ax,sst,frequency,power,Fs=fs,colorBar=False,logbase=False)
+OE.plot_wavelet(ax,sst,frequency,power,Fs=fs,colorBar=False,logbase=True)
 

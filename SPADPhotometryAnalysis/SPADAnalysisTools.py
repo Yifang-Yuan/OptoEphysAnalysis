@@ -441,7 +441,7 @@ def photometry_smooth_plot (raw_reference,raw_signal,sampling_rate=500, smooth_w
     return z_signal,smooth_signal,signal
 
 
-def plot_wavelet_data(data,sampling_rate,cutoff):
+def plot_wavelet_data(data,sampling_rate,cutoff,xlim = ([6,30])):
     import matplotlib.ticker as ticker
     # from mpl_toolkits.axes_grid1 import make_axes_locatable
     from waveletFunctions import wavelet
@@ -476,7 +476,7 @@ def plot_wavelet_data(data,sampling_rate,cutoff):
     power = (np.abs(wave)) ** 2  # compute wavelet power spectrum
     global_ws = (np.sum(power, axis=1) / n)  # time-average over all times
     frequency=1/period
-    xlim = ([0,8])  # plotting range
+    #xlim = ([6,30])  # plotting range
     fig, plt3 = plt.subplots(figsize=(15,5))
     levels = [0, 4,20, 100, 200, 300]
     # *** or use 'contour'

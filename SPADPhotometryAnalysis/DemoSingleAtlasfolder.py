@@ -11,7 +11,7 @@ from SPADPhotometryAnalysis import photometry_functions as fp
 from SPADPhotometryAnalysis import AtlasDecode
 from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 #%% Workable code, above is testin
-dpath='G:/Optogenetics/1804114/Burst-RS-8400frames-840Hz_2024-08-16_15-05_1Hz10ms/'
+dpath='G:/GEVItest/1819287_mNeon/Burst-RS-25200frames-840Hz_2024-08-23_11-52/'
 #dpath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/Burst-RS-1017frames-1017Hz_4uW/'
 hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
 xxrange = [45, 85]
@@ -19,14 +19,11 @@ yyrange = [50, 90]
 
 Trace_raw,z_score=AtlasDecode.get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange=xxrange,yyrange=yyrange,fs=840,photoncount_thre=500)
 #%%
-
-data = z_score
-Analysis.plot_PSD_bands (data,fs=840)
+data=Trace_raw
 #%%
 sampling_rate=840
 '''Wavelet spectrum ananlysis'''
-
-Analysis.plot_wavelet_data(data,sampling_rate,cutoff=100)
+Analysis.plot_wavelet_data(data,sampling_rate,cutoff=300,xlim = ([6,30]))
 
 #%%
 #Plot the image of the pixel array

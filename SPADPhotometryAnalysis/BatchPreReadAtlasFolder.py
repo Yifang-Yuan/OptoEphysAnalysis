@@ -118,15 +118,15 @@ def main():
     or draw image for a single trial using DemoS ingleSPAD_folder.py'''
     
     'Reading SPAD binary data'
-    hotpixel_path='F:/SPADdata/Altas_hotpixel.csv'
-    xxrange = [50, 80]   
-    yyrange = [50, 80]
+    hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
+    xxrange = [45, 85]
+    yyrange = [50, 90]
     # xxrange = [5, 55]
     # yyrange = [25, 75]
 
 
-    atlas_parent_folder='G:/YY/2024MScR_NORtask/1765011_PV_Jedi2p_opticalonly_Atlas/Atlas/'
-    day_parent_folder='G:/YY/2024MScR_NORtask/1765011_PV_Jedi2p_opticalonly_Atlas/'
+    atlas_parent_folder='G:/GEVItest/Batch/'
+    day_parent_folder='G:/GEVItest/'
     read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,xxrange,yyrange,new_folder_name='SyncRecording')
     
     
