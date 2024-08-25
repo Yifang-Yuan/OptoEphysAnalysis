@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = empty-project-type
-recent_files = ['OpenEphysTools.py', 'SyncOECPySessionClass.py', 'CombineAnalysisPy.py', 'ConcatenateTrials.py', 'BatchProcessRecordingClass.py', 'MakePlots.py']
+recent_files = ['OpenEphysTools.py', 'SyncOECPySessionClass.py', 'CombineAnalysisPy.py', 'ConcatenateTrials.py', 'SPADPhotometryAnalysis\\DemoSingleAtlasfolder.py', 'SPADPhotometryAnalysis\\PlotTraceAtlas.py', 'SPADPhotometryAnalysis\\SPADAnalysisTools.py']
 
 [main]
 version = 0.2.0

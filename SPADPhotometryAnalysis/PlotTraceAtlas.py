@@ -12,6 +12,7 @@ from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 from SPADPhotometryAnalysis import SPADreadBin
 from SPADPhotometryAnalysis import photometry_functions as fp
 import os
+from scipy import signal
 
 def plot_trace(trace,ax, fs=9938.4, label="trace",color='tab:blue'):
     t=(len(trace)) / fs
@@ -85,24 +86,30 @@ def replace_outliers_with_avg(data, threshold):
 
     return data
 
-
+def notchfilter (data,f0=100,bw=10,fs=840):
+    # Bandwidth of the notch filter (in Hz)   
+    Q = f0/bw # Quality factor
+    b, a = signal.iirnotch(f0, Q, fs)
+    for _ in range(4):
+        data = signal.filtfilt(b, a, data)
+    return data
 #%%
 # Sampling Frequency
 '''Read binary files for single ROI'''
 fs=840
-dpath='G:/GEVItest/1804114_JediCA1_2/'
+dpath='G:/GEVItest/1769568_PVcre_mNeon1/'
 # fs=1000
 # dpath='G:/YY/New/1765508_Jedi2p_CompareSystem/Day2_pyPhotometry/SyncRecording4'
 csv_filename='Green_traceAll.csv'
 filepath=Analysis.Set_filename (dpath, csv_filename)
 #filepath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/smallROI_100Hznoise.csv'
 Trace_raw=Analysis.getSignalTrace (filepath, traceType='Constant',HighFreqRemoval=False,getBinTrace=False,bin_window=10)
-
+Trace_raw=notchfilter (Trace_raw,f0=100,bw=10,fs=840)
 #%%
 fs=840
-Trace_raw=Trace_raw[fs*10:fs*12]
 fig, ax = plt.subplots(figsize=(8,2))
-plot_trace(Trace_raw,ax, fs,label='840Hz')
+plot_trace(Trace_raw[20*840:30*840],ax, fs,label='840Hz')
+#%%
 #%%
 lambd = 10e3 # Adjust lambda to get the best fit
 porder = 1
@@ -118,8 +125,8 @@ plot_trace(z_score,ax, fs,label='z_score')
 bin_window=2
 Signal_bin=Analysis.get_bin_trace(Trace_raw,bin_window=bin_window,Fs=840)
 
-bin_window=5
-Signal_bin=Analysis.get_bin_trace(Trace_raw,bin_window=bin_window,Fs=840)
+bin_window=20
+Signal_bin=Analysis.get_bin_trace(Trace_raw[10*840:30*840],bin_window=bin_window,Fs=840)
 
 #SNR=Analysis.calculate_SNR(Trace_raw[0:9000])
 #ATLAS 840
@@ -132,12 +139,39 @@ from matplotlib.gridspec import GridSpec
 from waveletFunctions import wave_signif, wavelet
 import OpenEphysTools as OE
 
-signal=Trace_raw
-signal_smooth= OE.butter_filter(signal, btype='high', cutoff=4, fs=fs, order=2)
+data=Trace_raw
+signal_smooth= OE.butter_filter(data, btype='high', cutoff=5, fs=fs, order=2)
 signal_smooth= OE.butter_filter(signal_smooth, btype='low', cutoff=20, fs=fs, order=3)
+
+fig, ax = plt.subplots(figsize=(8,2))
+plot_trace(signal_smooth[5*840:8*840],ax, fs,label='840Hz')
 'scale also change the frequency range you can get'
-sst,frequency,power,global_ws=OE.Calculate_wavelet(signal_smooth,lowpassCutoff=100,Fs=fs,scale=5)
+sst,frequency,power,global_ws=OE.Calculate_wavelet(signal_smooth[5*840:8*840],lowpassCutoff=20,Fs=fs,scale=5)
 
 fig, ax = plt.subplots(figsize=(8,2))
 OE.plot_wavelet(ax,sst,frequency,power,Fs=fs,colorBar=False,logbase=True)
 
+#%%
+data=Trace_raw
+signal_smooth= OE.butter_filter(data, btype='high', cutoff=30, fs=fs, order=2)
+signal_smooth= OE.butter_filter(signal_smooth, btype='low', cutoff=60, fs=fs, order=3)
+
+fig, ax = plt.subplots(figsize=(8,2))
+plot_trace(signal_smooth[22*840:23*840],ax, fs,label='840Hz')
+'scale also change the frequency range you can get'
+sst,frequency,power,global_ws=OE.Calculate_wavelet(signal_smooth[22*840:23*840],lowpassCutoff=60,Fs=fs,scale=5)
+
+fig, ax = plt.subplots(figsize=(8,2))
+OE.plot_wavelet(ax,sst,frequency,power,Fs=fs,colorBar=False,logbase=True)
+#%%
+data=Trace_raw
+signal_smooth= OE.butter_filter(data, btype='high', cutoff=70, fs=fs, order=2)
+signal_smooth= OE.butter_filter(signal_smooth, btype='low', cutoff=110, fs=fs, order=3)
+
+fig, ax = plt.subplots(figsize=(8,2))
+plot_trace(signal_smooth[22*840:23*840],ax, fs,label='840Hz')
+'scale also change the frequency range you can get'
+sst,frequency,power,global_ws=OE.Calculate_wavelet(signal_smooth[22*840:23*840],lowpassCutoff=110,Fs=fs,scale=2)
+
+fig, ax = plt.subplots(figsize=(8,2))
+OE.plot_wavelet(ax,sst,frequency,power,Fs=fs,colorBar=False,logbase=True)
