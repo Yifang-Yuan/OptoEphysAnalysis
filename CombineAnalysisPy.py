@@ -14,13 +14,13 @@ import pickle
 #%%
 '''recordingMode: use py, Atlas, SPAD for different systems
 '''
-dpath='D:/YY/2024MScR_NORtask/1765508_Jedi2p_CompareSystem/Day5_Atlas_EphysGood/'
+dpath='D:/YY/2024MScR_NORtask/1756735_PVCre_Jedi2p_Compare/Day1Atlas_OF/'
 recordingName='SavedOpenFieldTrials'
 #dpath="G:/SPAD/SPADData/20230722_SPADOE/SyncRecording0/"
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,recordingMode='Atlas',indicator='GEVI') 
 #%%
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-LFP_channel='LFP_4'
+LFP_channel='LFP_2'
 #%%
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined theta period.
