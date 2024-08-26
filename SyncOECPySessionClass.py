@@ -918,8 +918,8 @@ class SyncOEpyPhotometrySession:
             ripple_duration=((rip_ep.iloc[[i]]['end']-rip_ep.iloc[[i]]['start'])*1000)[0]  #second to ms
             self.ripple_std_values.append(ripple_std)
             self.ripple_duration_values.append(ripple_duration)
-            half_window_long=0.5
-            half_window_short=0.5
+            half_window_long=0.2
+            half_window_short=0.2
             if event_peak_times[i]-timestamps[0]>half_window_long and timestamps[-1]-event_peak_times[i]>half_window_long:
                 if plot_ripple_ep:
                     start_time=event_peak_times[i]-half_window_long
@@ -1144,15 +1144,18 @@ class SyncOEpyPhotometrySession:
      
         return rip_ep,rip_tsd
     
-    def plot_average_theta_nested_gamma(self,LFP_channel,plotFeature='LFP'):
+    def plot_average_theta_nested_gamma(self,LFP_channel):
         silced_recording=self.theta_part
         silced_recording=silced_recording.reset_index(drop=True)
         #print (silced_recording.index)
         silced_recording['theta_angle']=OE.calculate_theta_phase_angle(silced_recording[LFP_channel], theta_low=5, theta_high=9)
-        OE.plot_trace_in_seconds(silced_recording['theta_angle'],Fs=10000,title='theta angle')
-        trough_index = OE.calculate_theta_trough_index(silced_recording,Fs=10000)
+        #OE.plot_trace_in_seconds(silced_recording['theta_angle'],Fs=10000,title='theta angle')
+        trough_index = OE.calculate_theta_trough_index(silced_recording,Fs=self.fs)
         #print (trough_index)
-        OE.plot_theta_nested_average_gamma_power (self.fs,silced_recording, LFP_channel,trough_index,half_window=0.15,fs=10000,plotFeature=plotFeature)
+        OE.plot_theta_nested_average_gamma_power_low (self.fs,silced_recording, 
+                                                  LFP_channel,trough_index,half_window=0.15)
+        OE.plot_theta_nested_average_gamma_power_high (self.fs,silced_recording, 
+                                                  LFP_channel,trough_index,half_window=0.15)
         return -1
 
 
