@@ -640,7 +640,6 @@ def plot_wavelet(ax,sst,frequency,power,Fs=10000,colorBar=False,logbase=False):
     import matplotlib.ticker as ticker
     time = np.arange(len(sst)) /Fs   # construct time array
     level=8 #level is how many contour levels you want
-    
     CS = ax.contourf(time, frequency, power, level)
     #ax.set_xlabel('Time (seconds)')
     ax.set_ylabel('Frequency (Hz)')
@@ -653,7 +652,7 @@ def plot_wavelet(ax,sst,frequency,power,Fs=10000,colorBar=False,logbase=False):
     yax.set_major_formatter(ticker.ScalarFormatter())
     if colorBar: 
         fig = plt.gcf()  # Get the current figure
-        position = fig.add_axes([0.2, 0.01, 0.4, 0.02])
+        position = fig.add_axes([0.2, 0.01, 0.2, 0.01])
         #position = fig.add_axes()
         cbar=plt.colorbar(CS, cax=position, orientation='horizontal', fraction=0.05, pad=0.5)
         cbar.set_label('Power (mV$^2$)', fontsize=12) 
