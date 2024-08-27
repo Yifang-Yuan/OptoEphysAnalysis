@@ -14,7 +14,7 @@ import pickle
 #%%
 '''recordingMode: use py, Atlas, SPAD for different systems
 '''
-dpath='F:/2024MScR_NORtask/1765508_Jedi2p_Atlas/20240501_Day3/'
+dpath='F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240501_Day3/'
 recordingName='SavedPostSleepTrials'
 #dpath="G:/SPAD/SPADData/20230722_SPADOE/SyncRecording0/"
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,recordingMode='Atlas',indicator='GEVI') 
@@ -36,7 +36,7 @@ rip_ep,rip_tsd=Recording1.pynappleGammaAnalysis (lfp_channel=LFP_channel,ep_star
 '''RIPPLE DETECTION
 For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
 rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,ep_start=10,ep_end=40,
-                                                                          Low_thres=1,High_thres=6,plot_segment=True,
+                                                                          Low_thres=1,High_thres=10,plot_segment=False,
                                                                           plot_ripple_ep=True,excludeTheta=True)
 #%% Detect theta nested gamma event
 '''Theta nested Gamma plot

@@ -467,19 +467,23 @@ class SyncOEpyPhotometrySession:
         spad_low = pd.Series(SPAD_smooth, index=silced_recording['zscore_raw'].index)
         lfp_low = pd.Series(lfp_lowpass, index=silced_recording[LFP_channel].index)
         
-        fig, ax = plt.subplots(5, 1, figsize=(24, 16))
+        fig, ax = plt.subplots(5, 1, figsize=(12, 8))
         OE.plot_trace_in_seconds_ax (ax[0],spad_low,self.fs,label='GEVI',color=sns.color_palette("husl", 8)[3],
                                ylabel='z-score',xlabel=False)
         #spad_filtered=OE.band_pass_filter(spad_data,120,300,self.fs)
-        sst,frequency,power_spad,global_ws=OE.Calculate_wavelet(spad_low,lowpassCutoff=100,Fs=self.fs,scale=40)
-        OE.plot_wavelet(ax[1],sst,frequency,power_spad,Fs=self.fs,colorBar=False,logbase=False)
+        sst_spad,frequency,power_spad,global_ws=OE.Calculate_wavelet(spad_low,lowpassCutoff=100,Fs=self.fs,scale=180)
+        OE.plot_wavelet(ax[1],sst_spad,frequency,power_spad,Fs=self.fs,colorBar=False,logbase=False)
         lfp_low=lfp_low
         OE.plot_trace_in_seconds_ax (ax[2],lfp_low,self.fs,label='LFP',color=sns.color_palette("dark", 8)[7],ylabel='mV',xlabel=False)
         #lfp_data_filtered=OE.band_pass_filter(lfp_data,120,300,self.fs)
-        sst,frequency,power_lfp,global_ws=OE.Calculate_wavelet(lfp_low,lowpassCutoff=500,Fs=self.fs,scale=40)
-        OE.plot_wavelet(ax[3],sst,frequency,power_lfp,Fs=self.fs,colorBar=True,logbase=False)
-        ax[1].set_ylim(0,20)
-        ax[3].set_ylim(0,20)
+        sst_lfp,frequency,power_lfp,global_ws=OE.Calculate_wavelet(lfp_low,lowpassCutoff=500,Fs=self.fs,scale=180)
+        OE.plot_wavelet(ax[3],sst_lfp,frequency,power_lfp,Fs=self.fs,colorBar=False,logbase=False)
+        
+        cross_power = np.abs(power_spad * np.conj(power_lfp))**2
+        coherence = cross_power / (np.abs(power_spad) * np.abs(power_lfp))
+         
+        #ax[1].set_ylim(0,20)
+        #ax[3].set_ylim(0,20)
         ax[3].set_xlabel('Time (seconds)')
         ax[0].legend().set_visible(False)
         ax[2].legend().set_visible(False)
@@ -501,13 +505,20 @@ class SyncOEpyPhotometrySession:
         ax[3].set_xticks([])  # Hide x-axis tick marks
         ax[3].set_xlabel([])
         ax[3].set_xlabel('')  # Hide x-axis label
-        
+        #OE.plot_wavelet(ax[4],sst_spad,frequency,coherence,Fs=10000,colorBar=True,logbase=False)
+        time = np.arange(len(sst_spad)) /self.fs
+        ax[4].imshow(coherence, extent=[time.min(), time.max(), frequency.min(), frequency.max()],
+                     aspect='auto', origin='lower', cmap='jet')
+        ax[4].set_ylabel('Frequency [Hz]')
+        ax[4].set_xlabel('Time [s]')
+        ax[4].set_title('Coherence between SPAD and LFP')
         
         #plt.tight_layout()
-        output_path=os.path.join(self.savepath,'makefigure','example_theta_trace.png')
+        output_path=os.path.join(self.savepath,'makefigure','example_coherence.png')
         fig.savefig(output_path, bbox_inches='tight', pad_inches=0, transparent=True)
         plt.show()
-        return -1
+        return cross_power,coherence,sst_spad,power_spad
+    
     def plot_segment_band_feature (self,LFP_channel,start_time,end_time,SPAD_cutoff,lfp_cutoff):
         silced_recording=self.slicing_pd_data (self.Ephys_tracking_spad_aligned,start_time=start_time, end_time=end_time)
         #SPAD_smooth= OE.butter_filter(data['zscore_raw'], btype='high', cutoff=0.5, fs=self.fs, order=5)
@@ -779,11 +790,13 @@ class SyncOEpyPhotometrySession:
         spad_data=data_segment['zscore_raw']
         lfp_data=lfp_data/1000 #change the unit from uV to mV
         SPAD_cutoff=200
-        SPAD_smooth_np = OE.smooth_signal(spad_data,Fs=self.fs,cutoff=100)
+        SPAD_smooth_np = OE.smooth_signal(spad_data,Fs=self.fs,cutoff=SPAD_cutoff)
+        LFP_smooth_np = OE.smooth_signal(lfp_data,Fs=self.fs,cutoff=500)
         'To align LFP and SPAD raw data to pynapple format'
         LFP=nap.Tsd(t = timestamps, d = lfp_data.to_numpy(), time_units = 's')
         SPAD=nap.Tsd(t = timestamps, d = spad_data.to_numpy(), time_units = 's')
         SPAD_smooth=nap.Tsd(t = timestamps, d = SPAD_smooth_np, time_units = 's')  
+        LFP_smooth=nap.Tsd(t = timestamps, d = LFP_smooth_np, time_units = 's')  
         'Calculate theta band for optical signal'
         #SPAD_ripple_band_filtered,nSS_spad,nSS3_spad,rip_ep_spad,rip_tsd_spad = OE.getRippleEvents (SPAD_smooth,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
         'To detect ripple'
@@ -867,6 +880,7 @@ class SyncOEpyPhotometrySession:
                     rip_long_ep = nap.IntervalSet(start = start_time, end = end_time, time_units = 's') 
                     LFP_ep=LFP.restrict(rip_long_ep)
                     SPAD_smooth_ep=SPAD_smooth.restrict(rip_long_ep)
+                    LFP_smooth_ep=LFP_smooth.restrict(rip_long_ep)
                     ripple_band_filtered_ep=ripple_band_filtered.restrict(rip_long_ep)   
                     SPAD_ripple_band_filtered_ep=SPAD_ripple_band_filtered.restrict(rip_long_ep)
                     start_time1=event_peak_times[i]-0.1
@@ -882,24 +896,24 @@ class SyncOEpyPhotometrySession:
                     #Set the title of ripple feature
                     plot_title = "Optical signal triggerred by ripple" 
                     
-                    sst_ep,frequency_spad,power_spad,global_ws=OE.Calculate_wavelet(SPAD_ripple_band_filtered_ep,lowpassCutoff=SPAD_cutoff,Fs=self.fs,scale=40)
+                    sst_ep,frequency_spad,power_spad,global_ws=OE.Calculate_wavelet(SPAD_ripple_band_filtered_ep,lowpassCutoff=150,Fs=self.fs,scale=40)
                     time = np.arange(-len(sst_ep)/2,len(sst_ep)/2) *(1/self.fs)
-                    OE.plot_ripple_overlay (ax[0],LFP_ep,SPAD_smooth_ep,frequency_spad,power_spad,time,ripple_band_filtered_ep,plot_title,plotLFP=False,plotSPAD=True,plotRipple=False)                                   
+                    OE.plot_ripple_overlay (ax[0],LFP_smooth_ep,SPAD_smooth_ep,frequency_spad,power_spad,time,ripple_band_filtered_ep,plot_title,plotLFP=False,plotSPAD=True,plotRipple=False)                                   
                     #Set the title of ripple feature
                     plot_title = "Local Field Potential with Spectrogram" 
-                    sst_ep,frequency,power_LFP,global_ws=OE.Calculate_wavelet(ripple_band_filtered_ep,lowpassCutoff=300,Fs=self.fs,scale=40) 
-                    OE.plot_ripple_overlay (ax[1],LFP_ep,SPAD_smooth_ep,frequency,power_LFP,time,ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=False)
+                    sst_ep,frequency,power_LFP,global_ws=OE.Calculate_wavelet(ripple_band_filtered_ep,lowpassCutoff=250,Fs=self.fs,scale=40) 
+                    OE.plot_ripple_overlay (ax[1],LFP_smooth_ep,SPAD_smooth_ep,frequency,power_LFP,time,ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=False)
                     
-                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_short_ep,lowpassCutoff=300,Fs=self.fs,scale=40)                
+                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered_short_ep,lowpassCutoff=250,Fs=self.fs,scale=40)                
                     time = np.arange(-len(sst_ep)/2,len(sst_ep)/2) *(1/self.fs)
                     #Set the title of ripple feature
                     plot_title = f"Ripple Peak std:{ripple_std:.2f}, Ripple Duration:{ripple_duration:.2f} ms" 
                     OE.plot_two_trace_overlay(ax[2], time,ripple_band_filtered_ep,SPAD_ripple_band_filtered_ep, title='Wavelet Power Spectrum',color1='black', color2='lime')
                     #OE.plot_ripple_overlay (ax[2],ripple_band_filtered_ep,SPAD_ripple_band_filtered_ep,frequency,power,time,SPAD_ripple_band_filtered_ep,plot_title,plotLFP=True,plotSPAD=True,plotRipple=True)
                     #OE.plot_ripple_overlay (ax[2],LFP_short_ep,SPAD_short_ep,frequency,power,time,ripple_band_filtered_short_ep,plot_title,plotLFP=True,plotSPAD=False,plotRipple=True)         
-                    ax[0].axvline(0, color='white',linewidth=1)
-                    ax[1].axvline(0, color='white',linewidth=1)
-                    ax[2].axvline(0, color='white',linewidth=1) 
+                    ax[0].axvline(0, color='white',linewidth=2)
+                    ax[1].axvline(0, color='white',linewidth=2)
+                    ax[2].axvline(0, color='white',linewidth=2) 
                     plt.tight_layout() 
                     figName=self.recordingName+'_Ripple'+str(i)+'.png'
                     fig.savefig(os.path.join(save_ripple_path,figName))

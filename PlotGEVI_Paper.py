@@ -27,10 +27,13 @@ nonthetha_thres: the theta band power should be smaller than 50% to be defined a
 theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0,High_thres=8,save=False,plot_theta=True)
 #%%
 '''To plot the feature of a part of the signal'''
-start_time=19
-end_time=24
+start_time=0
+end_time=50
 #%%
 Recording1.plot_segment_band_feature (LFP_channel,start_time,end_time,SPAD_cutoff=50,lfp_cutoff=100)
+#%%
+cross_power,coherence,sst_spad,power_spad=Recording1.plot_freq_power_coherence (LFP_channel,start_time,end_time,SPAD_cutoff=100,lfp_cutoff=100)
+
 #%%
 '''Here for the spectrum, I used a 0.5Hz high pass filter to process both signals'''
 timewindow=5 #the duration of the segment, in seconds
