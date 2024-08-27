@@ -38,6 +38,8 @@ viewNum=11 #the number of segments
 for i in range(viewNum):
     Recording1.plot_segment_band_feature (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=100)
 #%%
+
+
 #%%
 def plot_PSD_for_rest_run ():
     'plot PSD'
