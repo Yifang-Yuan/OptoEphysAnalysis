@@ -17,6 +17,7 @@ import OpenEphysTools as OE
 import pynapple as nap
 import MakePlots
 import pynacollada as pyna
+from SPADPhotometryAnalysis import SPADAnalysisTools as OpticalAnlaysis
 
 class SyncOEpyPhotometrySession:
     def __init__(self, SessionPath,recordingName,IsTracking=False,read_aligned_data_from_file=False, recordingMode='py',indicator='GECI'):
@@ -136,8 +137,6 @@ class SyncOEpyPhotometrySession:
                 break 
             print(f"Start time: {start_time}, End time: {end_time}")
             self.remove_noise(start_time=int(start_time),end_time=int(end_time))
-        
-
         return -1
     
     def Sync_ephys_with_spad(self):
@@ -457,6 +456,86 @@ class SyncOEpyPhotometrySession:
         #plt.tight_layout()
         #plt.show()
         return -1
+    def plot_segment_band_feature (self,LFP_channel,start_time,end_time,SPAD_cutoff,lfp_cutoff):
+        silced_recording=self.slicing_pd_data (self.Ephys_tracking_spad_aligned,start_time=start_time, end_time=end_time)
+        #SPAD_smooth= OE.butter_filter(data['zscore_raw'], btype='high', cutoff=0.5, fs=self.fs, order=5)
+        SPAD_smooth= OE.smooth_signal(silced_recording['zscore_raw'],Fs=self.fs,cutoff=SPAD_cutoff)
+        SPAD_smooth= OE.butter_filter(SPAD_smooth, btype='high', cutoff=4, fs=self.fs, order=3)
+        lfp_lowpass = OE.butter_filter(silced_recording[LFP_channel], btype='high', cutoff=2, fs=self.fs, order=3)
+        lfp_lowpass = OE.butter_filter(lfp_lowpass, btype='low', cutoff=lfp_cutoff, fs=self.fs, order=5)
+        spad_low = pd.Series(SPAD_smooth, index=silced_recording['zscore_raw'].index)
+        lfp_low = pd.Series(lfp_lowpass, index=silced_recording[LFP_channel].index)
+        
+        fig, ax = plt.subplots(8, 1, figsize=(24, 16))
+        OE.plot_trace_in_seconds_ax (ax[0],spad_low,self.fs,label='GEVI',color=sns.color_palette("husl", 8)[3],
+                               ylabel='z-score',xlabel=False)
+        #spad_filtered=OE.band_pass_filter(spad_data,120,300,self.fs)
+        sst,frequency,power,global_ws=OE.Calculate_wavelet(spad_low,lowpassCutoff=100,Fs=self.fs,scale=40)
+        OE.plot_wavelet(ax[1],sst,frequency,power,Fs=self.fs,colorBar=False,logbase=False)
+        lfp_low=lfp_low
+        OE.plot_trace_in_seconds_ax (ax[2],lfp_low,self.fs,label='LFP',color=sns.color_palette("dark", 8)[7],ylabel='mV',xlabel=False)
+        #lfp_data_filtered=OE.band_pass_filter(lfp_data,120,300,self.fs)
+        sst,frequency,power,global_ws=OE.Calculate_wavelet(lfp_low,lowpassCutoff=500,Fs=self.fs,scale=40)
+        OE.plot_wavelet(ax[3],sst,frequency,power,Fs=self.fs,colorBar=True,logbase=False)
+        ax[1].set_ylim(0,20)
+        ax[3].set_ylim(0,20)
+        ax[3].set_xlabel('Time (seconds)')
+        ax[0].legend().set_visible(False)
+        ax[2].legend().set_visible(False)
+        ax[1].spines['top'].set_visible(False)
+        ax[1].spines['right'].set_visible(False)
+        ax[1].spines['bottom'].set_visible(False)
+        ax[1].spines['left'].set_visible(False)
+        ax[3].spines['top'].set_visible(False)
+        ax[3].spines['right'].set_visible(False)
+        ax[3].spines['bottom'].set_visible(False)
+        ax[3].spines['left'].set_visible(False)
+        ax[2].spines['bottom'].set_visible(False)
+        ax[1].set_xticks([])  # Hide x-axis tick marks
+        ax[1].set_xlabel([])
+        ax[1].set_xlabel('')  # Hide x-axis label
+        ax[2].set_xticks([])  # Hide x-axis tick marks
+        ax[2].set_xlabel([])
+        ax[2].set_xlabel('')  # Hide x-axis label
+        ax[3].set_xticks([])  # Hide x-axis tick marks
+        ax[3].set_xlabel([])
+        ax[3].set_xlabel('')  # Hide x-axis label
+        
+        SPAD_theta= OE.butter_filter(silced_recording['zscore_raw'], btype='low', cutoff=9, fs=self.fs, order=5)
+        SPAD_theta= OE.butter_filter(SPAD_theta, btype='high', cutoff=4, fs=self.fs, order=5)
+        lfp_theta = OE.butter_filter(silced_recording[LFP_channel], btype='high', cutoff=4, fs=self.fs, order=5)
+        lfp_theta = OE.butter_filter(lfp_theta, btype='low', cutoff=12, fs=self.fs, order=5)
+        SPAD_theta = pd.Series(SPAD_theta, index=silced_recording['zscore_raw'].index)
+        lfp_theta = pd.Series(lfp_theta, index=silced_recording[LFP_channel].index)
+        OE.plot_trace_in_seconds_ax (ax[4],SPAD_theta,self.fs,label='GEVI',color=sns.color_palette("husl", 8)[3],
+                               ylabel='z-score',xlabel=False)
+
+        OE.plot_trace_in_seconds_ax (ax[5],lfp_theta,self.fs,label='LFP',color=sns.color_palette("dark", 8)[7],
+                               ylabel='mV',xlabel=True)
+        
+        ax[4].legend().set_visible(False)
+        ax[5].legend().set_visible(False)
+        
+        SPAD_beta= OE.butter_filter(silced_recording['zscore_raw'], btype='low', cutoff=30, fs=self.fs, order=5)
+        SPAD_beta= OE.butter_filter(SPAD_beta, btype='high', cutoff=15, fs=self.fs, order=5)
+        lfp_beta = OE.butter_filter(silced_recording[LFP_channel], btype='high', cutoff=15, fs=self.fs, order=5)
+        lfp_beta = OE.butter_filter(lfp_beta, btype='low', cutoff=30, fs=self.fs, order=5)
+        SPAD_beta = pd.Series(SPAD_beta, index=silced_recording['zscore_raw'].index)
+        lfp_beta = pd.Series(lfp_beta, index=silced_recording[LFP_channel].index)
+        OE.plot_trace_in_seconds_ax (ax[6],SPAD_beta,self.fs,label='GEVI',color=sns.color_palette("husl", 8)[3],
+                               ylabel='z-score',xlabel=False)
+
+        OE.plot_trace_in_seconds_ax (ax[7],lfp_beta,self.fs,label='LFP',color=sns.color_palette("dark", 8)[7],
+                               ylabel='mV',xlabel=True)
+        
+        ax[6].legend().set_visible(False)
+        ax[7].legend().set_visible(False)
+        #plt.tight_layout()
+        output_path=os.path.join(self.savepath,'makefigure','example_theta_trace.png')
+        fig.savefig(output_path, bbox_inches='tight', pad_inches=0, transparent=True)
+        plt.show()
+        return -1
+    
     
     def plot_segment_feature (self,LFP_channel,start_time,end_time,SPAD_cutoff,lfp_cutoff):
         silced_recording=self.slicing_pd_data (self.Ephys_tracking_spad_aligned,start_time=start_time, end_time=end_time)
@@ -501,7 +580,7 @@ class SyncOEpyPhotometrySession:
     def plot_two_traces_noSpeed (self, spad_data,lfp_data, spad_label='photometry',lfp_label='LFP',Spectro_ylim=20,AddColorbar=False):
         '''This will plot both SPAD and LFP signal with their wavelet spectrum'''
         
-        fig, ax = plt.subplots(4, 1, figsize=(8, 8))
+        fig, ax = plt.subplots(4, 1, figsize=(20, 8))
         OE.plot_trace_in_seconds_ax (ax[0],spad_data,self.fs,label=spad_label,color=sns.color_palette("husl", 8)[3],
                                ylabel='z-score',xlabel=False)
         #spad_filtered=OE.band_pass_filter(spad_data,120,300,self.fs)
@@ -533,9 +612,9 @@ class SyncOEpyPhotometrySession:
         ax[2].set_xlabel([])
         ax[2].set_xlabel('')  # Hide x-axis label
         
-        plt.subplots_adjust(hspace=0.5)
-        plt.tight_layout()
-        #plt.show()
+        #plt.subplots_adjust(hspace=0.5)
+        #plt.tight_layout()
+        plt.show()
         return -1
     
     def Label_REM_sleep (self,LFP_channel):
@@ -1427,8 +1506,8 @@ class SyncOEpyPhotometrySession:
         figName=self.recordingName+savename+'CrossCorrelation_'+lfp_channel+'.png'
         plt.savefig(os.path.join(self.savepath,figName))
         plt.show()
-        
         return -1
+    
 
     # def separate_theta_by_relative_bandpower (self,LFP_channel,theta_thres,nonthetha_thres):
     #     '''NOTE: 
