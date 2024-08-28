@@ -83,6 +83,8 @@ class SyncOEpyPhotometrySession:
                 del self.trackingdata
                 del self.trackingdata_resampled
                 del self.trackingdata_align
+        if self.indicator=='GEVI':
+            self.Ephys_tracking_spad_aligned['zscore_raw']=-self.Ephys_tracking_spad_aligned['zscore_raw']
 
     def ReadTrialAnimalState(self,SessionPath):
         SessionLabelFile=os.path.join(SessionPath,'TrailLabel.csv')
@@ -1148,7 +1150,7 @@ class SyncOEpyPhotometrySession:
         lfp_data=data_segment[lfp_channel]
         spad_data=data_segment['zscore_raw']
         lfp_data=lfp_data/1000 #change the unit from uV to mV
-        SPAD_cutoff=20
+        SPAD_cutoff=50
         SPAD_smooth_np = OE.smooth_signal(spad_data,Fs=self.fs,cutoff=SPAD_cutoff)
         'To align LFP and SPAD raw data to pynapple format'
         LFP=nap.Tsd(t = timestamps, d = lfp_data.to_numpy(), time_units = 's')
