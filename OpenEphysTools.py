@@ -967,10 +967,8 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
         ax2.set_xlim([-0.15,0.15])
         #ax2.spines['bottom'].set_visible(False)
         #ax2.spines['left'].set_visible(False)
-        
         plt.show()
     return -1
-
 
 def plot_gamma_power_on_theta(Fs,df, LFP_channel, trough_index, half_window):
     'plot low gamma'
@@ -1236,7 +1234,6 @@ def plot_gamma_power_on_theta(Fs,df, LFP_channel, trough_index, half_window):
     ax2.spines['top'].set_visible(False)
     ax2.spines['right'].set_visible(False)
     plt.show()
-
 
     'plot sst gamma band amplitude trace'
     fig, (ax1,ax2) = plt.subplots(2,1,figsize=(8, 8))

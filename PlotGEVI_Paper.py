@@ -80,6 +80,5 @@ def plot_PSD_for_rest_run ():
     OpticalAnlaysis.PSD_plot (optical_theta,fs=10000,method="welch",color='tab:green', xlim=[0,100],linewidth=2,linestyle='-',label='iGlu-move',ax=ax)
     return -1
 
-
 plot_PSD_for_rest_run ()
 #%%

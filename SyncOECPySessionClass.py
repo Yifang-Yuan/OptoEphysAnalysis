@@ -1304,18 +1304,6 @@ class SyncOEpyPhotometrySession:
      
         return rip_ep,rip_tsd
     
-    # def plot_average_theta_nested_gamma(self,LFP_channel):
-    #     silced_recording=self.theta_part
-    #     silced_recording=silced_recording.reset_index(drop=True)
-    #     #print (silced_recording.index)
-    #     silced_recording['theta_angle']=OE.calculate_theta_phase_angle(silced_recording[LFP_channel], theta_low=5, theta_high=9)
-    #     #OE.plot_trace_in_seconds(silced_recording['theta_angle'],Fs=10000,title='theta angle')
-    #     trough_index = OE.calculate_theta_trough_index(silced_recording,Fs=self.fs)
-    #     #print (trough_index)
-    #     OE.plot_theta_nested_average_gamma_power(self.fs,silced_recording, 
-    #                                               LFP_channel,trough_index,half_window=0.15)
-    #     return -1
-    
     def plot_gamma_power_on_theta_cycle(self,LFP_channel):
         silced_recording=self.theta_part
         silced_recording=silced_recording.reset_index(drop=True)
