@@ -83,8 +83,8 @@ class SyncOEpyPhotometrySession:
                 del self.trackingdata
                 del self.trackingdata_resampled
                 del self.trackingdata_align
-        if self.indicator=='GEVI':
-            self.Ephys_tracking_spad_aligned['zscore_raw']=-self.Ephys_tracking_spad_aligned['zscore_raw']
+        # if self.indicator == 'GEVI':
+        #     self.Ephys_tracking_spad_aligned['zscore_raw']=-self.Ephys_tracking_spad_aligned['zscore_raw']
 
     def ReadTrialAnimalState(self,SessionPath):
         SessionLabelFile=os.path.join(SessionPath,'TrailLabel.csv')
@@ -642,7 +642,6 @@ class SyncOEpyPhotometrySession:
         else:
             lfp_data=silced_recording[LFP_channel]
         data=lfp_data.to_numpy()
-
         lfp_thetaband=OE.band_pass_filter(data,5,9,Fs=self.fs)
         #lfp_thetaband = lfp_thetaband - np.mean(lfp_thetaband)
         sst,frequency,power,global_ws=OE.Calculate_wavelet(data,lowpassCutoff=500,Fs=self.fs)
@@ -1285,7 +1284,7 @@ class SyncOEpyPhotometrySession:
                     OE.plot_two_trace_overlay(ax[0], time,SPAD_smooth_ep,theta_band_filtered_spad_ep, title='Theta band optical',color1='lime', color2='black')   
                     OE.plot_ripple_trace(ax[1],time,gamma_band_filtered_spad_ep,color='red')
                     OE.plot_theta_nested_gamma_overlay (ax[2],LFP_ep,gamma_band_filtered_spad_ep,frequency,power,time,
-                                           theta_band_filtered_spad_ep,plot_title,plotLFP=False,plotSPAD=False,plotTheta=True)   
+                                           theta_band_filtered_spad_ep,150,plot_title,plotLFP=False,plotSPAD=False,plotTheta=True)   
                         
                     #Set the title of ripple feature
                     plot_title = "Theta nested gamma (Ephys)" 
@@ -1305,7 +1304,19 @@ class SyncOEpyPhotometrySession:
      
         return rip_ep,rip_tsd
     
-    def plot_average_theta_nested_gamma(self,LFP_channel):
+    # def plot_average_theta_nested_gamma(self,LFP_channel):
+    #     silced_recording=self.theta_part
+    #     silced_recording=silced_recording.reset_index(drop=True)
+    #     #print (silced_recording.index)
+    #     silced_recording['theta_angle']=OE.calculate_theta_phase_angle(silced_recording[LFP_channel], theta_low=5, theta_high=9)
+    #     #OE.plot_trace_in_seconds(silced_recording['theta_angle'],Fs=10000,title='theta angle')
+    #     trough_index = OE.calculate_theta_trough_index(silced_recording,Fs=self.fs)
+    #     #print (trough_index)
+    #     OE.plot_theta_nested_average_gamma_power(self.fs,silced_recording, 
+    #                                               LFP_channel,trough_index,half_window=0.15)
+    #     return -1
+    
+    def plot_gamma_power_on_theta_cycle(self,LFP_channel):
         silced_recording=self.theta_part
         silced_recording=silced_recording.reset_index(drop=True)
         #print (silced_recording.index)
@@ -1313,12 +1324,9 @@ class SyncOEpyPhotometrySession:
         #OE.plot_trace_in_seconds(silced_recording['theta_angle'],Fs=10000,title='theta angle')
         trough_index = OE.calculate_theta_trough_index(silced_recording,Fs=self.fs)
         #print (trough_index)
-        OE.plot_theta_nested_average_gamma_power_low (self.fs,silced_recording, 
-                                                  LFP_channel,trough_index,half_window=0.15)
-        OE.plot_theta_nested_average_gamma_power_high (self.fs,silced_recording, 
+        OE.plot_gamma_power_on_theta(self.fs,silced_recording, 
                                                   LFP_channel,trough_index,half_window=0.15)
         return -1
-
 
     def get_mean_corr_two_traces (self, spad_data,lfp_data,corr_window):
         # corr_window as second
