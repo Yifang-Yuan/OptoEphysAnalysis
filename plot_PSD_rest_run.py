@@ -7,8 +7,6 @@ Created on Fri Aug 30 11:41:42 2024
 
 import pandas as pd
 from SyncOECPySessionClass import SyncOEpyPhotometrySession
-import OpenEphysTools as OE
-import numpy as np
 import os
 import pickle
 from SPADPhotometryAnalysis import SPADAnalysisTools as OpticalAnlaysis
