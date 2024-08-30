@@ -38,6 +38,11 @@ For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for mo
 rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,ep_start=10,ep_end=40,
                                                                           Low_thres=1,High_thres=10,plot_segment=False,
                                                                           plot_ripple_ep=True,excludeTheta=True)
+#%%
+save_path = os.path.join(dpath, recordingName,LFP_channel+'_Class.pkl')
+with open(save_path, "wb") as file:
+    # Serialize and write the instance to the file
+    pickle.dump(Recording1, file)
 #%% Detect theta nested gamma event
 '''Theta nested Gamma plot
 For a rigid threshold to get larger amplitude Gamma events: Low_thres=1, for more ripple events, Low_thres=0'''
