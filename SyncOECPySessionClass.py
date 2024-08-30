@@ -590,7 +590,7 @@ class SyncOEpyPhotometrySession:
                                ylabel='z-score',xlabel=False)
 
         OE.plot_trace_in_seconds_ax (ax[5],lfp_theta,self.fs,label='LFP',color=sns.color_palette("dark", 8)[7],
-                               ylabel='mV',xlabel=True)
+                               ylabel='μV',xlabel=True)
         
         ax[4].legend().set_visible(False)
         ax[5].legend().set_visible(False)
@@ -610,7 +610,11 @@ class SyncOEpyPhotometrySession:
         ax[6].legend().set_visible(False)
         ax[7].legend().set_visible(False)
         #plt.tight_layout()
-        output_path=os.path.join(self.savepath,'makefigure','example_theta_trace.png')
+        makefigure_path = os.path.join(self.savepath, 'makefigure')
+        if not os.path.exists(makefigure_path):
+            os.makedirs(makefigure_path)
+            
+        output_path=os.path.join(makefigure_path,'example_theta_trace.png')
         fig.savefig(output_path, bbox_inches='tight', pad_inches=0, transparent=True)
         plt.show()
         return -1
@@ -1292,7 +1296,7 @@ class SyncOEpyPhotometrySession:
                     OE.plot_two_trace_overlay(ax[3], time,LFP_ep,theta_band_filtered_ep, title='Theta band LFP',color1='blue', color2='black')   
                     OE.plot_ripple_trace(ax[4],time,gamma_band_filtered_ep,color='red')
                     OE.plot_theta_nested_gamma_overlay (ax[5],gamma_band_filtered_ep,gamma_band_filtered_ep,frequency,power,time,
-                                           theta_band_filtered_ep,plot_title,plotLFP=False,plotSPAD=False,plotTheta=True)
+                                           theta_band_filtered_ep,100,plot_title,plotLFP=False,plotSPAD=False,plotTheta=True)
 
                     # Optionally remove ticks
                     ax[0].tick_params(left=True, bottom=False, labelleft=True, labelbottom=False)

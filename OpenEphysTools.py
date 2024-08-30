@@ -1048,16 +1048,16 @@ def plot_gamma_power_on_theta(Fs,df, LFP_channel, trough_index, half_window):
     time = np.linspace(-half_window, half_window, len(mean_zscore))
     fig, ax = plt.subplots(2,1,figsize=(8, 10))
 
-    plot_title='Theta nested slow gamma (LFP 20-50Hz)'
+    plot_title='Theta nested slow gamma (LFP power 20-50Hz)'
     plot_theta_nested_gamma_overlay (ax[0],mean_lfp,mean_zscore,frequency,average_gamma_powerSpectrum,time,
                             mean_lfp,70,plot_title,plotLFP=True,plotSPAD=False,plotTheta=False)  
     
-    plot_title='Theta nested slow gamma (Optical 20-50Hz)'
+    plot_title='Theta nested slow gamma (Optical power 20-50Hz)'
     plot_theta_nested_gamma_overlay (ax[1],mean_lfp,mean_zscore,frequency_spad,average_gamma_powerSpectrum_spad,time,
                             mean_lfp,70,plot_title,plotLFP=False,plotSPAD=True,plotTheta=False)  
     
     fig, ax = plt.subplots(1,1,figsize=(8, 4))
-    plot_title='Theta nested slow gamma (LFP 20-50Hz)'
+    plot_title='Theta average for LFP and optical'
     plot_theta_nested_gamma_overlay (ax,mean_lfp,mean_zscore,frequency,average_gamma_powerSpectrum,time,
                             mean_lfp,80,plot_title,plotLFP=True,plotSPAD=True,plotTheta=True,plotSpectrum=False)  
     plt.show()
@@ -1097,13 +1097,13 @@ def plot_gamma_power_on_theta(Fs,df, LFP_channel, trough_index, half_window):
     ax2.fill_between(time, CI_sst_gamma_spad[0], CI_sst_gamma_spad[1], color=sns.color_palette("husl", 8)[3], alpha=0.3,label='0.95 CI')
     ax2.axvline(x=0, color='k',linestyle='--')
     
-    ax2.set_ylabel('Power Amplitutde', color='k',fontsize=16)
-    ax1.set_title('Mean gamma amplitude')
+    ax2.set_ylabel('Gamma band Amplitutde', color='k',fontsize=16)
+    ax1.set_title('Mean gamma amplitude (μV)')
     ax2.legend(loc='upper right',frameon=False)
     # Create a second y-axis and plot mean LFP on it
     ax1.plot(time, mean_sst_gamma_lfp, color=sns.color_palette("husl", 8)[5], label='Mean LFP gamma power')
     ax1.fill_between(time, CI_sst_gamma_lfp[0], CI_sst_gamma_lfp[1], color=sns.color_palette("husl", 8)[5], alpha=0.3,label='0.95 CI')
-    ax1.set_ylabel('Power Amplitude', color='k',fontsize=16)
+    ax1.set_ylabel('Gamma band Amplitude (μV)', color='k',fontsize=16)
     ax1.axvline(x=0, color='k',linestyle='--')
     ax1.legend(loc='upper right',frameon=False)
     ax2.set_xlabel('Time (seconds)',fontsize=14)
@@ -1117,7 +1117,7 @@ def plot_gamma_power_on_theta(Fs,df, LFP_channel, trough_index, half_window):
     ax2.spines['right'].set_visible(False)
 
     
-    'plot high gamma'
+    'plot mid gamma'
     half_window = half_window  # second
     # Initialize lists to store cycle data
     cycle_data_values_zscore = []
@@ -1194,16 +1194,16 @@ def plot_gamma_power_on_theta(Fs,df, LFP_channel, trough_index, half_window):
     time = np.linspace(-half_window, half_window, len(mean_zscore))
     fig, ax = plt.subplots(2,1,figsize=(8, 10))
     #time = np.arange(-half_cycle_time*fs,half_cycle_time*fs) *(1/Fs)
-    plot_title='Theta nested slow gamma (LFP 20-50Hz)'
+    plot_title='Theta nested mid gamma (LFP power 50-90Hz)'
     plot_theta_nested_gamma_overlay (ax[0],mean_lfp,mean_zscore,frequency,average_gamma_powerSpectrum,time,
                             mean_lfp,100,plot_title,plotLFP=True,plotSPAD=False,plotTheta=False)  
     
-    plot_title='Theta nested slow gamma (Optical 20-50Hz)'
+    plot_title='Theta nested mid gamma (Optical power 50-90Hz)'
     plot_theta_nested_gamma_overlay (ax[1],mean_lfp,mean_zscore,frequency_spad,average_gamma_powerSpectrum_spad,time,
                             mean_lfp,100,plot_title,plotLFP=False,plotSPAD=True,plotTheta=False)  
     
     fig, ax = plt.subplots(1,1,figsize=(8, 4))
-    plot_title='Theta nested slow gamma (LFP 20-50Hz)'
+    plot_title='Theta nested mid gamma (LFP 50-90Hz)'
     plot_theta_nested_gamma_overlay (ax,mean_lfp,mean_zscore,frequency,average_gamma_powerSpectrum,time,
                             mean_lfp,80,plot_title,plotLFP=True,plotSPAD=True,plotTheta=True,plotSpectrum=False)  
     plt.show()
@@ -1242,13 +1242,13 @@ def plot_gamma_power_on_theta(Fs,df, LFP_channel, trough_index, half_window):
     ax2.fill_between(time, CI_sst_gamma_spad[0], CI_sst_gamma_spad[1], color=sns.color_palette("husl", 8)[3], alpha=0.3,label='0.95 CI')
     ax2.axvline(x=0, color='k',linestyle='--')
     
-    ax2.set_ylabel('Power Amplitutde', color='k',fontsize=16)
+    ax2.set_ylabel('Gamma Amplitutde (μV)', color='k',fontsize=16)
     ax1.set_title('Mean gamma amplitude')
     ax2.legend(loc='upper right',frameon=False)
     # Create a second y-axis and plot mean LFP on it
     ax1.plot(time, mean_sst_gamma_lfp, color=sns.color_palette("husl", 8)[5], label='Mean LFP gamma power')
     ax1.fill_between(time, CI_sst_gamma_lfp[0], CI_sst_gamma_lfp[1], color=sns.color_palette("husl", 8)[5], alpha=0.3,label='0.95 CI')
-    ax1.set_ylabel('Power Amplitude', color='k',fontsize=16)
+    ax1.set_ylabel('Gamma Amplitude (μV)', color='k',fontsize=16)
     ax1.axvline(x=0, color='k',linestyle='--')
     ax1.legend(loc='upper right',frameon=False)
     ax2.set_xlabel('Time (seconds)',fontsize=14)
