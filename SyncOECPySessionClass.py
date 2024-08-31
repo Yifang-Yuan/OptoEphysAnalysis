@@ -1692,7 +1692,7 @@ class SyncOEpyPhotometrySession:
         if mode=='ripple':
             event_peak_times=self.rip_tsd.index.to_numpy()
             savename='_RipplePeak_'
-            cutoff=200
+            cutoff=100
         if mode=='theta':
             event_peak_times=self.theta_tsd.index.to_numpy()
             savename='_ThetaPeak_'
