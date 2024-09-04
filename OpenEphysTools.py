@@ -146,10 +146,10 @@ def readEphysChannel_withSessionInput (session,recordingNum,Fs=30000):
     LFP_clean2= butter_filter(LFP2, btype='low', cutoff=2000, fs=Fs, order=5)
     LFP_clean3= butter_filter(LFP3, btype='low', cutoff=2000, fs=Fs, order=5)
     LFP_clean4= butter_filter(LFP4, btype='low', cutoff=2000, fs=Fs, order=5)
-    LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
-    LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
-    LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
-    LFP_clean4= notchfilter (LFP_clean4,f0=50,bw=5)
+    # LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
+    # LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
+    # LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
+    # LFP_clean4= notchfilter (LFP_clean4,f0=50,bw=5)
     
     EphysData = pd.DataFrame({
         'timestamps': timestamps,

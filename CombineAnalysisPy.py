@@ -14,17 +14,17 @@ import pickle
 #%%
 '''recordingMode: use py, Atlas, SPAD for different systems
 '''
-dpath='F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day3/'
-recordingName='SavedPostSleepTrials'
-Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,recordingMode='Atlas',indicator='GECI') 
+dpath='F:/2024_OEC_Atlas/1765508_Jedi2p_Atlas/Day2/'
+recordingName='SavedOpenFieldTrials'
+Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,recordingMode='Atlas',indicator='GEVI') 
 #%%
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-LFP_channel='LFP_3'
+LFP_channel='LFP_1'
 #%%
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined theta period.
 nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.5,High_thres=8,save=False,plot_theta=True)
+theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.5,High_thres=8,save=False,plot_theta=True)
 #%% Detect ripple event
 '''Gamma band plot
 For a rigid threshold to get larger amplitude Gamma events: Low_thres=1, for more ripple events, Low_thres=0'''
@@ -40,7 +40,7 @@ rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,ep_start=10,
 #%% Detect theta nested gamma event
 '''Theta nested Gamma plot
 For a rigid threshold to get larger amplitude Gamma events: Low_thres=1, for more ripple events, Low_thres=0'''
-rip_ep,rip_tsd=Recording1.PlotThetaNestedGamma (lfp_channel=LFP_channel,Low_thres=0.5,High_thres=10,plot_segment=False, plot_ripple_ep=False)
+rip_ep,rip_tsd=Recording1.PlotThetaNestedGamma (lfp_channel=LFP_channel,Low_thres=0.5,High_thres=10,plot_segment=False, plot_ripple_ep=True)
 #%%
 'plot feature can be LFP or SPAD to show the power spectrum of LFP or SPAD'
 Recording1.plot_gamma_power_on_theta_cycle(LFP_channel=LFP_channel)

@@ -16,13 +16,13 @@ import seaborn as sns
 '''recordingMode: use py, Atlas, SPAD for different systems
 '''
 #dpath='F:/2024MScR_NORtask/1765508_Jedi2p_Atlas/20240430_Day2/'
-dpath='F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day1/'
+dpath='F:/2024_OEC_Atlas/1765010_PVGCaMP8f_Atlas/Day1/'
 #dpath='F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240501_Day3/'
 recordingName='SavedPostSleepTrials'
-Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,recordingMode='Atlas',indicator='GEVI') 
+Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,recordingMode='Atlas',indicator='GECI') 
 #%%
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-LFP_channel='LFP_3'
+LFP_channel='LFP_1'
 #%%
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined theta period.
@@ -43,7 +43,7 @@ with open(save_path, "wb") as file:
 #%%
 'GEVI has a negative'
 ripple_triggered_zscore_values=Recording1.ripple_triggered_zscore_values
-ripple_triggered_LFP_values=Recording1.ripple_triggered_LFP_values_3
+ripple_triggered_LFP_values=Recording1.ripple_triggered_LFP_values_1
 def plot_compare_align (ripple_triggered_LFP_values):
     fig, ax = plt.subplots(2, 1, figsize=(8, 12))
     for i in range(len(ripple_triggered_LFP_values)):

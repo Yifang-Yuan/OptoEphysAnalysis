@@ -64,12 +64,14 @@ class SyncOEpyPhotometrySession:
                 self.Sync_ephys_with_pyPhotometry() #output self.spad_align, self.ephys_align
             elif self.recordingMode=='SPAD' or self.recordingMode=='Atlas':
                 self.Sync_ephys_with_spad()
-        self.save_data(self.Ephys_tracking_spad_aligned, 'Ephys_tracking_photometry_aligned.pkl')
+            # if self.indicator == 'GEVI':
+            #     self.Ephys_tracking_spad_aligned['zscore_raw']=-self.Ephys_tracking_spad_aligned['zscore_raw']  
+            self.save_data(self.Ephys_tracking_spad_aligned, 'Ephys_tracking_photometry_aligned.pkl')
         self.Label_REM_sleep ('LFP_2')
         self.savepath = os.path.join(SessionPath, "Results")
         if not os.path.exists(self.savepath):
             os.makedirs(self.savepath) 
-   
+          
         if not read_aligned_data_from_file:
             del self.Ephys_data
             del self.Ephys_sync_data
@@ -83,8 +85,6 @@ class SyncOEpyPhotometrySession:
                 del self.trackingdata
                 del self.trackingdata_resampled
                 del self.trackingdata_align
-        # if self.indicator == 'GEVI':
-        #     self.Ephys_tracking_spad_aligned['zscore_raw']=-self.Ephys_tracking_spad_aligned['zscore_raw']
 
     def ReadTrialAnimalState(self,SessionPath):
         SessionLabelFile=os.path.join(SessionPath,'TrailLabel.csv')
@@ -131,7 +131,7 @@ class SyncOEpyPhotometrySession:
                 
         while True: #remove noise by cutting part of the synchronised the data
             OE.plot_two_traces_in_seconds (self.Ephys_tracking_spad_aligned['zscore_raw'],self.fs, 
-                                       self.Ephys_tracking_spad_aligned['LFP_4'], self.fs, label1='zscore_raw',label2='LFP_4')
+                                       self.Ephys_tracking_spad_aligned['LFP_1'], self.fs, label1='zscore_raw',label2='LFP_1')
             start_time = input("Enter the start time to move noise (or 'q' to quit): ")
             if start_time.lower() == 'q':
                 break

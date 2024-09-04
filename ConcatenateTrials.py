@@ -46,26 +46,25 @@ def ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile
 
 def main():
     'Specify the session and trial indice you want to concatenate'
-    parent_folder='D:/YY/2024MScR_NORtask/1765508_Jedi2p_CompareSystem/Day5_Atlas_EphysGood/'
+    parent_folder='F:/2024_OEC_Atlas/1765507_iGlu_Atlas/Day3/'
     
-    # ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile='Ephys_tracking_photometry_aligned.pkl',
-    #                                                     StartTrialIdx=1, EndTrialIdx=3, trialTag='PreAwake')
     
     ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile='Ephys_tracking_photometry_aligned.pkl',
-                                                        StartTrialIdx=1, EndTrialIdx=2, trialTag='OpenField2')
-    
-    # # ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile='Ephys_tracking_photometry_aligned.pkl',
-    # #                                                     StartTrialIdx=5, EndTrialIdx=7, trialTag='PreSleep')
+                                                        StartTrialIdx=1, EndTrialIdx=2, trialTag='PreAwake')
     
     # ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile='Ephys_tracking_photometry_aligned.pkl',
-    #                                                     StartTrialIdx=4, EndTrialIdx=5, trialTag='OpenField')
+    #                                                     StartTrialIdx=3, EndTrialIdx=4, trialTag='PreSleep')
     
-    # ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile='Ephys_tracking_photometry_aligned.pkl',
-    #                                                     StartTrialIdx=6, EndTrialIdx=9, trialTag='PostAwake')
     
-    # ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile='Ephys_tracking_photometry_aligned.pkl',
-    #                                                     StartTrialIdx=11, EndTrialIdx=13, trialTag='PostSleep')
+    ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile='Ephys_tracking_photometry_aligned.pkl',
+                                                        StartTrialIdx=3, EndTrialIdx=5, trialTag='OpenField')
     
+    ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile='Ephys_tracking_photometry_aligned.pkl',
+                                                        StartTrialIdx=6, EndTrialIdx=11, trialTag='PostAwake')
+
+    
+    ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile='Ephys_tracking_photometry_aligned.pkl',
+                                                        StartTrialIdx=12, EndTrialIdx=12, trialTag='PostSleep')
 
 
 if __name__ == "__main__":
