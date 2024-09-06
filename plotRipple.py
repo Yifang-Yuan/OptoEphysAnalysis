@@ -119,35 +119,46 @@ def plot_aligned_ripple_save (save_path,ripple_triggered_lfps,ripple_triggered_z
 #%%
 '''recordingMode: use py, Atlas, SPAD for different systems
 '''
-#dpath='F:/2024MScR_NORtask/1765508_Jedi2p_Atlas/20240430_Day2/'
-dpath='F:/2024_OEC_Atlas/1765010_PVGCaMP8f_Atlas/Day1/'
-#dpath='F:/2024MScR_NORtask/1765507_iGlu_Atlas/20240501_Day3/'
-recordingName='SavedPreSleepTrials'
-Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,
-                                     read_aligned_data_from_file=True,
-                                     recordingMode='Atlas',indicator='GECI') 
+def run_ripple_plot (dpath,LFP_channel,recordingName,savename):
+    save_path = os.path.join(dpath,savename)
+    Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,
+                                         read_aligned_data_from_file=True,
+                                         recordingMode='Atlas',indicator='GEVI') 
+
+    '''separate the theta and non-theta parts.
+    theta_thres: the theta band power should be bigger than 80% to be defined theta period.
+    nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
+    theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.5,High_thres=8,save=False,plot_theta=True)
+
+    '''RIPPLE DETECTION
+    For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
+    rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,
+                                                ep_start=10,ep_end=40,
+                                                Low_thres=1,High_thres=10,
+                                                plot_segment=False,plot_ripple_ep=False,excludeTheta=True)
+
+    'GEVI has a negative'
+    index = LFP_channel.split('_')[-1] 
+    if index=='1':
+        ripple_triggered_LFP_values=Recording1.ripple_triggered_LFP_values_1
+    elif index=='2':
+        ripple_triggered_LFP_values=Recording1.ripple_triggered_LFP_values_2
+    elif index=='3':
+        ripple_triggered_LFP_values=Recording1.ripple_triggered_LFP_values_3
+    else:
+        ripple_triggered_LFP_values=Recording1.ripple_triggered_LFP_values_4
+
+    ripple_triggered_zscore_values=Recording1.ripple_triggered_zscore_values
+    plot_aligned_ripple_save (save_path,ripple_triggered_LFP_values,ripple_triggered_zscore_values,Fs=10000)
+    return -1
+#%%
+dpath='F:/2024_OEC_Atlas/1765507_iGlu_Atlas/Day3/'
+recordingName='SavedPostSleepTrials'
+savename='RippleSave_PostSleep'
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
 LFP_channel='LFP_1'
-#%%
-'''separate the theta and non-theta parts.
-theta_thres: the theta band power should be bigger than 80% to be defined theta period.
-nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.5,High_thres=8,save=False,plot_theta=True)
-#%%
-'''RIPPLE DETECTION
-For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
-rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,
-                                            ep_start=10,ep_end=40,
-                                            Low_thres=1,High_thres=10,
-                                            plot_segment=False,plot_ripple_ep=False,excludeTheta=True)
+run_ripple_plot (dpath,LFP_channel,recordingName,savename)
 
-#%%
-'GEVI has a negative'
-index = LFP_channel.split('_')[-1]  # Extract the number after the underscore
-ripple_triggered_LFP_values=Recording1.ripple_triggered_LFP_values_1
-ripple_triggered_zscore_values=Recording1.ripple_triggered_zscore_values
-save_path = os.path.join(dpath,'RippleSave')
-plot_aligned_ripple_save (save_path,ripple_triggered_LFP_values,ripple_triggered_zscore_values,Fs=10000)
 #%%
 '''RIPPLE CURATION'''
 def Ripple_manual_select ():

@@ -49,18 +49,18 @@ def main():
     parent_folder='F:/2024_OEC_Atlas/1765507_iGlu_Atlas/Day3/'
     
     
-    ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile='Ephys_tracking_photometry_aligned.pkl',
-                                                        StartTrialIdx=1, EndTrialIdx=2, trialTag='PreAwake')
+    # ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile='Ephys_tracking_photometry_aligned.pkl',
+    #                                                     StartTrialIdx=1, EndTrialIdx=2, trialTag='PreAwake')
+    
+    # # ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile='Ephys_tracking_photometry_aligned.pkl',
+    # #                                                     StartTrialIdx=3, EndTrialIdx=4, trialTag='PreSleep')
+    
     
     # ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile='Ephys_tracking_photometry_aligned.pkl',
-    #                                                     StartTrialIdx=3, EndTrialIdx=4, trialTag='PreSleep')
+    #                                                     StartTrialIdx=3, EndTrialIdx=5, trialTag='OpenField')
     
-    
-    ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile='Ephys_tracking_photometry_aligned.pkl',
-                                                        StartTrialIdx=3, EndTrialIdx=5, trialTag='OpenField')
-    
-    ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile='Ephys_tracking_photometry_aligned.pkl',
-                                                        StartTrialIdx=6, EndTrialIdx=11, trialTag='PostAwake')
+    # ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile='Ephys_tracking_photometry_aligned.pkl',
+    #                                                     StartTrialIdx=9, EndTrialIdx=11, trialTag='PostAwake')
 
     
     ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile='Ephys_tracking_photometry_aligned.pkl',
