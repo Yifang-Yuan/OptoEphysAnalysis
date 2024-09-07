@@ -14,17 +14,17 @@ import pickle
 #%%
 '''recordingMode: use py, Atlas, SPAD for different systems
 '''
-dpath='F:/2024_OEC_Atlas/1765508_Jedi2p_Atlas/Day2/'
-recordingName='SavedOpenFieldTrials'
+dpath='F:/2024MScR_NORtask/1756735_PVCre_Jedi2p_Compare/Day1Atlas_Sleep/'
+recordingName='SavedPostSleepTrials'
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,recordingMode='Atlas',indicator='GEVI') 
 #%%
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-LFP_channel='LFP_1'
+LFP_channel='LFP_2'
 #%%
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined theta period.
 nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.5,High_thres=8,save=False,plot_theta=True)
+theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.5,High_thres=8,save=False,plot_theta=True)
 #%% Detect ripple event
 '''Gamma band plot
 For a rigid threshold to get larger amplitude Gamma events: Low_thres=1, for more ripple events, Low_thres=0'''
@@ -35,7 +35,7 @@ rip_ep,rip_tsd=Recording1.pynappleGammaAnalysis (lfp_channel=LFP_channel,ep_star
 '''RIPPLE DETECTION
 For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
 rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,ep_start=10,ep_end=40,
-                                                                          Low_thres=2,High_thres=10,plot_segment=False,
+                                                                          Low_thres=1,High_thres=10,plot_segment=False,
                                                                           plot_ripple_ep=True,excludeTheta=True)
 #%% Detect theta nested gamma event
 '''Theta nested Gamma plot

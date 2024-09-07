@@ -12,6 +12,7 @@ import os
 import pickle
 import matplotlib.pyplot as plt
 import seaborn as sns
+import glob
 
 def align_ripples (lfps,zscores,start_idx,end_idx,midpoint,Fs=10000):
     aligned_ripple_band_lfps = np.zeros_like(lfps)
@@ -113,12 +114,9 @@ def plot_aligned_ripple_save (save_path,ripple_triggered_lfps,ripple_triggered_z
     save_file_path = os.path.join(save_path,'ailgned_ripple_Zscore.pkl')
     with open(save_file_path, "wb") as file:
         pickle.dump(aligned_zscores, file)
-
     return -1
 
-#%%
-'''recordingMode: use py, Atlas, SPAD for different systems
-'''
+'''recordingMode: use py, Atlas, SPAD for different systems'''
 def run_ripple_plot (dpath,LFP_channel,recordingName,savename):
     save_path = os.path.join(dpath,savename)
     Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,
@@ -151,38 +149,46 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename):
     ripple_triggered_zscore_values=Recording1.ripple_triggered_zscore_values
     plot_aligned_ripple_save (save_path,ripple_triggered_LFP_values,ripple_triggered_zscore_values,Fs=10000)
     return -1
-#%%
-dpath='F:/2024_OEC_Atlas/1765507_iGlu_Atlas/Day3/'
-recordingName='SavedPostSleepTrials'
-savename='RippleSave_PostSleep'
-'''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-LFP_channel='LFP_1'
-run_ripple_plot (dpath,LFP_channel,recordingName,savename)
 
-#%%
-'''RIPPLE CURATION'''
-def Ripple_manual_select ():
-    dpath='D:/2024MScR_NORtask/1765508_Jedi2p_Atlas/20240430_Day2/'
-    recordingName='SavedPostSleepTrials'
-    # dpath='F:/2024MScR_NORtask/1765010_PVGCaMP8f_Atlas/Day3/'
-    # recordingName='SavedPostSleepTrials'
-    Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,
-                                         read_aligned_data_from_file=True,recordingMode='Atlas',indicator='GEVI') 
+def run_ripple_plot_main():
+    'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
+    dpath='F:/2024MScR_NORtask/1756735_PVCre_Jedi2p_Compare/Day1Atlas_OF/'
+    recordingName='SavedOpenFieldTrials'
+    savename='RippleSave_OpenField'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-    LFP_channel='LFP_1'
+    LFP_channel='LFP_2'
+    run_ripple_plot (dpath,LFP_channel,recordingName,savename)
 
-    '''separate the theta and non-theta parts.
-    theta_thres: the theta band power should be bigger than 80% to be defined theta period.
-    nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-    theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.5,High_thres=8,save=False,plot_theta=True)
-    'Manually input and select ripple'
-    Recording1.ManualSelectRipple (lfp_channel=LFP_channel,ep_start=10,ep_end=40,
-                                                                              Low_thres=1,High_thres=10,plot_segment=False,
-                                                                              plot_ripple_ep=True,excludeTheta=True)
-    Recording1.Oscillation_triggered_Optical_transient_raw (mode='ripple',lfp_channel=LFP_channel, half_window=0.2,plot_single_trace=False,plotShade='CI')
-    'save Class as pickle'
-    save_path = os.path.join(dpath, recordingName,LFP_channel+'_Class.pkl')
-    with open(save_path, "wb") as file:
-        # Serialize and write the instance to the file
-        pickle.dump(Recording1, file)
-    return Recording1
+#%%
+'concatenate ripple'
+parent_path='F:/2024_OEC_Atlas/1765508_Jedi2p_Atlas/'
+save_path='F:/2024_OEC_Atlas/1765508_Jedi2p_Atlas/RippleConcatenatedSave/'
+pattern = os.path.join(parent_path, 'Day*/','RippleSave_*/')
+Fs=10000
+start_idx=1000
+
+#pattern = os.path.join(dpath, 'Day*/', 'Green&Speed_*.csv')
+# Get a list of all matching files
+file_list = glob.glob(pattern)
+# Loop through the file list and read each file
+aligned_ripple_bandpass_LFP_list = []
+aligned_ripple_LFP_list= []
+aligned_ripple_Zscore_list=[]
+
+for path in file_list:
+    try:
+        ripple_bandpass_LFP = pd.read_pickle(os.path.join(path, 'ailgned_ripple_bandpass_LFP.pkl'))
+        ripple_LFP=pd.read_pickle(os.path.join(path, 'ailgned_ripple_LFP.pkl'))
+        ripple_zscore=pd.read_pickle(os.path.join(path, 'ailgned_ripple_Zscore.pkl'))
+        # Append each DataFrame to the corresponding list
+        aligned_ripple_bandpass_LFP_list.append(ripple_bandpass_LFP)
+        aligned_ripple_LFP_list.append(ripple_LFP)
+        aligned_ripple_Zscore_list.append(ripple_zscore)
+    except Exception as e:
+        print(f"Error reading {path}: {e}")
+        
+concatenated_ripple_bandpass_LFP = np.vstack(aligned_ripple_bandpass_LFP_list) 
+concatenated_ripple_LFP = np.vstack(aligned_ripple_LFP_list)
+concatenated_ripple_Zscore = -np.vstack(aligned_ripple_Zscore_list)
+
+plot_aligned_ripple_save (save_path,concatenated_ripple_LFP,concatenated_ripple_Zscore,Fs=10000)

@@ -812,10 +812,10 @@ class SyncOEpyPhotometrySession:
         SPAD_smooth_np = OE.smooth_signal(spad_data,Fs=self.fs,cutoff=SPAD_cutoff)
         LFP_smooth_np = OE.smooth_signal(lfp_data,Fs=self.fs,cutoff=1000)
         'To align LFP and SPAD raw data to pynapple format'
-        LFP=nap.Tsd(t = timestamps, d = LFP_smooth_np, time_units = 's')
-        SPAD=nap.Tsd(t = timestamps, d = SPAD_smooth_np, time_units = 's')
-        SPAD_smooth=nap.Tsd(t = timestamps, d = spad_data.to_numpy(), time_units = 's')  
-        LFP_smooth=nap.Tsd(t = timestamps, d = lfp_data.to_numpy(), time_units = 's')  
+        LFP=nap.Tsd(t = timestamps, d = lfp_data.to_numpy(), time_units = 's')
+        SPAD=nap.Tsd(t = timestamps, d = spad_data.to_numpy(), time_units = 's')
+        SPAD_smooth=nap.Tsd(t = timestamps, d = SPAD_smooth_np, time_units = 's')  
+        LFP_smooth=nap.Tsd(t = timestamps, d = LFP_smooth_np, time_units = 's')  
         'Calculate theta band for optical signal'
         #SPAD_ripple_band_filtered,nSS_spad,nSS3_spad,rip_ep_spad,rip_tsd_spad = OE.getRippleEvents (SPAD_smooth,self.fs,windowlen=500,Low_thres=Low_thres,High_thres=High_thres)
         'To detect ripple'
