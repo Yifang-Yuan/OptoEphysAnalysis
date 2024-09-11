@@ -132,8 +132,8 @@ def plot_trace(trace,ax, fs=1017, label="trace"):
     t=(len(trace)) / fs
     taxis = np.arange(len(trace)) / fs
     mean_trace = np.mean(trace)
-    #ax.plot(taxis,trace,linewidth=1,label=label)
-    ax.plot(taxis,trace,linewidth=1)
+    ax.plot(taxis,trace,linewidth=1,label=label)
+    #ax.plot(taxis,trace,linewidth=1)
     #ax.axhline(mean_trace, color='r', linestyle='--', label='Mean Value', linewidth=1.5)
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)

@@ -97,10 +97,10 @@ def notchfilter (data,f0=100,bw=10,fs=840):
 # Sampling Frequency
 '''Read binary files for single ROI'''
 fs=840
-dpath='G:/GEVItest/1769568_PVcre_mNeon1/'
+dpath='G:/CheeseboardYY/Group D/1819287/Day4_Atlas/Atlas_Trial1/'
 # fs=1000
 # dpath='G:/YY/New/1765508_Jedi2p_CompareSystem/Day2_pyPhotometry/SyncRecording4'
-csv_filename='Green_traceAll.csv'
+csv_filename='Green_trace.csv'
 filepath=Analysis.Set_filename (dpath, csv_filename)
 #filepath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/smallROI_100Hznoise.csv'
 Trace_raw=Analysis.getSignalTrace (filepath, traceType='Constant',HighFreqRemoval=False,getBinTrace=False,bin_window=10)
@@ -109,7 +109,7 @@ Trace_raw=notchfilter (Trace_raw,f0=100,bw=10,fs=840)
 fs=840
 fig, ax = plt.subplots(figsize=(8,2))
 plot_trace(Trace_raw[20*840:30*840],ax, fs,label='840Hz')
-#%%
+
 #%%
 lambd = 10e3 # Adjust lambda to get the best fit
 porder = 1
@@ -141,7 +141,7 @@ import OpenEphysTools as OE
 
 data=Trace_raw
 signal_smooth= OE.butter_filter(data, btype='high', cutoff=5, fs=fs, order=2)
-signal_smooth= OE.butter_filter(signal_smooth, btype='low', cutoff=20, fs=fs, order=3)
+signal_smooth= OE.butter_filter(signal_smooth, btype='low', cutoff=200, fs=fs, order=3)
 
 fig, ax = plt.subplots(figsize=(8,2))
 plot_trace(signal_smooth[5*840:8*840],ax, fs,label='840Hz')
@@ -165,13 +165,13 @@ fig, ax = plt.subplots(figsize=(8,2))
 OE.plot_wavelet(ax,sst,frequency,power,Fs=fs,colorBar=False,logbase=True)
 #%%
 data=Trace_raw
-signal_smooth= OE.butter_filter(data, btype='high', cutoff=70, fs=fs, order=2)
-signal_smooth= OE.butter_filter(signal_smooth, btype='low', cutoff=110, fs=fs, order=3)
+signal_smooth= OE.butter_filter(data, btype='high', cutoff=130, fs=fs, order=2)
+signal_smooth= OE.butter_filter(signal_smooth, btype='low', cutoff=180, fs=fs, order=3)
 
 fig, ax = plt.subplots(figsize=(8,2))
 plot_trace(signal_smooth[22*840:23*840],ax, fs,label='840Hz')
 'scale also change the frequency range you can get'
-sst,frequency,power,global_ws=OE.Calculate_wavelet(signal_smooth[22*840:23*840],lowpassCutoff=110,Fs=fs,scale=2)
+sst,frequency,power,global_ws=OE.Calculate_wavelet(signal_smooth[22*840:23*840],lowpassCutoff=180,Fs=fs,scale=2)
 
 fig, ax = plt.subplots(figsize=(8,2))
 OE.plot_wavelet(ax,sst,frequency,power,Fs=fs,colorBar=False,logbase=True)

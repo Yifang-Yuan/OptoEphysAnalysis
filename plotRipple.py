@@ -166,8 +166,6 @@ save_path='F:/2024_OEC_Atlas/1765508_Jedi2p_Atlas/RippleConcatenatedSave/'
 pattern = os.path.join(parent_path, 'Day*/','RippleSave_*/')
 Fs=10000
 start_idx=1000
-
-#pattern = os.path.join(dpath, 'Day*/', 'Green&Speed_*.csv')
 # Get a list of all matching files
 file_list = glob.glob(pattern)
 # Loop through the file list and read each file

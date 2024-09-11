@@ -11,24 +11,38 @@ from SPADPhotometryAnalysis import photometry_functions as fp
 from SPADPhotometryAnalysis import AtlasDecode
 from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 #%% Workable code, above is testin
-dpath='G:/GEVItest/1819287_mNeon/Burst-RS-25200frames-840Hz_2024-08-23_11-52/'
+dpath='F:/SPAD2024/SPADdata_SNRtest/5uWComparePSD/RawData/Burst-RS-5085frames-1017Hz_5uW/'
 #dpath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/Burst-RS-1017frames-1017Hz_4uW/'
 hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
-xxrange = [45, 85]
-yyrange = [50, 90]
+# xxrange = [35, 95]
+# yyrange = [45, 105]
+xxrange = [40, 75]
+yyrange = [45, 80]
+Trace_raw,z_score=AtlasDecode.get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange=xxrange,yyrange=yyrange,fs=840,photoncount_thre=4000)
+#%%
+day_parent_folder='F:/SPAD2024/SPADdata_SNRtest/5uWComparePSD/'
+folder_name='5uW_Atlas'
+save_folder = os.path.join(day_parent_folder, folder_name)
+print ('save_folder is', save_folder)
+# Create the folder if it doesn't exist
+if not os.path.exists(save_folder):
+    os.makedirs(save_folder)
+np.savetxt(os.path.join(save_folder,'Zscore_traceAll.csv'), z_score, delimiter=',', comments='')
+np.savetxt(os.path.join(save_folder,'Green_traceAll.csv'), Trace_raw, delimiter=',', comments='')
 
-Trace_raw,z_score=AtlasDecode.get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange=xxrange,yyrange=yyrange,fs=840,photoncount_thre=500)
 #%%
+
 data=Trace_raw
-#%%
 sampling_rate=840
+#Plot the image of the pixel array
+fig, ax = plt.subplots(figsize=(8, 2))
+AtlasDecode.plot_trace(Trace_raw[8000:8400],ax, fs=840, label="raw_data")
+#%%
 '''Wavelet spectrum ananlysis'''
 Analysis.plot_wavelet_data(data,sampling_rate,cutoff=300,xlim = ([6,30]))
 
 #%%
-#Plot the image of the pixel array
-fig, ax = plt.subplots(figsize=(8, 2))
-AtlasDecode.plot_trace(Trace_raw[800:1600],ax, fs=840, label="raw_data")
+
 '''Read binary files for single ROI'''
 # Display the grayscale image
 #pixel_array_all_frames,sum_pixel_array,avg_pixel_array=decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=500)
