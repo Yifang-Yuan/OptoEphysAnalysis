@@ -18,7 +18,7 @@ from SPADPhotometryAnalysis import photometry_functions as fp
 
 Fs=840
 #parent_path='G:/ATLAS_SPAD/SNR_PSD_30x30/'
-parent_path='F:/SPAD2024/SPADdata_SNRtest/5uWComparePSD/'
+parent_path='D:/ATLAS_SPAD/YellowPaperSNR_PSD_30x30/'
 pattern = os.path.join(parent_path, '*uW*/')
 file_list = glob.glob(pattern)
 lambd = 10e3 # Adjust lambda to get the best fit
@@ -90,10 +90,9 @@ for path in file_list:
     
     sns.kdeplot(fluctuation, common_norm=True, ax=ax, label=tag, linewidth=2,alpha=0.9)
     # Add a legend
-    ax.legend()
+    legend=ax.legend()
+    legend.get_frame().set_alpha(0.1)
     # Add a title
-    ax.set_title("Compare System")
-    ax.set_xlim(-5, 5)
     fig_path = os.path.join(path, tag+'noise_density.png')
     fig.savefig(fig_path, transparent=False)
 
