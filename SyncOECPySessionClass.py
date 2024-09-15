@@ -1904,7 +1904,7 @@ class SyncOEpyPhotometrySession:
         # Remove spines
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
-        ax.set_xlim([-0.4,0.4])
+        ax.set_xlim([-0.5,0.5])
         #ax.spines['bottom'].set_visible(False)
         #ax.spines['left'].set_visible(False)
         # Optionally remove ticks and labels
