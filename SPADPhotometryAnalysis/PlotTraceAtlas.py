@@ -116,40 +116,42 @@ def get_nearby_average(arr, idx, threshold):
     else:
         return arr[idx]  # If no valid neighbors, return the original value
 
-def get_clean_data (data,threshold):
+def get_clean_data(data, threshold):
     data_cleaned = data.copy()
     above_threshold_mask = data > threshold
     outlier_indices = np.where(above_threshold_mask)[0]
     # Replace outliers with the average of nearby valid values
     for idx in outlier_indices:
-        data_cleaned[idx] = get_nearby_average(data, idx,threshold)
-    return outlier_indices,data_cleaned
+        data_cleaned[idx] = get_nearby_average(data, idx, threshold)
+
+    # Filter out consecutive indices, keeping only the first index of continuous peaks
+    filtered_indices = []
+    for i in range(len(outlier_indices)):
+        if i == 0 or outlier_indices[i] > outlier_indices[i-1] + 1:
+            filtered_indices.append(outlier_indices[i])
+    return filtered_indices, data_cleaned
 
 def get_average_opto_response_by_sync (data,threshold,half_window,sampling_rate):
     outlier_indices,data_cleaned=get_clean_data (data,threshold)
-    window_size = int(2*half_window * sampling_rate)  # convert to samples
-    # Step 2: Detect rising edges
-    below_threshold_mask = data > threshold
-    falling_edges = np.where(np.diff(below_threshold_mask.astype(int)) == -1)[0]
-    # Step 3: Define windows starting at rising edges
+    half_win_size = int(half_window * sampling_rate)  # convert to samples
+
     windows = []
     for index in outlier_indices:
-        start_index = int(index-sampling_rate*half_window)
+        start_index = index
         end_index = int(index+sampling_rate*half_window)
         if end_index <= len(data_cleaned) and start_index>=0:
             window_data = data_cleaned[start_index:end_index]
             windows.append(window_data)
-    # Step 4: Calculate average signal and standard deviation for each window
     if windows:
         windows_array = np.array(windows)
         average_signals = np.mean(windows_array, axis=0)
         std_signals = np.std(windows_array, axis=0)
         # Plot the average signals and standard deviation as shaded area
-        time_axis = np.arange(window_size) / sampling_rate  # Convert to time in seconds
+        time_axis = np.arange(half_win_size) / sampling_rate  # Convert to time in seconds
         plt.figure(figsize=(10, 6))
         plt.plot(time_axis, average_signals, label='Average Signal')
         plt.fill_between(time_axis, average_signals - std_signals, average_signals + std_signals, color='b', alpha=0.2, label='Standard Deviation')
-        plt.axvline(x=0.1, color='red', linestyle='--', label='Event Time')
+        plt.axvline(x=0, color='red', linestyle='--', label='Event Time')
         plt.xlabel('Time (s)')
         plt.ylabel('Signal')
         plt.title('Average Signal with Standard Deviation')
@@ -162,7 +164,7 @@ def get_average_opto_response_by_sync (data,threshold,half_window,sampling_rate)
 #%%
 '''Read binary files for single ROI'''
 fs=840
-dpath='D:/ATLAS_SPAD/1818736_WT_opto/SyncRecording1_1Hz1ms/'
+dpath='D:/ATLAS_SPAD/1769566_PVcre_opto/SyncRecording4_1Hz2ms/'
 # fs=1000
 # dpath='G:/YY/New/1765508_Jedi2p_CompareSystem/Day2_pyPhotometry/SyncRecording4'
 csv_filename='Green_traceAll.csv'
@@ -170,18 +172,23 @@ filepath=Analysis.Set_filename (dpath, csv_filename)
 #filepath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/smallROI_100Hznoise.csv'
 Trace_raw=Analysis.getSignalTrace (filepath, traceType='Constant',HighFreqRemoval=False,getBinTrace=False,bin_window=10)
 Trace_raw=notchfilter (Trace_raw,f0=100,bw=10,fs=840)
-
 fig, ax = plt.subplots(figsize=(8,2))
 plot_trace(Trace_raw,ax, fs,label='840Hz')
+
 #%% Sample data (replace this with your actual signal data)
 data = Trace_raw
 sampling_rate = 840  # samples per second
-threshold = 25
-window_duration = 0.2 # in seconds
-#get_average_opto_response_by_sync (data,threshold,window_duration,sampling_rate)
+threshold = 12
+window_duration =0.9# in seconds
+windows=get_average_opto_response_by_sync (data,threshold,window_duration,sampling_rate)
 #%%
-data_cleaned=get_clean_data (data,threshold)
-windows=get_average_opto_response_by_fixed_freq (data_cleaned,window_duration,sampling_rate,num_windows=10)
+outlier_indices,data_cleaned=get_clean_data (data,threshold)
+#%%
+for i in range (10):
+    fig, ax = plt.subplots(figsize=(8,2))
+    plot_trace(Trace_raw[fs*i:fs*(i+1)],ax, fs,label='840Hz')
+    fig, ax = plt.subplots(figsize=(8,2))
+    plot_trace(data_cleaned[fs*i:fs*(i+1)],ax, fs,label='840Hz')
 #%%
 from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 plt.figure(figsize=(12, 3))
@@ -198,13 +205,6 @@ plt.show()
 # plt.show()
 
 trace_binned=Analysis.get_bin_trace (data_cleaned,bin_window=10,color='tab:blue',Fs=sampling_rate)
-#%%
-
-#%%
-# Sampling Frequency
-
-#%%
-
 
 #%%
 bin_window=2
