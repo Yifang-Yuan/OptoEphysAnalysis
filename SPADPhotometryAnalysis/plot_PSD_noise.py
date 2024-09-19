@@ -39,11 +39,11 @@ for path in file_list:
     z_score=(signal_trace - np.median(signal_trace)) / np.std(signal_trace)
     fluctuation = ((raw_trace - sig_base)/sig_base)*100
     
-    # fig, ax = plt.subplots(figsize=(8,2)) #(8,2)
-    # AtlasDecode.plot_trace(raw_trace,ax, Fs, label="raw_data")
-    # ax.set_title(tag)
-    # fig_path = os.path.join(path, tag+'raw_data.png')
-    # fig.savefig(fig_path, transparent=False)
+    fig, ax = plt.subplots(figsize=(8,2)) #(8,2)
+    AtlasDecode.plot_trace(raw_trace,ax, Fs, label="raw_data")
+    ax.set_title(tag)
+    fig_path = os.path.join(path, tag+'raw_data.png')
+    fig.savefig(fig_path, transparent=False)
     
     # fig, ax = plt.subplots(figsize=(8,2))
     # AtlasDecode.plot_trace(sig_base,ax, Fs, label="sig_base")

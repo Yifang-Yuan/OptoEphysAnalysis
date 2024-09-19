@@ -125,8 +125,8 @@ def main():
     xxrange = [35, 105]
     yyrange = [40, 110]
 
-    atlas_parent_folder='D:/ATLAS_SPAD/1769566_PVcre_opto/Rawdata/'
-    day_parent_folder='D:/ATLAS_SPAD/1769566_PVcre_opto/'
+    atlas_parent_folder='D:/ATLAS_SPAD/1818736_WT_opto_2/Rawdata/'
+    day_parent_folder='D:/ATLAS_SPAD/1818736_WT_opto_2/'
     read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,xxrange,yyrange,new_folder_name='SyncRecording')
     
     

@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Apr  5 10:12:54 2024
-
+This is to plot Atlas traces after decoding
 @author: Yifang
 """
-
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,6 +12,7 @@ from SPADPhotometryAnalysis import SPADreadBin
 from SPADPhotometryAnalysis import photometry_functions as fp
 import os
 from scipy import signal
+
 
 def plot_trace(trace,ax, fs=9938.4, label="trace",color='tab:blue'):
     t=(len(trace)) / fs
@@ -137,7 +137,7 @@ def get_average_opto_response_by_sync (data,threshold,half_window,sampling_rate)
 
     windows = []
     for index in outlier_indices:
-        start_index = index
+        start_index = index-84
         end_index = int(index+sampling_rate*half_window)
         if end_index <= len(data_cleaned) and start_index>=0:
             window_data = data_cleaned[start_index:end_index]
@@ -147,7 +147,7 @@ def get_average_opto_response_by_sync (data,threshold,half_window,sampling_rate)
         average_signals = np.mean(windows_array, axis=0)
         std_signals = np.std(windows_array, axis=0)
         # Plot the average signals and standard deviation as shaded area
-        time_axis = np.arange(half_win_size) / sampling_rate  # Convert to time in seconds
+        time_axis = np.arange(84+half_win_size) / sampling_rate  # Convert to time in seconds
         plt.figure(figsize=(10, 6))
         plt.plot(time_axis, average_signals, label='Average Signal')
         plt.fill_between(time_axis, average_signals - std_signals, average_signals + std_signals, color='b', alpha=0.2, label='Standard Deviation')
@@ -164,31 +164,36 @@ def get_average_opto_response_by_sync (data,threshold,half_window,sampling_rate)
 #%%
 '''Read binary files for single ROI'''
 fs=840
-dpath='D:/ATLAS_SPAD/1769566_PVcre_opto/SyncRecording4_1Hz2ms/'
+dpath='D:/ATLAS_SPAD/1818736_WT_opto_2/SyncRecording2/'
 # fs=1000
 # dpath='G:/YY/New/1765508_Jedi2p_CompareSystem/Day2_pyPhotometry/SyncRecording4'
-csv_filename='Green_traceAll.csv'
+csv_filename='Zscore_traceAll.csv'
 filepath=Analysis.Set_filename (dpath, csv_filename)
 #filepath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/smallROI_100Hznoise.csv'
 Trace_raw=Analysis.getSignalTrace (filepath, traceType='Constant',HighFreqRemoval=False,getBinTrace=False,bin_window=10)
-Trace_raw=notchfilter (Trace_raw,f0=100,bw=10,fs=840)
+#Trace_raw=notchfilter (Trace_raw,f0=100,bw=10,fs=840)
 fig, ax = plt.subplots(figsize=(8,2))
 plot_trace(Trace_raw,ax, fs,label='840Hz')
-
+#%%
+fig, ax = plt.subplots(1, 1, figsize=(3,6))
+Analysis.PSD_plot (Trace_raw,fs,method="welch",color='tab:green', xlim=[0,200],linewidth=1,linestyle='-',label='zscore',ax=ax)
+# ax.set_title(tag)
+# fig_path = os.path.join(path, tag+'zscore_PSD.png')
+# fig.savefig(fig_path, transparent=False)
+    
 #%% Sample data (replace this with your actual signal data)
 data = Trace_raw
 sampling_rate = 840  # samples per second
-threshold = 12
+threshold = 9
 window_duration =0.9# in seconds
 windows=get_average_opto_response_by_sync (data,threshold,window_duration,sampling_rate)
 #%%
 outlier_indices,data_cleaned=get_clean_data (data,threshold)
 #%%
-for i in range (10):
-    fig, ax = plt.subplots(figsize=(8,2))
-    plot_trace(Trace_raw[fs*i:fs*(i+1)],ax, fs,label='840Hz')
-    fig, ax = plt.subplots(figsize=(8,2))
-    plot_trace(data_cleaned[fs*i:fs*(i+1)],ax, fs,label='840Hz')
+for i in range (29):
+    fig, ax = plt.subplots(2,1,figsize=(8,4))
+    plot_trace(Trace_raw[outlier_indices[i]+8:outlier_indices[i]+420],ax[0], fs,label='840Hz')
+    plot_trace(data_cleaned[outlier_indices[i]:outlier_indices[i]+420],ax[1], fs,label='840Hz')
 #%%
 from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 plt.figure(figsize=(12, 3))
@@ -224,39 +229,39 @@ from matplotlib.gridspec import GridSpec
 from waveletFunctions import wave_signif, wavelet
 import OpenEphysTools as OE
 
-data=Trace_raw
-signal_smooth= OE.butter_filter(data, btype='high', cutoff=5, fs=fs, order=2)
-signal_smooth= OE.butter_filter(signal_smooth, btype='low', cutoff=200, fs=fs, order=3)
+data=data_cleaned
+signal_smooth= OE.butter_filter(data, btype='high', cutoff=5, fs=fs, order=5)
+signal_smooth= OE.butter_filter(signal_smooth, btype='low', cutoff=200, fs=fs, order=5)
 
 fig, ax = plt.subplots(figsize=(8,2))
-plot_trace(signal_smooth[5*840:8*840],ax, fs,label='840Hz')
+plot_trace(signal_smooth,ax, fs,label='840Hz')
 'scale also change the frequency range you can get'
-sst,frequency,power,global_ws=OE.Calculate_wavelet(signal_smooth[5*840:8*840],lowpassCutoff=20,Fs=fs,scale=5)
+sst,frequency,power,global_ws=OE.Calculate_wavelet(signal_smooth,lowpassCutoff=50,Fs=fs,scale=20)
 
 fig, ax = plt.subplots(figsize=(8,2))
 OE.plot_wavelet(ax,sst,frequency,power,Fs=fs,colorBar=False,logbase=True)
 
 #%%
-data=Trace_raw
+data=data_cleaned
 signal_smooth= OE.butter_filter(data, btype='high', cutoff=30, fs=fs, order=2)
 signal_smooth= OE.butter_filter(signal_smooth, btype='low', cutoff=60, fs=fs, order=3)
 
 fig, ax = plt.subplots(figsize=(8,2))
-plot_trace(signal_smooth[22*840:23*840],ax, fs,label='840Hz')
+plot_trace(signal_smooth,ax, fs,label='840Hz')
 'scale also change the frequency range you can get'
-sst,frequency,power,global_ws=OE.Calculate_wavelet(signal_smooth[22*840:23*840],lowpassCutoff=60,Fs=fs,scale=5)
+sst,frequency,power,global_ws=OE.Calculate_wavelet(signal_smooth,lowpassCutoff=60,Fs=fs,scale=5)
 
 fig, ax = plt.subplots(figsize=(8,2))
 OE.plot_wavelet(ax,sst,frequency,power,Fs=fs,colorBar=False,logbase=True)
 #%%
-data=Trace_raw
+data=data_cleaned
 signal_smooth= OE.butter_filter(data, btype='high', cutoff=130, fs=fs, order=2)
 signal_smooth= OE.butter_filter(signal_smooth, btype='low', cutoff=180, fs=fs, order=3)
 
 fig, ax = plt.subplots(figsize=(8,2))
-plot_trace(signal_smooth[22*840:23*840],ax, fs,label='840Hz')
+plot_trace(signal_smooth,ax, fs,label='840Hz')
 'scale also change the frequency range you can get'
-sst,frequency,power,global_ws=OE.Calculate_wavelet(signal_smooth[22*840:23*840],lowpassCutoff=180,Fs=fs,scale=2)
+sst,frequency,power,global_ws=OE.Calculate_wavelet(signal_smooth,lowpassCutoff=180,Fs=fs,scale=2)
 
 fig, ax = plt.subplots(figsize=(8,2))
 OE.plot_wavelet(ax,sst,frequency,power,Fs=fs,colorBar=False,logbase=True)
