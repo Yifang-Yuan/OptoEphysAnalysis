@@ -11,14 +11,14 @@ from SPADPhotometryAnalysis import photometry_functions as fp
 from SPADPhotometryAnalysis import AtlasDecode
 from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 #%% Workable code, above is testin
-dpath='D:/ATLAS_SPAD/1818736_WT_opto/Burst-RS-8400frames-840Hz_2024-09-17_16-14_1Hz_1ms/'
+dpath='G:/SPAD2024/20240816_Optogenetics_bilateral/1804114_CaMKII_rawdata/Burst-RS-8400frames-840Hz_2024-08-01_16-05_1Hz10duty/'
 #dpath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/Burst-RS-1017frames-1017Hz_4uW/'
 #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
-hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
-# xxrange = [35, 95]
-# yyrange = [45, 105]
-xxrange = [35, 105]
-yyrange = [40, 110]
+hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
+xxrange = [50, 80]
+yyrange = [55, 85]
+# xxrange = [35, 105]
+# yyrange = [40, 110]
 Trace_raw,z_score=AtlasDecode.get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange=xxrange,yyrange=yyrange,fs=840,photoncount_thre=150)
 #%%
 day_parent_folder='F:/SPAD2024/SPADdata_SNRtest/5uWComparePSD/'

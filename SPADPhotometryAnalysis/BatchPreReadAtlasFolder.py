@@ -93,7 +93,7 @@ def read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixe
     for directory in directories:
         print("Folder:", directory)
         Trace_raw,z_score=AtlasDecode.get_zscore_from_atlas_continuous (directory,hotpixel_path,
-                                                                        xxrange= xxRange,yyrange= yyRange,fs=840,photoncount_thre=200)
+                                                                        xxrange= xxRange,yyrange= yyRange,fs=840,photoncount_thre=150)
         
         i=i+1
         folder_name = f'{new_folder_name}{i}'
@@ -118,15 +118,14 @@ def main():
     or draw image for a single trial using DemoS ingleSPAD_folder.py'''
     
     'Reading SPAD binary data'
-    #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
+    hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
+    #hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
 
-    hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
+    xxrange = [50, 80]
+    yyrange = [55, 85]
 
-    xxrange = [35, 105]
-    yyrange = [40, 110]
-
-    atlas_parent_folder='D:/ATLAS_SPAD/1818736_WT_opto_2/Rawdata/'
-    day_parent_folder='D:/ATLAS_SPAD/1818736_WT_opto_2/'
+    atlas_parent_folder='G:/SPAD2024/20240816_Optogenetics_bilateral/1769567_PVcre/1769567_PVcre_rawdata/'
+    day_parent_folder='G:/SPAD2024/20240816_Optogenetics_bilateral/1769567_PVcre/'
     read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,xxrange,yyrange,new_folder_name='SyncRecording')
     
     

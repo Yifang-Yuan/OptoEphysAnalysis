@@ -116,27 +116,65 @@ def get_nearby_average(arr, idx, threshold):
     else:
         return arr[idx]  # If no valid neighbors, return the original value
 
-def get_clean_data(data, threshold):
+def get_nearby_value(data, idx, threshold):
+    # Find nearby values that are above the threshold
+    left = idx - 1
+    right = idx + 1
+    while left >= 0 or right < len(data):
+        # Check left neighbor
+        if left >= 0 and data[left] > threshold:
+            return data[left]
+        # Check right neighbor
+        if right < len(data) and data[right] > threshold:
+            return data[right]
+        left -= 1
+        right += 1
+    # If no valid neighbor found, return the original value (or some other fallback value)
+    return data[idx]
+
+def get_clean_data(data, outlier_thres,opto_thre):
+    above_opto_threshold_mask = data > opto_thre
+    opto_indices = np.where(above_opto_threshold_mask)[0]
+    filtered_indices = []
+    for i in range(len(opto_indices)):
+        if i == 0 or opto_indices[i] > opto_indices[i-1] + 1:
+            filtered_indices.append(opto_indices[i])
+    
     data_cleaned = data.copy()
-    above_threshold_mask = data > threshold
+    above_threshold_mask = data > outlier_thres
     outlier_indices = np.where(above_threshold_mask)[0]
     # Replace outliers with the average of nearby valid values
     for idx in outlier_indices:
-        data_cleaned[idx] = get_nearby_average(data, idx, threshold)
-
-    # Filter out consecutive indices, keeping only the first index of continuous peaks
-    filtered_indices = []
-    for i in range(len(outlier_indices)):
-        if i == 0 or outlier_indices[i] > outlier_indices[i-1] + 1:
-            filtered_indices.append(outlier_indices[i])
+        data_cleaned[idx] = get_nearby_average(data, idx, outlier_thres)
     return filtered_indices, data_cleaned
 
-def get_average_opto_response_by_sync (data,threshold,half_window,sampling_rate):
-    outlier_indices,data_cleaned=get_clean_data (data,threshold)
+def get_clean_data_below(data, outlier_thres, opto_thre):
+    # Identify values below the opto threshold
+    below_opto_threshold_mask = data < opto_thre
+    opto_indices = np.where(below_opto_threshold_mask)[0]
+
+    # Filter out consecutive indices, keeping only the first index of continuous low values
+    filtered_indices = []
+    for i in range(len(opto_indices)):
+        if i == 0 or opto_indices[i] > opto_indices[i - 1] + 1:  # Ensure indices are not consecutive
+            filtered_indices.append(opto_indices[i])
+    # Create a copy of the data for cleaning
+    data_cleaned = data.copy()
+    # Identify outliers (values below the outlier threshold)
+    below_outlier_threshold_mask = data < outlier_thres
+    outlier_indices = np.where(below_outlier_threshold_mask)[0]
+    # Replace outliers with the average of nearby valid values
+    for idx in outlier_indices:
+        data_cleaned[idx] = get_nearby_value(data, idx, outlier_thres)
+    return filtered_indices, data_cleaned
+
+def get_average_opto_response_by_sync (data,outlier_thres,opto_thre,half_window,sampling_rate):
+    opto_indices,data_cleaned=get_clean_data_below (data,outlier_thres,opto_thre)
+    #opto_indices,data_cleaned=get_clean_data (data,outlier_thres,opto_thre)
     half_win_size = int(half_window * sampling_rate)  # convert to samples
 
     windows = []
-    for index in outlier_indices:
+    for index in opto_indices:
         start_index = index-84
         end_index = int(index+sampling_rate*half_window)
         if end_index <= len(data_cleaned) and start_index>=0:
@@ -151,7 +189,7 @@ def get_average_opto_response_by_sync (data,threshold,half_window,sampling_rate)
         plt.figure(figsize=(10, 6))
         plt.plot(time_axis, average_signals, label='Average Signal')
         plt.fill_between(time_axis, average_signals - std_signals, average_signals + std_signals, color='b', alpha=0.2, label='Standard Deviation')
-        plt.axvline(x=0, color='red', linestyle='--', label='Event Time')
+        plt.axvline(x=0.1, color='red', linestyle='--', label='Event Time')
         plt.xlabel('Time (s)')
         plt.ylabel('Signal')
         plt.title('Average Signal with Standard Deviation')
@@ -164,10 +202,10 @@ def get_average_opto_response_by_sync (data,threshold,half_window,sampling_rate)
 #%%
 '''Read binary files for single ROI'''
 fs=840
-dpath='D:/ATLAS_SPAD/1818736_WT_opto_2/SyncRecording2/'
+dpath='G:/SPAD2024/20240816_Optogenetics_bilateral/1769567_PVcre/SyncRecording5/'
 # fs=1000
 # dpath='G:/YY/New/1765508_Jedi2p_CompareSystem/Day2_pyPhotometry/SyncRecording4'
-csv_filename='Zscore_traceAll.csv'
+csv_filename='Green_traceAll.csv'
 filepath=Analysis.Set_filename (dpath, csv_filename)
 #filepath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/smallROI_100Hznoise.csv'
 Trace_raw=Analysis.getSignalTrace (filepath, traceType='Constant',HighFreqRemoval=False,getBinTrace=False,bin_window=10)
@@ -175,51 +213,97 @@ Trace_raw=Analysis.getSignalTrace (filepath, traceType='Constant',HighFreqRemova
 fig, ax = plt.subplots(figsize=(8,2))
 plot_trace(Trace_raw,ax, fs,label='840Hz')
 #%%
+data = Trace_raw
+outlier_thre=11.7
+opto_thre = 11.7
+window_duration =0.9# in seconds
+windows=get_average_opto_response_by_sync (data,outlier_thre,opto_thre,window_duration,fs)
+opto_indices,data_cleaned=get_clean_data_below (data,outlier_thre,opto_thre)
+fig, ax = plt.subplots(figsize=(8,2))
+plot_trace(data_cleaned,ax, fs,label='840Hz')
+#%%
+for i in range (10):
+    fig, ax = plt.subplots(2,1,figsize=(8,4))
+    plot_trace(Trace_raw[opto_indices[i]:opto_indices[i]+840],ax[0], fs,label='840Hz')
+    plot_trace(data_cleaned[opto_indices[i]:opto_indices[i]+840],ax[1], fs,label='840Hz')
+    ax[1].axvline(x=0, color='red', linestyle='--', label='Event Time')
+#%%
+data_cleaned=pd.Series(data_cleaned)
+Signal_bin=fp.smooth_signal(data_cleaned,10,'flat')
+fig, ax = plt.subplots(figsize=(8,2))
+ax=plot_trace(Signal_bin,ax, fs,label='840Hz')
+for i in range(10):
+    ax.axvline(x=opto_indices[i]/fs, color='red', linestyle='--', label='Event Time')
+
+
+data_cleaned=pd.Series(data_cleaned)
+Signal_bin=fp.smooth_signal(data_cleaned,2,'flat')
+fig, ax = plt.subplots(figsize=(8,2))
+ax=plot_trace(Signal_bin[0:840*2],ax, fs,label='840Hz')
+for i in range(2):
+    ax.axvline(x=opto_indices[i]/fs, color='red', linestyle='--', label='Event Time')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#%%
 fig, ax = plt.subplots(1, 1, figsize=(3,6))
-Analysis.PSD_plot (Trace_raw,fs,method="welch",color='tab:green', xlim=[0,200],linewidth=1,linestyle='-',label='zscore',ax=ax)
+Analysis.PSD_plot (Trace_raw,fs,method="welch",color='tab:green', xlim=[0,200],linewidth=1,linestyle='-',label='Green',ax=ax)
 # ax.set_title(tag)
 # fig_path = os.path.join(path, tag+'zscore_PSD.png')
 # fig.savefig(fig_path, transparent=False)
     
 #%% Sample data (replace this with your actual signal data)
 data = Trace_raw
-sampling_rate = 840  # samples per second
-threshold = 9
+outlier_thre=24.8
+opto_thre = 24.8
 window_duration =0.9# in seconds
-windows=get_average_opto_response_by_sync (data,threshold,window_duration,sampling_rate)
+windows=get_average_opto_response_by_sync (data,outlier_thre,opto_thre,window_duration,fs)
+opto_indices,data_cleaned=get_clean_data (data,outlier_thre,opto_thre)
+fig, ax = plt.subplots(figsize=(8,2))
+plot_trace(data_cleaned,ax, fs,label='840Hz')
 #%%
-outlier_indices,data_cleaned=get_clean_data (data,threshold)
-#%%
-for i in range (29):
+for i in range (10):
     fig, ax = plt.subplots(2,1,figsize=(8,4))
-    plot_trace(Trace_raw[outlier_indices[i]+8:outlier_indices[i]+420],ax[0], fs,label='840Hz')
-    plot_trace(data_cleaned[outlier_indices[i]:outlier_indices[i]+420],ax[1], fs,label='840Hz')
+    plot_trace(Trace_raw[opto_indices[i]:opto_indices[i]+840],ax[0], fs,label='840Hz')
+    plot_trace(data_cleaned[opto_indices[i]:opto_indices[i]+840],ax[1], fs,label='840Hz')
+    ax[1].axvline(x=0, color='red', linestyle='--', label='Event Time')
+    
 #%%
-from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
-plt.figure(figsize=(12, 3))
-plt.plot(np.arange(len(data)), data, label='Data Above Threshold')
-plt.xlabel('Sample Index')
-plt.ylabel('Signal Value')
-plt.legend()
-plt.show()
-# plt.figure(figsize=(12, 3))
-# plt.plot(np.arange(len(data_cleaned)), data_cleaned, label='Data Above Threshold')
-# plt.xlabel('Sample Index')
-# plt.ylabel('Signal Value')
-# plt.legend()
-# plt.show()
-
-trace_binned=Analysis.get_bin_trace (data_cleaned,bin_window=10,color='tab:blue',Fs=sampling_rate)
+for i in range (10):
+    fig, ax = plt.subplots(2,1,figsize=(8,4))
+    plot_trace(Trace_raw[opto_indices[i*10]:opto_indices[i*10]+840],ax[0], fs,label='840Hz')
+    plot_trace(data_cleaned[opto_indices[i*10]:opto_indices[i*10]+840],ax[1], fs,label='840Hz')
+    for i in range (10):
+        ax[1].axvline(x=0.1*i, color='red', linestyle='--', label='Event Time')
 
 #%%
-bin_window=2
-Signal_bin=Analysis.get_bin_trace(Trace_raw,bin_window=bin_window,Fs=840)
+data_cleaned=pd.Series(data_cleaned)
+Signal_bin=fp.smooth_signal(data_cleaned,10,'flat')
 
-bin_window=20
-Signal_bin=Analysis.get_bin_trace(Trace_raw[10*840:30*840],bin_window=bin_window,Fs=840)
-
-#SNR=Analysis.calculate_SNR(Trace_raw[0:9000])
-#ATLAS 840
+fig, ax = plt.subplots(figsize=(8,2))
+ax=plot_trace(Signal_bin[fs:fs*10],ax, fs,label='840Hz')
+for i in range(10):
+    ax.axvline(x=(opto_indices[i]-fs)/fs, color='red', linestyle='--', label='Event Time')
 
 #%% Wavelet analysis
 import matplotlib.pylab as plt
@@ -236,7 +320,7 @@ signal_smooth= OE.butter_filter(signal_smooth, btype='low', cutoff=200, fs=fs, o
 fig, ax = plt.subplots(figsize=(8,2))
 plot_trace(signal_smooth,ax, fs,label='840Hz')
 'scale also change the frequency range you can get'
-sst,frequency,power,global_ws=OE.Calculate_wavelet(signal_smooth,lowpassCutoff=50,Fs=fs,scale=20)
+sst,frequency,power,global_ws=OE.Calculate_wavelet(signal_smooth,lowpassCutoff=50,Fs=fs,scale=10)
 
 fig, ax = plt.subplots(figsize=(8,2))
 OE.plot_wavelet(ax,sst,frequency,power,Fs=fs,colorBar=False,logbase=True)
