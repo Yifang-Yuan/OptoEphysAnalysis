@@ -24,7 +24,7 @@ Reference:
       https://www.jove.com/video/60278/multi-fiber-photometry-to-record-neural-activity-freely-moving
 '''
 
-def get_zdFF(reference,signal,smooth_win=10,remove=200,lambd=5e4,porder=1,itermax=50): 
+def get_zdFF(reference,signal,smooth_win=10,remove=0,lambd=5e4,porder=1,itermax=50): 
   '''
   Calculates z-score dF/F signal based on fiber photometry calcium-idependent 
   and calcium-dependent signals
