@@ -11,47 +11,51 @@ import OpenEphysTools as OE
 import numpy as np
 import os
 import pickle
+from SPADPhotometryAnalysis import SPADAnalysisTools as OpticalAnlaysis
+import matplotlib.pyplot as plt
 #%%
 '''recordingMode: use py, Atlas, SPAD for different systems
 '''
-dpath='G:/2024_OEC_Atlas/1765507_iGlu_Atlas/Day3/'
-recordingName='SavedPostSleepTrials'
-Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,recordingMode='Atlas',indicator='GECI') 
+dpath='D:/ATLAS_SPAD/1820061_PVcre/Day3/'
+recordingName='SavedSleepTrials'
+Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,recordingMode='Atlas',indicator='GEVI') 
 #%%
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-LFP_channel='LFP_1'
+LFP_channel='LFP_3'
 #%%
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined theta period.
 nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
 theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.5,High_thres=8,save=False,plot_theta=True)
-#%% Detect ripple event
-'''Gamma band plot
-For a rigid threshold to get larger amplitude Gamma events: Low_thres=1, for more ripple events, Low_thres=0'''
-rip_ep,rip_tsd=Recording1.pynappleGammaAnalysis (lfp_channel=LFP_channel,ep_start=0,ep_end=10,
-                                                                          Low_thres=0,High_thres=8,plot_segment=True,
-                                                                          plot_ripple_ep=True,excludeTheta=False,excludeNonTheta=True)
-#%% Detect ripple event
-'''RIPPLE DETECTION
-For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
-rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,ep_start=10,ep_end=40,
-                                                                          Low_thres=1,High_thres=10,plot_segment=False,
-                                                                          plot_ripple_ep=True,excludeTheta=True)
-#%% Detect theta nested gamma event
-'''Theta nested Gamma plot
-For a rigid threshold to get larger amplitude Gamma events: Low_thres=1, for more ripple events, Low_thres=0'''
-rip_ep,rip_tsd=Recording1.PlotThetaNestedGamma (lfp_channel=LFP_channel,Low_thres=0.5,High_thres=10,plot_segment=False, plot_ripple_ep=True)
-#%%
-'plot feature can be LFP or SPAD to show the power spectrum of LFP or SPAD'
-Recording1.plot_gamma_power_on_theta_cycle(LFP_channel=LFP_channel)
 #%% This is to calculate and plot the trace around theta trough
 Recording1.plot_theta_correlation(LFP_channel)
 #%% Detect theta event
 '''THETA PEAK DETECTION
 For a rigid threshold to get larger amplitude theta events: Low_thres=1, for more ripple events, Low_thres=0.5'''
-data_segment,timestamps=Recording1.pynappleThetaAnalysis (lfp_channel=LFP_channel,ep_start=0,ep_end=90,
-                                                                         Low_thres=-0.5,High_thres=8,plot_segment=False,plot_ripple_ep=False)
+data_segment,timestamps=Recording1.pynappleThetaAnalysis (lfp_channel=LFP_channel,ep_start=0,ep_end=5,
+                                                                         Low_thres=1,High_thres=8,plot_segment=True,plot_ripple_ep=False)
 #time_duration=transient_trace.index[-1].total_seconds()
+#%% Detect ripple event
+'''Gamma band plot
+For a rigid threshold to get larger amplitude Gamma events: Low_thres=1, for more ripple events, Low_thres=0'''
+rip_ep,rip_tsd=Recording1.pynappleGammaAnalysis (lfp_channel=LFP_channel,ep_start=0,ep_end=10,
+                                                                          Low_thres=1,High_thres=8,plot_segment=True,
+                                                                          plot_ripple_ep=True,excludeTheta=False,excludeNonTheta=True)
+#%% Detect ripple event
+'''RIPPLE DETECTION
+For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
+rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,ep_start=0,ep_end=10,
+                                                                          Low_thres=1,High_thres=10,plot_segment=True,
+                                                                          plot_ripple_ep=False,excludeTheta=True)
+#%% Detect theta nested gamma event
+'''Theta nested Gamma plot
+For a rigid threshold to get larger amplitude Gamma events: Low_thres=1, for more ripple events, Low_thres=0'''
+rip_ep,rip_tsd=Recording1.PlotThetaNestedGamma (lfp_channel=LFP_channel,Low_thres=0.5,High_thres=10,plot_segment=False, plot_ripple_ep=False)
+
+#%%
+'plot feature can be LFP or SPAD to show the power spectrum of LFP or SPAD'
+Recording1.plot_gamma_power_on_theta_cycle(LFP_channel=LFP_channel)
+
 #%%
 '''To plot the feature of a part of the signal'''
 start_time=10
@@ -94,5 +98,20 @@ spad_low = pd.Series(spad_lowpass, index=silced_recording['zscore_raw'].index)
 lfp_low = pd.Series(lfp_lowpass, index=silced_recording[LFP_channel].index)
 lags,Corr_mean,Corr_std=Recording1.get_mean_corr_two_traces (spad_low,lfp_low,corr_window=0.5)
 #%%
+Fs=10000
 
+#theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.5,High_thres=8,save=False,plot_theta=True)
+LFP_theta=Recording1.theta_part[LFP_channel]
+LFP_nontheta=Recording1.non_theta_part[LFP_channel]
 
+fig, ax = plt.subplots(1, 1, figsize=(3, 6))
+
+OpticalAnlaysis.PSD_plot (LFP_nontheta/1000,fs=Fs,method="welch",color='black', xlim=[0,100],linewidth=2,linestyle='--',label='LFP-rest',ax=ax)
+OpticalAnlaysis.PSD_plot (LFP_theta/1000,fs=Fs,method="welch",color='black', xlim=[0,100],linewidth=2,linestyle='-',label='LFP-move',ax=ax)
+
+optical_theta=Recording1.theta_part['zscore_raw']
+optical_nontheta=Recording1.non_theta_part['zscore_raw']
+
+fig, ax = plt.subplots(1, 1, figsize=(3, 6))
+OpticalAnlaysis.PSD_plot (optical_nontheta,fs=Fs,method="welch",color='tab:green', xlim=[0,100],linewidth=2,linestyle='--',label='rest',ax=ax)
+OpticalAnlaysis.PSD_plot (optical_theta,fs=Fs,method="welch",color='tab:green', xlim=[0,100],linewidth=2,linestyle='-',label='move',ax=ax)

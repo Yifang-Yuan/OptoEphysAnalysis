@@ -117,7 +117,7 @@ def plot_aligned_ripple_save (save_path,ripple_triggered_lfps,ripple_triggered_z
     return -1
 
 '''recordingMode: use py, Atlas, SPAD for different systems'''
-def run_ripple_plot (dpath,LFP_channel,recordingName,savename):
+def run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5):
     save_path = os.path.join(dpath,savename)
     Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,
                                          read_aligned_data_from_file=True,
@@ -126,7 +126,7 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename):
     '''separate the theta and non-theta parts.
     theta_thres: the theta band power should be bigger than 80% to be defined theta period.
     nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-    theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.5,High_thres=8,save=False,plot_theta=True)
+    theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=Low_thres,High_thres=8,save=False,plot_theta=True)
 
     '''RIPPLE DETECTION
     For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
@@ -152,13 +152,14 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename):
 
 def run_ripple_plot_main():
     'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
-    dpath='F:/2024MScR_NORtask/1756735_PVCre_Jedi2p_Compare/Day1Atlas_OF/'
-    recordingName='SavedOpenFieldTrials'
-    savename='RippleSave_OpenField'
+    dpath='D:/ATLAS_SPAD/1820061_PVcre/Day3/'
+    recordingName='SavedSleepTrials'
+    savename='RippleSave_Sleep'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-    LFP_channel='LFP_2'
-    run_ripple_plot (dpath,LFP_channel,recordingName,savename)
-
+    LFP_channel='LFP_4'
+    run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5)
+    
+run_ripple_plot_main()
 #%%
 'concatenate ripple'
 parent_path='F:/2024_OEC_Atlas/1765508_Jedi2p_Atlas/'

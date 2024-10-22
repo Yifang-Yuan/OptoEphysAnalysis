@@ -78,8 +78,8 @@ def main():
     '''Set the folder for the Behaviour recording, defualt folder names are usually date and time'''
     '''Set the parent folder your session results, this should be the same parent folder to save optical data'''
     
-    save_parent_folder='G:/YY/2024MScR_NORtask/1765508_Jedi2p_CompareSystem/Day5_Atlas_EphysGood/'
-    BehaviourData_folder_path="G:/YY/2024MScR_NORtask/1765508_Jedi2p_CompareSystem/Day5_Atlas_EphysGood/Behaviour"
+    save_parent_folder='D:/ATLAS_SPAD/1820061_PVcre/Day3/'
+    BehaviourData_folder_path='D:/ATLAS_SPAD/1820061_PVcre/Day3/Behaviour/'
     label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
     
     #plot_multiple_behaviour_files_in_folder(BehaviourData_folder_path,tracking_fs=10)

@@ -176,7 +176,7 @@ def PSD_plot(data, fs=9938.4, method="welch", color='tab:blue', xlim=[1,100], li
         fig = ax.figure  # Reference the figure from the provided ax
     
     if method == "welch":
-        f, Pxx_den = signal.welch(data, fs=fs, nperseg=512)
+        f, Pxx_den = signal.welch(data, fs=fs, nperseg=2048)
     elif method == "periodogram":
         f, Pxx_den = signal.periodogram(data, fs=fs)
     # Convert to dB/Hz
@@ -187,8 +187,8 @@ def PSD_plot(data, fs=9938.4, method="welch", color='tab:blue', xlim=[1,100], li
     f_filtered = f[idx]
     Pxx_den_dB_filtered = Pxx_den_dB[idx]
     # Plot the filtered data on the given ax with specified linestyle
-    ax.plot(f_filtered, Pxx_den_dB_filtered, color=color, linewidth=linewidth, linestyle=linestyle, label=label)
-    #ax.plot(f, Pxx_den_dB, color=color, linewidth=linewidth, linestyle=linestyle, label=label)
+    #ax.plot(f_filtered, Pxx_den_dB_filtered, color=color, linewidth=linewidth, linestyle=linestyle, label=label)
+    ax.plot(f, Pxx_den_dB, color=color, linewidth=linewidth, linestyle=linestyle, label=label)
     ax.set_xlim(xlim)  # Limit x-axis to the specified range
  
     ax.set_ylim([np.min(Pxx_den_dB_filtered) - 1, np.max(Pxx_den_dB_filtered) + 1])

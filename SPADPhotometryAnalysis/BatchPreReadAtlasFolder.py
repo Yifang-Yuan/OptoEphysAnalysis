@@ -92,23 +92,22 @@ def read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixe
     i=0
     for directory in directories:
         print("Folder:", directory)
-        Trace_raw,z_score=AtlasDecode.get_zscore_from_atlas_continuous (directory,hotpixel_path,
-                                                                        xxrange= xxRange,yyrange= yyRange,fs=840,photoncount_thre=150)
+        # Trace_raw,z_score=AtlasDecode.get_zscore_from_atlas_continuous (directory,hotpixel_path,
+        #                                                                 xxrange= xxRange,yyrange= yyRange,fs=840,photoncount_thre=1000)
         
+        Trace_raw,z_score,pixel_array_all_frames=AtlasDecode.get_zscore_from_atlas_snr_mask (directory,hotpixel_path,xxRange,yyRange,fs=840,snr_thresh=2)
         i=i+1
         folder_name = f'{new_folder_name}{i}'
         save_folder = os.path.join(day_parent_folder, folder_name)
         print ('save_folder is', save_folder)
-        
-        #Remove outliers
-        #z_score=replace_outliers_with_avg(z_score, threshold=4)
-        
+        #z_score=replace_outliers_with_avg(z_score, threshold=4)   
         # Create the folder if it doesn't exist
         if not os.path.exists(save_folder):
             os.makedirs(save_folder)
         np.savetxt(os.path.join(save_folder,'Zscore_traceAll.csv'), z_score, delimiter=',', comments='')
         np.savetxt(os.path.join(save_folder,'Green_traceAll.csv'), Trace_raw, delimiter=',', comments='')
         np.savetxt(os.path.join(save_folder,'Red_traceAll.csv'), Trace_raw, delimiter=',', comments='')
+        np.save(os.path.join(save_folder, 'pixel_array_all_frames.npy'), pixel_array_all_frames)
     return -1
 
 
@@ -118,15 +117,15 @@ def main():
     or draw image for a single trial using DemoS ingleSPAD_folder.py'''
     
     'Reading SPAD binary data'
-    hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
-    #hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
-
-    xxrange = [50, 80]
-    yyrange = [55, 85]
-
-    atlas_parent_folder='G:/SPAD2024/20240816_Optogenetics_bilateral/1769567_PVcre/1769567_PVcre_rawdata/'
-    day_parent_folder='G:/SPAD2024/20240816_Optogenetics_bilateral/1769567_PVcre/'
+    #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
+    hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
+    
+    xxrange = [60, 70]
+    yyrange = [65, 75]
+    atlas_parent_folder='D:/ATLAS_SPAD/1820061_PVcre/Day3/Atlas/'
+    day_parent_folder='D:/ATLAS_SPAD/1820061_PVcre/Day3/'
     read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,xxrange,yyrange,new_folder_name='SyncRecording')
+    
     
     
 if __name__ == "__main__":

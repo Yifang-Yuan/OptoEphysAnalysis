@@ -11,15 +11,20 @@ from SPADPhotometryAnalysis import photometry_functions as fp
 from SPADPhotometryAnalysis import AtlasDecode
 from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 #%% Workable code, above is testin
-dpath='G:/SPAD2024/20240816_Optogenetics_bilateral/1804114_CaMKII_rawdata/Burst-RS-8400frames-840Hz_2024-08-01_16-05_1Hz10duty/'
+#ppath='D:/ATLAS_SPAD/1825505_SimCre/Day2/Atlas/'
+dpath='D:/ATLAS_SPAD/1820061_PVcre/Day3/Atlas/Burst-RS-25200frames-840Hz_2024-10-18_15-16/'
 #dpath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/Burst-RS-1017frames-1017Hz_4uW/'
 #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
-hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
-xxrange = [50, 80]
-yyrange = [55, 85]
-# xxrange = [35, 105]
-# yyrange = [40, 110]
-Trace_raw,z_score=AtlasDecode.get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange=xxrange,yyrange=yyrange,fs=840,photoncount_thre=150)
+hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
+# xxrange = [40, 97]
+# yyrange = [45, 102]
+xxrange = [60, 70]
+yyrange = [65, 75]
+#%%
+Trace_raw,z_score=AtlasDecode.get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange=xxrange,yyrange=yyrange,fs=840,photoncount_thre=200)
+#%%
+Trace_raw,z_score,pixel_array_all_frames=AtlasDecode.get_zscore_from_atlas_snr_mask (dpath,hotpixel_path,xxrange,yyrange,fs=840,snr_thresh=2)
+
 #%%
 day_parent_folder='F:/SPAD2024/SPADdata_SNRtest/5uWComparePSD/'
 folder_name='5uW_Atlas'
@@ -44,9 +49,16 @@ Analysis.plot_wavelet_data(data,sampling_rate,cutoff=300,xlim = ([6,30]))
 #%%
 '''Read binary files for single ROI'''
 # Display the grayscale image
-#pixel_array_all_frames,sum_pixel_array,avg_pixel_array=decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=500)
+pixel_array_all_frames,sum_pixel_array,avg_pixel_array=AtlasDecode.decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=1000)
 #%%
-#show_image_with_pixel_array(avg_pixel_array,showPixel_label=True)
+pixel_array_all_frames,sum_pixel_array,avg_pixel_array=AtlasDecode.decode_atlas_folder_without_hotpixel_removal (dpath)
+#%%
+ppath='D:/ATLAS_SPAD/1825505_SimCre/Day2/Atlas/'
+item_path = os.path.join(ppath,  'pixel_array_all_frames.npy')
+np.save(item_path, pixel_array_all_frames)
+#%%
+AtlasDecode.show_image_with_pixel_array(avg_pixel_array,showPixel_label=True)
+AtlasDecode.show_image_with_pixel_array(sum_pixel_array,showPixel_label=True)
 #%%
 # sum_values_over_time,mean_values_over_time,region_pixel_array=get_trace_from_3d_pixel_array(pixel_array_all_frames,avg_pixel_array,xxrange,yyrange)
 # fig, ax = plt.subplots(figsize=(8, 2))

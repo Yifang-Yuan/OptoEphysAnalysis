@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 from SPADPhotometryAnalysis import photometry_functions as fp
 from scipy.ndimage import uniform_filter1d
+import matplotlib.patches as patches
 
 def loadPCFrame (readData):
     '''loads a sensor bytestream file containing a single Photon Count frame
@@ -76,12 +77,41 @@ def decode_atlas_folder (folderpath,hotpixel_path,photoncount_thre=2000):
     
     return pixel_array_all_frames,sum_pixel_array,avg_pixel_array
 
-def show_image_with_pixel_array(pixel_array_2d,showPixel_label=True):
-    vmin = 0  # Minimum value
-    vmax = 80  # Maximum value
+def decode_atlas_folder_without_hotpixel_removal (folderpath):
+    files = os.listdir(folderpath)
+    # Filter out the CSV files that match the pattern 'AnimalTracking_*.csv'
+    frame_files = [file for file in files if file.startswith('frame_') and file.endswith('.mat')]
+    # Sort the CSV files based on the numerical digits in their filenames
+    sorted_mat_files = sorted(frame_files, key=lambda x: int(x.split('_')[-1].split('.')[0]))
+    #print (sorted_mat_files)
+    pixel_arrays = []
+    #hotpixel_indices= np.loadtxt(hotpixel_path, delimiter=',', dtype=int)
+    i=0
+    for file in sorted_mat_files:
+        #print ('framefile name', file)
+        single_frame_data_path = os.path.join(folderpath, file)
+        matdata = loadmat(single_frame_data_path)
+        real_data=matdata['realData']
+        readData=loadPCFrame(real_data) #decode data to single pixel frame
+        #readData=remove_hotpixel(readData,photoncount_thre) #REMOVE hotpixel by a threshold
+        #readData=remove_hotpixel(readData,photoncount_thre) #REMOVE hotpixel by a threshold
+        single_pixel_array=readData[:,:,0]
+        #single_pixel_array[hotpixel_indices[:, 0], hotpixel_indices[:, 1]] = 0 #REMOVE HOTPIXEL FROM MASK
+        i=i+1
+        if i>0:
+            pixel_arrays.append(single_pixel_array)
+    pixel_array_all_frames = np.stack(pixel_arrays, axis=2)
+    sum_pixel_array = np.sum(pixel_array_all_frames, axis=2)
+    avg_pixel_array =np.mean(pixel_array_all_frames, axis=2)
+    
+    return pixel_array_all_frames
 
-    plt.imshow(pixel_array_2d, cmap='gray', vmin=vmin, vmax=vmax)
-    #plt.imshow(pixel_array_2d, cmap='gray')
+def show_image_with_pixel_array(pixel_array_2d,showPixel_label=True):
+    # vmin = 0  # Minimum value
+    # vmax = 80  # Maximum value
+
+    #plt.imshow(pixel_array_2d, cmap='gray', vmin=vmin, vmax=vmax)
+    plt.imshow(pixel_array_2d, cmap='gray')
     # Add color bar with photon count numbers
     if showPixel_label:
         # Add x and y axes with pixel IDs
@@ -107,7 +137,7 @@ def pixel_array_plot_hist(pixel_array, plot_min_thre=100):
     return -1
 
 def get_trace_from_3d_pixel_array(pixel_array_all_frames,pixel_array,xxrange,yyrange):
-    import matplotlib.patches as patches
+    
     plt.figure(figsize=(6, 6))
     plt.imshow(pixel_array, cmap='gray')
     plt.colorbar(label='Photon count')
@@ -119,6 +149,7 @@ def get_trace_from_3d_pixel_array(pixel_array_all_frames,pixel_array,xxrange,yyr
                              linewidth=2, edgecolor='r', facecolor='none')
     plt.gca().add_patch(rect)
     plt.show()
+    
     region_pixel_array = pixel_array_all_frames[xxrange[0]:xxrange[1]+1, yyrange[0]:yyrange[1]+1, :]
     mean_array=np.mean(region_pixel_array, axis=2)
     std_array=np.std(region_pixel_array, axis=2)
@@ -172,6 +203,63 @@ def replace_outliers_with_nearest_avg(data, window_size=25000, z_thresh=3):
             data[i] = data[k]
 
     return data
+def get_snr_image(data):
+
+    fr_rate = 840
+    row_size = 128
+    col_size = 128
+    defect_pixel_mask = np.ones((row_size,col_size))
+    mean_image = data[:, :,:].mean(axis=2)
+    std_image = data[:, :,:].std(axis=2)
+    snr_image = mean_image/std_image
+    return mean_image, std_image, snr_image
+
+
+def mask_low_snr_pixels(snr_image, thresh):
+    
+    mask = np.ones((128, 128))
+    mask[np.where(snr_image<thresh)] = 0
+    
+    return mask
+
+def mask_high_snr_pixels(snr_image, thresh):
+    
+    mask = np.ones((128, 128))
+    mask[np.where(snr_image>thresh)] = 0
+    
+    return mask
+
+def construct_roi_mask(xx_1 = 50, xx_2 = 150, yy_1 = 100 , yy_2 = 150):
+    
+    roi_mask = np.zeros((128,128))
+
+    roi_mask[yy_1:yy_2, xx_1:xx_2] = 1
+    
+    background_mask = np.logical_not(roi_mask)
+    
+    return roi_mask, background_mask
+
+
+
+def extract_trace(raw_data, roi_mask, hot_pixel_mask, activity = 'sum'):
+    
+    no_of_data_points = raw_data.shape[2]
+    
+    no_of_pixels_per_roi = roi_mask.sum()
+    
+    trace = []
+    
+    for i in range(no_of_data_points):
+        
+        frame = (raw_data[:,:,i]*hot_pixel_mask)*roi_mask
+        trace.append(frame.sum())
+        
+    np_trace = np.asarray(trace)
+        
+    if activity == 'mean':
+        np_trace = np_trace/no_of_pixels_per_roi
+
+    return np_trace
 
 def get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange= [25, 85],yyrange= [30, 90],fs=840,photoncount_thre=2000):
     pixel_array_all_frames,sum_pixel_array,_=decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=photoncount_thre)
@@ -198,3 +286,75 @@ def get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange= [25, 85],yyra
     plot_trace(z_score,ax, fs, label="zscore")
     return Trace_raw,z_score
 
+def get_zscore_from_atlas_snr_mask (dpath,hotpixel_path,xxrange= [25, 85],yyrange= [30, 90],fs=840,snr_thresh=2):
+    pixel_array_all_frames=decode_atlas_folder_without_hotpixel_removal (dpath)
+        
+    mean_image, std_image, snr_image = get_snr_image(pixel_array_all_frames)
+    # look at the snr_image with colorbar and set this (pixel value below thresh will be 0 in the mask) 
+    pixel_mask = mask_low_snr_pixels(snr_image, snr_thresh)
+
+    xxrange = [30, 80]
+    yyrange = [35, 85]
+    #construct roi_mask
+    roi_mask,_ = construct_roi_mask(xx_1 = xxrange[0], xx_2 = xxrange[1], yy_1 = yyrange[0] , yy_2 = yyrange[1])
+    
+    #extract the trace based on the roi_mask and hot_pixel_mask
+    trace = extract_trace(pixel_array_all_frames, roi_mask, pixel_mask, activity = 'mean')
+    #print('original lenth: ', len(mean_values_over_time))
+    Trace_raw=trace[1:]
+    #print('trace_raw lenth 1: ', len(Trace_raw))
+    Trace_raw = np.append(Trace_raw, Trace_raw[-1])
+
+    layout = [['mean', 'std', 'snr']]
+    
+    fig, ax = plt.subplot_mosaic(layout, figsize = (10, 3))
+    
+    index = 'mean'
+    pos = ax[index].imshow(mean_image)
+    ax[index].set_title(index)
+    fig.colorbar(pos, ax=ax[index])
+    
+    
+    index = 'std'
+    pos = ax[index].imshow(std_image)
+    ax[index].set_title(index)
+    fig.colorbar(pos, ax=ax[index])
+    
+    index = 'snr'
+    pos = ax[index].imshow(snr_image)
+    ax[index].set_title(index)
+    fig.colorbar(pos, ax=ax[index])
+    
+    plt.tight_layout()  # Adjust subplots to avoid overlap
+    plt.show()
+
+    #print('trace_raw lenth 2: ', len(Trace_raw))
+    fig, ax = plt.subplots(figsize=(8, 2))
+    plot_trace(Trace_raw,ax, fs, label="raw_data")
+
+    #Trace_raw=replace_outliers_with_nearest_avg(Trace_raw, window_size=25000, z_thresh=4)
+    
+    lambd = 10e3 # Adjust lambda to get the best fit
+    porder = 1
+    itermax = 15
+    sig_base=fp.airPLS(Trace_raw,lambda_=lambd,porder=porder,itermax=itermax) 
+    signal = (Trace_raw - sig_base)  
+    z_score=(signal - np.median(signal)) / np.std(signal)
+    
+    fig, ax = plt.subplots(figsize=(8, 2))
+    plot_trace(z_score,ax, fs, label="zscore")
+    plt.show()
+    return Trace_raw,z_score,pixel_array_all_frames
+
+def get_total_photonCount_atlas_continuous (dpath,hotpixel_path,xxrange= [25, 85],yyrange= [30, 90],fs=840,photoncount_thre=2000):
+    pixel_array_all_frames,sum_pixel_array,_=decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=photoncount_thre)
+    sum_values_over_time,mean_values_over_time,region_pixel_array=get_trace_from_3d_pixel_array(pixel_array_all_frames,sum_pixel_array,xxrange,yyrange)
+    #print('original lenth: ', len(mean_values_over_time))
+    Trace_raw=sum_values_over_time[1:]
+    #print('trace_raw lenth 1: ', len(Trace_raw))
+    Trace_raw = np.append(Trace_raw, Trace_raw[-1])
+    #print('trace_raw lenth 2: ', len(Trace_raw))
+    fig, ax = plt.subplots(figsize=(8, 2))
+    plot_trace(Trace_raw,ax, fs, label="raw_data")
+
+    return Trace_raw

@@ -1333,7 +1333,7 @@ class SyncOEpyPhotometrySession:
         lfp_data=data_segment[lfp_channel]
         spad_data=data_segment['zscore_raw']
         lfp_data=lfp_data/1000 #change the unit from uV to mV
-        SPAD_cutoff=50
+        SPAD_cutoff=20
         SPAD_smooth_np = OE.smooth_signal(spad_data,Fs=self.fs,cutoff=SPAD_cutoff)
         'To align LFP and SPAD raw data to pynapple format'
         LFP=nap.Tsd(t = timestamps, d = lfp_data.to_numpy(), time_units = 's')
@@ -1904,7 +1904,7 @@ class SyncOEpyPhotometrySession:
         # Remove spines
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
-        ax.set_xlim([-0.5,0.5])
+        #ax.set_xlim([-0.5,0.5])
         #ax.spines['bottom'].set_visible(False)
         #ax.spines['left'].set_visible(False)
         # Optionally remove ticks and labels

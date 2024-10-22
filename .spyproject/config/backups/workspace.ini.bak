@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = empty-project-type
-recent_files = ['plotRipple.py', 'OpenEphysTools.py', 'SyncOECPySessionClass.py', 'ConcatenateTrials.py']
+recent_files = ['SPADPhotometryAnalysis\\DemoSingleAtlasfolder.py', 'CombineAnalysisPy.py', 'SPADPhotometryAnalysis\\TaperedFibreAltas.py', 'ConcatenateTrials.py', 'plotRipple.py', 'plot_example_traces.py']
 
 [main]
 version = 0.2.0
