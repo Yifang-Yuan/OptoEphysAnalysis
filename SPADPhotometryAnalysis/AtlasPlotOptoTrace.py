@@ -198,21 +198,47 @@ def get_average_opto_response_by_sync (data,outlier_thres,opto_thre,half_window,
     else:
         print("No windows to analyze. Adjust your threshold or window size.")
     return windows
-        
+def plot_segment_avg(data,segment_length):
+    segment_length = segment_length  # Number of samples per 1-second segment
+    num_segments = len(data) // segment_length  # Total number of segments (10)
+    # Reshape data into segments of 1 second each (10 segments, each with 840 samples)
+    segments = np.reshape(data[:num_segments * segment_length], (num_segments, segment_length))
+    
+    # Calculate mean and std across the segments for each sample point
+    mean_across_segments = np.mean(segments, axis=0)
+    std_across_segments = np.std(segments, axis=0)
+    
+    # Plot
+    time = np.arange(segment_length) / fs  # Time in seconds for each sample within the segment
+    
+    plt.figure(figsize=(10, 5))
+    plt.plot(time, mean_across_segments, label='Mean', color='blue')
+    plt.fill_between(time, mean_across_segments - std_across_segments, mean_across_segments + std_across_segments, 
+                     color='blue', alpha=0.3, label='Standard Deviation')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Signal')
+    plt.title('Average Signal with Standard Deviation Over 1-second Segments')
+    plt.legend()
+    plt.show()
 #%%
 '''Read binary files for single ROI'''
 fs=840
-dpath='G:/SPAD2024/20240816_Optogenetics_bilateral/1769567_PVcre/SyncRecording5/'
+dpath='E:/ATLAS_SPAD/1818736_opto_WT/Day3/SyncRecording4/'
 # fs=1000
 # dpath='G:/YY/New/1765508_Jedi2p_CompareSystem/Day2_pyPhotometry/SyncRecording4'
 csv_filename='Green_traceAll.csv'
 filepath=Analysis.Set_filename (dpath, csv_filename)
 #filepath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/smallROI_100Hznoise.csv'
 Trace_raw=Analysis.getSignalTrace (filepath, traceType='Constant',HighFreqRemoval=False,getBinTrace=False,bin_window=10)
+Trace_raw=Trace_raw[8400:16800]
 #Trace_raw=notchfilter (Trace_raw,f0=100,bw=10,fs=840)
 fig, ax = plt.subplots(figsize=(8,2))
 plot_trace(Trace_raw,ax, fs,label='840Hz')
 #%%
+data=Trace_raw
+plot_segment_avg(data,840)
+#%%
+'Find sync by opto peaks '
 data = Trace_raw
 outlier_thre=11.7
 opto_thre = 11.7
@@ -228,14 +254,12 @@ for i in range (10):
     plot_trace(data_cleaned[opto_indices[i]:opto_indices[i]+840],ax[1], fs,label='840Hz')
     ax[1].axvline(x=0, color='red', linestyle='--', label='Event Time')
 #%%
-data_cleaned=pd.Series(data_cleaned)
+data_cleaned=pd.Series(Trace_raw)
 Signal_bin=fp.smooth_signal(data_cleaned,10,'flat')
 fig, ax = plt.subplots(figsize=(8,2))
 ax=plot_trace(Signal_bin,ax, fs,label='840Hz')
 for i in range(10):
     ax.axvline(x=opto_indices[i]/fs, color='red', linestyle='--', label='Event Time')
-
-
 data_cleaned=pd.Series(data_cleaned)
 Signal_bin=fp.smooth_signal(data_cleaned,2,'flat')
 fig, ax = plt.subplots(figsize=(8,2))
@@ -243,65 +267,52 @@ ax=plot_trace(Signal_bin[0:840*2],ax, fs,label='840Hz')
 for i in range(2):
     ax.axvline(x=opto_indices[i]/fs, color='red', linestyle='--', label='Event Time')
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #%%
+def PSD_plot(data, fs=9938.4, method="welch", color='tab:blue', xlim=[1,100], linewidth=1, linestyle='-',label='PSD',ax=None):
+    '''Three methods to plot PSD: welch, periodogram, plotlib based on a given ax'''
+    if ax is None:
+        fig, ax = plt.subplots()  # Create a new figure and axis if none provided
+    else:
+        fig = ax.figure  # Reference the figure from the provided ax
+    
+    if method == "welch":
+        f, Pxx_den = signal.welch(data, fs=fs, nperseg=512)
+    elif method == "periodogram":
+        f, Pxx_den = signal.periodogram(data, fs=fs)
+    # Convert to dB/Hz
+    Pxx_den_dB = 10 * np.log10(Pxx_den)
+    
+    # Filter the data for the x-axis range [xlim[0], xlim[1]] Hz
+    idx = (f >= xlim[0]) & (f <= xlim[1])
+    f_filtered = f[idx]
+    Pxx_den_dB_filtered = Pxx_den_dB[idx]
+    # Plot the filtered data on the given ax with specified linestyle
+    #ax.plot(f_filtered, Pxx_den_dB_filtered, color=color, linewidth=linewidth, linestyle=linestyle, label=label)
+    ax.plot(f, Pxx_den_dB, color=color, linewidth=linewidth, linestyle=linestyle, label=label)
+    ax.set_xlim(xlim)  # Limit x-axis to the specified range
+ 
+    ax.set_ylim([np.min(Pxx_den_dB_filtered) - 1, np.max(Pxx_den_dB_filtered) + 1])
+    
+    ax.set_xlabel('Frequency [Hz]')
+    ax.set_ylabel('PSD [dB/Hz]')
+
+    legend = ax.legend(fontsize=12, markerscale=1.5)
+    legend.get_frame().set_facecolor('none')  # Remove the background color
+    legend.get_frame().set_edgecolor('none')  # Remove the border
+        
+    return fig, ax,f_filtered,Pxx_den_dB_filtered
+
 fig, ax = plt.subplots(1, 1, figsize=(3,6))
-Analysis.PSD_plot (Trace_raw,fs,method="welch",color='tab:green', xlim=[0,200],linewidth=1,linestyle='-',label='Green',ax=ax)
+PSD_plot (Trace_raw,fs,method="welch",color='tab:green', xlim=[0,50],linewidth=2,linestyle='-',label='Green',ax=ax)
 # ax.set_title(tag)
 # fig_path = os.path.join(path, tag+'zscore_PSD.png')
 # fig.savefig(fig_path, transparent=False)
-    
-#%% Sample data (replace this with your actual signal data)
-data = Trace_raw
-outlier_thre=24.8
-opto_thre = 24.8
-window_duration =0.9# in seconds
-windows=get_average_opto_response_by_sync (data,outlier_thre,opto_thre,window_duration,fs)
-opto_indices,data_cleaned=get_clean_data (data,outlier_thre,opto_thre)
-fig, ax = plt.subplots(figsize=(8,2))
-plot_trace(data_cleaned,ax, fs,label='840Hz')
 #%%
-for i in range (10):
-    fig, ax = plt.subplots(2,1,figsize=(8,4))
-    plot_trace(Trace_raw[opto_indices[i]:opto_indices[i]+840],ax[0], fs,label='840Hz')
-    plot_trace(data_cleaned[opto_indices[i]:opto_indices[i]+840],ax[1], fs,label='840Hz')
-    ax[1].axvline(x=0, color='red', linestyle='--', label='Event Time')
-    
-#%%
-for i in range (10):
-    fig, ax = plt.subplots(2,1,figsize=(8,4))
-    plot_trace(Trace_raw[opto_indices[i*10]:opto_indices[i*10]+840],ax[0], fs,label='840Hz')
-    plot_trace(data_cleaned[opto_indices[i*10]:opto_indices[i*10]+840],ax[1], fs,label='840Hz')
-    for i in range (10):
-        ax[1].axvline(x=0.1*i, color='red', linestyle='--', label='Event Time')
-
-#%%
-data_cleaned=pd.Series(data_cleaned)
+data_cleaned=pd.Series(Trace_raw)
 Signal_bin=fp.smooth_signal(data_cleaned,10,'flat')
 
 fig, ax = plt.subplots(figsize=(8,2))
-ax=plot_trace(Signal_bin[fs:fs*10],ax, fs,label='840Hz')
+ax=plot_trace(Signal_bin,ax, fs,label='840Hz')
 for i in range(10):
     ax.axvline(x=(opto_indices[i]-fs)/fs, color='red', linestyle='--', label='Event Time')
 
@@ -313,7 +324,7 @@ from matplotlib.gridspec import GridSpec
 from waveletFunctions import wave_signif, wavelet
 import OpenEphysTools as OE
 
-data=data_cleaned
+data=Trace_raw
 signal_smooth= OE.butter_filter(data, btype='high', cutoff=5, fs=fs, order=5)
 signal_smooth= OE.butter_filter(signal_smooth, btype='low', cutoff=200, fs=fs, order=5)
 

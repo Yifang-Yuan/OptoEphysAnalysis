@@ -12,16 +12,15 @@ from SPADPhotometryAnalysis import AtlasDecode
 from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 #%% Workable code, above is testin
 #ppath='D:/ATLAS_SPAD/1825505_SimCre/Day2/Atlas/'
-dpath='D:/ATLAS_SPAD/1820061_PVcre/Day3/Atlas/Burst-RS-25200frames-840Hz_2024-10-18_15-16/'
+dpath='E:/ATLAS_SPAD/1820061_PVcre/Day4/Atlas/Test/'
 #dpath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/Burst-RS-1017frames-1017Hz_4uW/'
 #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
 hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
-# xxrange = [40, 97]
-# yyrange = [45, 102]
-xxrange = [60, 70]
-yyrange = [65, 75]
+
+xxrange = [44, 54]
+yyrange = [57, 67]
 #%%
-Trace_raw,z_score=AtlasDecode.get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange=xxrange,yyrange=yyrange,fs=840,photoncount_thre=200)
+Trace_raw,z_score=AtlasDecode.get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange=xxrange,yyrange=yyrange,fs=840,photoncount_thre=100)
 #%%
 Trace_raw,z_score,pixel_array_all_frames=AtlasDecode.get_zscore_from_atlas_snr_mask (dpath,hotpixel_path,xxrange,yyrange,fs=840,snr_thresh=2)
 

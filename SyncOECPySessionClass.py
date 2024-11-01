@@ -19,6 +19,7 @@ import MakePlots
 import pynacollada as pyna
 from SPADPhotometryAnalysis import SPADAnalysisTools as OpticalAnlaysis
 from scipy.signal import correlate2d
+import pickle
 
 class SyncOEpyPhotometrySession:
     def __init__(self, SessionPath,recordingName,IsTracking=False,read_aligned_data_from_file=False, recordingMode='py',indicator='GECI'):
@@ -662,7 +663,7 @@ class SyncOEpyPhotometrySession:
     def plot_two_traces_noSpeed (self, spad_data,lfp_data, spad_label='photometry',lfp_label='LFP',Spectro_ylim=20,AddColorbar=False):
         '''This will plot both SPAD and LFP signal with their wavelet spectrum'''
         
-        fig, ax = plt.subplots(4, 1, figsize=(20, 8))
+        fig, ax = plt.subplots(4, 1, figsize=(10, 8))
         OE.plot_trace_in_seconds_ax (ax[0],spad_data,self.fs,label=spad_label,color=sns.color_palette("husl", 8)[3],
                                ylabel='z-score',xlabel=False)
         #spad_filtered=OE.band_pass_filter(spad_data,120,300,self.fs)
@@ -1333,7 +1334,7 @@ class SyncOEpyPhotometrySession:
         lfp_data=data_segment[lfp_channel]
         spad_data=data_segment['zscore_raw']
         lfp_data=lfp_data/1000 #change the unit from uV to mV
-        SPAD_cutoff=20
+        SPAD_cutoff=50
         SPAD_smooth_np = OE.smooth_signal(spad_data,Fs=self.fs,cutoff=SPAD_cutoff)
         'To align LFP and SPAD raw data to pynapple format'
         LFP=nap.Tsd(t = timestamps, d = lfp_data.to_numpy(), time_units = 's')
@@ -1347,7 +1348,7 @@ class SyncOEpyPhotometrySession:
         if plot_segment:
             'To plot the choosen segment'
             ex_ep = nap.IntervalSet(start = ep_start+timestamps[0], end = ep_end+timestamps[0], time_units = 's') 
-            fig, ax = plt.subplots(6, 1, figsize=(10, 12))
+            fig, ax = plt.subplots(5, 1, figsize=(10, 12))
             OE.plot_trace_nap (ax[0], LFP,ex_ep,color=sns.color_palette("husl", 8)[5],title='LFP raw Trace')
             OE.plot_trace_nap (ax[1], theta_band_filtered,ex_ep,color=sns.color_palette("husl", 8)[5],title='Theta band')
             OE.plot_ripple_event (ax[2], rip_ep, rip_tsd, ex_ep, nSS, nSS3, Low_thres=Low_thres) 
@@ -1420,7 +1421,7 @@ class SyncOEpyPhotometrySession:
         lfp_data=data_segment[lfp_channel]
         spad_data=data_segment['zscore_raw']
         lfp_data=lfp_data/1000 #change the unit from uV to mV
-        SPAD_cutoff=50
+        SPAD_cutoff=100
         SPAD_smooth_np = OE.smooth_signal(spad_data,Fs=self.fs,cutoff=SPAD_cutoff)
         'To align LFP and SPAD raw data to pynapple format'
         LFP=nap.Tsd(t = timestamps, d = lfp_data.to_numpy(), time_units = 's')
@@ -1889,6 +1890,19 @@ class SyncOEpyPhotometrySession:
 
         if mode=='theta':
             self.theta_event_corr_array=event_corr_array
+            # Assuming mean_cross_corr and CI_cross_corr have already been calculated
+            max_index = np.argmax(np.abs(mean_cross_corr))
+            max_mean = mean_cross_corr[max_index]
+            max_CI = CI_cross_corr[0][max_index],CI_cross_corr[1][max_index]
+            print("Maximum Mean INdex:", max_index)
+            print("Maximum Mean Value:", max_mean)
+            print("Corresponding CI Value:", max_CI)
+            # # Save mean_cross_corr to a pickle file
+            # with open(os.path.join(self.dpath,'mean_cross_corr.pkl'), 'wb') as f:
+            #     pickle.dump(mean_cross_corr, f)
+            # # Save CI_cross_corr to a separate pickle file
+            # with open(os.path.join(self.dpath,'CI_cross_corr.pkl'), 'wb') as f:
+            #     pickle.dump(CI_cross_corr, f)
             
         x = np.linspace((-len(mean_cross_corr)/2)/self.fs, (len(mean_cross_corr)/2)/self.fs, len(mean_cross_corr))  
         fig, ax = plt.subplots(figsize=(5, 3))

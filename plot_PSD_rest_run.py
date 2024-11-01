@@ -36,7 +36,7 @@ Recording3=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_a
 LFP_channel='LFP_1'
 theta_part,non_theta_part=Recording3.pynacollada_label_theta (LFP_channel,Low_thres=-0.5,High_thres=8,save=False,plot_theta=True)
 LFP_sleep=Recording3.non_theta_part[LFP_channel]
-#%%
+
 fig, ax = plt.subplots(1, 1, figsize=(3, 6))
 
 OpticalAnlaysis.PSD_plot (LFP_nontheta/1000,fs=Fs,method="welch",color='black', xlim=[0,100],linewidth=2,linestyle='--',label='LFP-rest',ax=ax)
@@ -51,6 +51,7 @@ OpticalAnlaysis.PSD_plot (optical_nontheta,fs=Fs,method="welch",color='tab:green
 OpticalAnlaysis.PSD_plot (optical_theta,fs=Fs,method="welch",color='tab:green', xlim=[0,100],linewidth=2,linestyle='-',label='iGlu-move',ax=ax)
 OpticalAnlaysis.PSD_plot (optical_sleep,fs=Fs,method="welch",color='tab:green', xlim=[0,100],linewidth=2,linestyle=':',label='iGlu-sleep',ax=ax)
 #%%
+'plot PSD----GECI-PVIN'
 Fs=10000
 dpath='F:/2024_OEC_Atlas/1765010_PVGCaMP8f_Atlas/Day1/'
 recordingName='SavedOpenFieldTrials'
@@ -122,3 +123,30 @@ fig, ax = plt.subplots(1, 1, figsize=(3, 6))
 OpticalAnlaysis.PSD_plot (optical_nontheta,fs=Fs,method="welch",color='tab:green', xlim=[0,100],linewidth=2,linestyle='--',label='GEVI-rest',ax=ax)
 OpticalAnlaysis.PSD_plot (optical_theta,fs=Fs,method="welch",color='tab:green', xlim=[0,100],linewidth=2,linestyle='-',label='GEVI-move',ax=ax)
 OpticalAnlaysis.PSD_plot (optical_sleep,fs=Fs,method="welch",color='tab:green', xlim=[0,100],linewidth=2,linestyle=':',label='GEVI-sleep',ax=ax)
+
+#%%
+Fs=10000
+dpath='E:/ATLAS_SPAD/1820061_PVcre/Day4/SNR_methods/'
+recordingName='SavedMovingTrials'
+Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,recordingMode='Atlas',indicator='GEVI') 
+LFP_channel='LFP_1'
+theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.5,High_thres=8,save=False,plot_theta=True)
+LFP_theta=Recording1.theta_part[LFP_channel]
+
+dpath='E:/ATLAS_SPAD/1820061_PVcre/Day4/SNR_methods/'
+recordingName='SavedRestTrials'
+Recording2=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,recordingMode='Atlas',indicator='GEVI') 
+LFP_channel='LFP_1'
+theta_part,non_theta_part=Recording2.pynacollada_label_theta (LFP_channel,Low_thres=0,High_thres=8,save=False,plot_theta=True)
+LFP_nontheta=Recording2.non_theta_part[LFP_channel]
+
+optical_theta=Recording1.theta_part['zscore_raw']
+optical_nontheta=Recording2.non_theta_part['zscore_raw']
+#%%
+fig, ax = plt.subplots(1, 1, figsize=(3, 6))
+OpticalAnlaysis.PSD_plot (LFP_nontheta/1000,fs=Fs,method="welch",color='black', xlim=[0,100],linewidth=2,linestyle='--',label='LFP-rest',ax=ax)
+OpticalAnlaysis.PSD_plot (LFP_theta/1000,fs=Fs,method="welch",color='black', xlim=[0,100],linewidth=2,linestyle='-',label='LFP-move',ax=ax)
+
+fig, ax = plt.subplots(1, 1, figsize=(3, 6))
+OpticalAnlaysis.PSD_plot (optical_nontheta,fs=Fs,method="welch",color='tab:green', xlim=[0,100],linewidth=2,linestyle='--',label='GEVI-rest',ax=ax)
+OpticalAnlaysis.PSD_plot (optical_theta,fs=Fs,method="welch",color='tab:green', xlim=[0,100],linewidth=2,linestyle='-',label='GEVI-move',ax=ax)

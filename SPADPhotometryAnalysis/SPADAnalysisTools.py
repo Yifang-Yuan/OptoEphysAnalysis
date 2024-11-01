@@ -176,7 +176,7 @@ def PSD_plot(data, fs=9938.4, method="welch", color='tab:blue', xlim=[1,100], li
         fig = ax.figure  # Reference the figure from the provided ax
     
     if method == "welch":
-        f, Pxx_den = signal.welch(data, fs=fs, nperseg=2048)
+        f, Pxx_den = signal.welch(data, fs=fs, nperseg=4096)
     elif method == "periodogram":
         f, Pxx_den = signal.periodogram(data, fs=fs)
     # Convert to dB/Hz

@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Aug 30 12:04:10 2024
+Created on Wed Oct 23 12:16:51 2024
 
 @author: Yifang
 """
+
 import pandas as pd
 from SyncOECPySessionClass import SyncOEpyPhotometrySession
 import OpenEphysTools as OE
@@ -23,11 +24,15 @@ def align_ripples (lfps,zscores,start_idx,end_idx,midpoint,Fs=10000):
     for i in range(lfps.shape[0]):
         lfp_i=lfps[i]
         zscore_i=zscores[i]
-        LFP_ripple_band_i=OE.band_pass_filter(lfps[i], 130, 250, Fs)
+        LFP_ripple_band_i=OE.band_pass_filter(lfps[i], 5, 9, Fs)
         # Find the index of the maximum value in the segment [1000:3000]
         local_max_idx = np.argmax(LFP_ripple_band_i[start_idx:end_idx]) + start_idx
         # Calculate the shift needed to align the max value to the midpoint
         shift = midpoint - local_max_idx  
+        # # Find the index of the maximum value in the segment [1000:3000]
+        # local_min_idx = np.argmin(LFP_ripple_band_i[start_idx:end_idx]) + start_idx
+        # # Calculate the shift needed to align the max value to the midpoint
+        # shift = midpoint - local_min_idx  
         # Roll the trace to align the max value to the center
         aligned_ripple_lfp_i = np.roll(LFP_ripple_band_i, shift)   
         aligned_lfp_i=np.roll(lfp_i, shift)   
@@ -58,7 +63,7 @@ def plot_ripple_heatmap(ripple_band_lfps,lfps,zscores,Fs=10000):
     axs[1].fill_between(time, lfps_CI[0], lfps_CI[1], color='dodgerblue', alpha=0.2, label='0.95 CI')
     axs[2].plot(time, zscores_mean, color='limegreen', label='Ripple Zscore Mean')
     axs[2].fill_between(time, zscores_CI[0], zscores_CI[1], color='limegreen', alpha=0.2, label='0.95 CI')
-    axs[0].set_title('Averaged Ripple Epoch')
+    axs[0].set_title('Averaged Theta Epoch')
     for i in range(3):
         axs[i].set_xlim(time[0], time[-1])
         axs[i].margins(x=0)  # Remove any additional margins on x-axis
@@ -90,8 +95,8 @@ def plot_aligned_ripple_save (save_path,ripple_triggered_lfps,ripple_triggered_z
     ripple_sample_numbers=len(ripple_triggered_lfps[0])
     midpoint=ripple_sample_numbers//2
     'align ripple in a 200ms window '
-    start_idx=int(midpoint-0.1*Fs)
-    end_idx=int(midpoint+0.1*Fs)
+    start_idx=int(midpoint-0.25*Fs)
+    end_idx=int(midpoint+0.25*Fs)
     print (midpoint,start_idx,end_idx)
     aligned_ripple_band_lfps,aligned_lfps,aligned_zscores=align_ripples (ripple_triggered_lfps,
                                                                          ripple_triggered_zscores,start_idx,end_idx,midpoint,Fs)
@@ -117,77 +122,41 @@ def plot_aligned_ripple_save (save_path,ripple_triggered_lfps,ripple_triggered_z
     return -1
 
 '''recordingMode: use py, Atlas, SPAD for different systems'''
-def run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5):
+def run_theta_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5):
     save_path = os.path.join(dpath,savename)
     Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,
                                          read_aligned_data_from_file=True,
                                          recordingMode='py',indicator='GECI') 
 
-    '''separate the theta and non-theta parts.
-    theta_thres: the theta band power should be bigger than 80% to be defined theta period.
-    nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-    theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=Low_thres,High_thres=8,save=False,plot_theta=True)
-
     '''RIPPLE DETECTION
     For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
-    rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,
-                                                ep_start=10,ep_end=40,
-                                                Low_thres=2,High_thres=10,
-                                                plot_segment=False,plot_ripple_ep=False,excludeTheta=True)
+    rip_ep,rip_tsd=Recording1.pynappleThetaAnalysis (lfp_channel=LFP_channel,
+                                                ep_start=0,ep_end=10,
+                                                Low_thres=Low_thres,High_thres=10,
+                                                plot_segment=False,plot_ripple_ep=False)
 
     'GEVI has a negative'
     index = LFP_channel.split('_')[-1] 
     if index=='1':
-        ripple_triggered_LFP_values=Recording1.ripple_triggered_LFP_values_1
+        theta_triggered_LFP_values=Recording1.theta_triggered_LFP_values_1
     elif index=='2':
-        ripple_triggered_LFP_values=Recording1.ripple_triggered_LFP_values_2
+        theta_triggered_LFP_values=Recording1.theta_triggered_LFP_values_2
     elif index=='3':
-        ripple_triggered_LFP_values=Recording1.ripple_triggered_LFP_values_3
+        theta_triggered_LFP_values=Recording1.theta_triggered_LFP_values_3
     else:
-        ripple_triggered_LFP_values=Recording1.ripple_triggered_LFP_values_4
+        theta_triggered_LFP_values=Recording1.theta_triggered_LFP_values_4
 
-    ripple_triggered_zscore_values=Recording1.ripple_triggered_zscore_values
-    plot_aligned_ripple_save (save_path,ripple_triggered_LFP_values,ripple_triggered_zscore_values,Fs=10000)
+    theta_triggered_zscore_values=Recording1.theta_triggered_zscore_values
+    plot_aligned_ripple_save (save_path,theta_triggered_LFP_values,theta_triggered_zscore_values,Fs=10000)
     return -1
 
-def run_ripple_plot_main():
+def run_theta_plot_main():
     'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
     dpath='E:/ATLAS_SPAD/1820061_PVcre/Day4/'
-    recordingName='SavedMovingTrials'
-    savename='RippleSave_Sleep'
+    recordingName='SavedRestTrials'
+    savename='ThetaSave_Move'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-    LFP_channel='LFP_4'
-    run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=-0.5)
+    LFP_channel='LFP_1'
+    run_theta_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5)
     
-run_ripple_plot_main()
-#%%
-'concatenate ripple'
-# parent_path='F:/2024_OEC_Atlas/1765508_Jedi2p_Atlas/'
-# save_path='F:/2024_OEC_Atlas/1765508_Jedi2p_Atlas/RippleConcatenatedSave/'
-# pattern = os.path.join(parent_path, 'Day*/','RippleSave_*/')
-# Fs=10000
-# start_idx=1000
-# # Get a list of all matching files
-# file_list = glob.glob(pattern)
-# # Loop through the file list and read each file
-# aligned_ripple_bandpass_LFP_list = []
-# aligned_ripple_LFP_list= []
-# aligned_ripple_Zscore_list=[]
-
-# for path in file_list:
-#     try:
-#         ripple_bandpass_LFP = pd.read_pickle(os.path.join(path, 'ailgned_ripple_bandpass_LFP.pkl'))
-#         ripple_LFP=pd.read_pickle(os.path.join(path, 'ailgned_ripple_LFP.pkl'))
-#         ripple_zscore=pd.read_pickle(os.path.join(path, 'ailgned_ripple_Zscore.pkl'))
-#         # Append each DataFrame to the corresponding list
-#         aligned_ripple_bandpass_LFP_list.append(ripple_bandpass_LFP)
-#         aligned_ripple_LFP_list.append(ripple_LFP)
-#         aligned_ripple_Zscore_list.append(ripple_zscore)
-#     except Exception as e:
-#         print(f"Error reading {path}: {e}")
-        
-# concatenated_ripple_bandpass_LFP = np.vstack(aligned_ripple_bandpass_LFP_list) 
-# concatenated_ripple_LFP = np.vstack(aligned_ripple_LFP_list)
-# concatenated_ripple_Zscore = -np.vstack(aligned_ripple_Zscore_list)
-
-# plot_aligned_ripple_save (save_path,concatenated_ripple_LFP,concatenated_ripple_Zscore,Fs=10000)
+run_theta_plot_main()

@@ -125,8 +125,8 @@ def main():
     Fs_atlas=840
     recordingTime=Frame_num/Fs_atlas
     
-    Ephys_folder_path = 'D:/ATLAS_SPAD/1820061_PVcre/Day3/Ephys/2024-10-18_15-16-00/'
-    save_parent_folder='D:/ATLAS_SPAD/1820061_PVcre/Day3/'
+    Ephys_folder_path = 'E:/ATLAS_SPAD/1820061_PVcre/Day4/Ephys/2024-10-28_15-51-19/'
+    save_parent_folder='E:/ATLAS_SPAD/1820061_PVcre/Day4/'
     read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
 
 if __name__ == "__main__":
