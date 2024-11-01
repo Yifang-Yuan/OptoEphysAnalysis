@@ -13,13 +13,25 @@ from SPADPhotometryAnalysis import AtlasDecode
 from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 from scipy.ndimage import uniform_filter
 #%% Workable code, above is testin
-dpath='E:/ATLAS_SPAD/1825504_Sim1Cre_GCamp8f_taper/Day2/Test/'
+dpath='E:/ATLAS_SPAD/1825504_Sim1Cre_GCamp8f_taper/Day2/Burst-RS-25200frames-840Hz_2024-10-28_17-17/'
 hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
 photoncount_thre=800
 fs=840
-
 pixel_array_all_frames,sum_pixel_array,_=AtlasDecode.decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=photoncount_thre)
-AtlasDecode.show_image_with_pixel_array(sum_pixel_array,showPixel_label=True)
+#%%
+center_x, center_y,radius=AtlasDecode.find_circle_mask(sum_pixel_array)
+#%%
+Trace_raw,dff1=AtlasDecode.get_dff_from_atlas_snr_circle_mask (dpath,hotpixel_path,center_x, center_y,radius,fs=840,snr_thresh=1,photoncount_thre=2000)
+#%%
+xxrange = [33, 64]
+yyrange = [45, 76]
+Trace_raw,dff2=AtlasDecode.get_zscore_from_atlas_snr_mask (dpath,hotpixel_path,xxrange,yyrange,fs=840,snr_thresh=1)
+#%%
+Trace_raw,dff3=AtlasDecode.get_dff_from_atlas_continuous_circle_mask (dpath,hotpixel_path,center_x, center_y,radius,fs=840,photoncount_thre=2000)
+#%%
+xxrange = [33, 64]
+yyrange = [45, 76]
+Trace_raw,dff4=AtlasDecode.get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange,yyrange,fs=840,photoncount_thre=2000)
 #%%
 #sum_pixel_array=snr_image
 shape = sum_pixel_array.shape
@@ -52,7 +64,6 @@ for center_y in center_y_range:
 plt.figure(figsize=(6, 6))
 plt.imshow(sum_pixel_array, cmap='hot')
 plt.colorbar(label='Photon Count')
-
 # Draw the best detected circle
 circle = plt.Circle(best_center, radius, color='cyan', fill=False, linewidth=2, label='Best Circle')
 plt.gca().add_patch(circle)
@@ -67,7 +78,6 @@ print("Radius:", radius)
 print("Max average photon count within circle:", max_avg_photon_count)
 #%%
 
-best_center,radius=find_circle_mask(sum_pixel_array)
 #%%
 pixel_array_all_frames,sum_pixel_array=AtlasDecode.decode_atlas_folder_without_hotpixel_removal (dpath)
         
@@ -145,5 +155,3 @@ for i in range (4):
     # AtlasDecode.plot_trace(zscore_smooth,ax, fs, label="zscore")
     i=i+1
 
-#%%
-Trace_raw,z_score,pixel_array_all_frames=AtlasDecode.get_zscore_from_atlas_snr_mask (dpath,hotpixel_path,xxrange,yyrange,fs=840,snr_thresh=2)

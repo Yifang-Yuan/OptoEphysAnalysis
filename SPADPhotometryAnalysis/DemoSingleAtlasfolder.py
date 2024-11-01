@@ -17,13 +17,11 @@ dpath='E:/ATLAS_SPAD/1820061_PVcre/Day4/Atlas/Test/'
 #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
 hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
 
-xxrange = [44, 54]
-yyrange = [57, 67]
-#%%
-Trace_raw,z_score=AtlasDecode.get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange=xxrange,yyrange=yyrange,fs=840,photoncount_thre=100)
-#%%
-Trace_raw,z_score,pixel_array_all_frames=AtlasDecode.get_zscore_from_atlas_snr_mask (dpath,hotpixel_path,xxrange,yyrange,fs=840,snr_thresh=2)
 
+pixel_array_all_frames,sum_pixel_array,_=AtlasDecode.decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=2000)
+center_x, center_y,radius=AtlasDecode.find_circle_mask(sum_pixel_array)
+
+Trace_raw,z_score=AtlasDecode.get_dff_from_atlas_snr_circle_mask (dpath,hotpixel_path,center_x, center_y,radius,fs=840,snr_thresh=1,photoncount_thre=2000)
 #%%
 day_parent_folder='F:/SPAD2024/SPADdata_SNRtest/5uWComparePSD/'
 folder_name='5uW_Atlas'
