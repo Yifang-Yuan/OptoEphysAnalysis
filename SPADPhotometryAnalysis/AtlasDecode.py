@@ -123,14 +123,13 @@ def show_image_with_pixel_array(pixel_array_2d,showPixel_label=True):
     plt.show()
     return -1
 
-def find_circle_mask(pixel_array):
+def find_circle_mask(pixel_array,radius=12):
     shape = pixel_array.shape
     max_avg_photon_count = 0
     best_center = (0, 0)
     # Define ranges for center positions and radii
     center_y_range = range(10, shape[0] - 10)  # Avoid edges for centers
     center_x_range = range(10, shape[1] - 10)
-    radius=12
     # Iterate over possible centers
     for center_y in center_y_range:
         for center_x in center_x_range:
@@ -198,8 +197,6 @@ def get_trace_from_3d_pixel_array(pixel_array_all_frames,pixel_array,xxrange,yyr
     plt.show()
     
     region_pixel_array = pixel_array_all_frames[xxrange[0]:xxrange[1]+1, yyrange[0]:yyrange[1]+1, :]
-    mean_array=np.mean(region_pixel_array, axis=2)
-    std_array=np.std(region_pixel_array, axis=2)
     #Check hotpixels
     # Sum along the x and y axes to get the sum of photon counts within the specified range for each frame
     sum_values_over_time = np.sum(region_pixel_array, axis=(0, 1))
@@ -233,7 +230,7 @@ def get_trace_from_3d_pixel_array_circle_mask(pixel_array_all_frames,pixel_array
 def plot_trace(trace,ax, fs=1017, label="trace"):
     t=(len(trace)) / fs
     taxis = np.arange(len(trace)) / fs
-    mean_trace = np.mean(trace)
+    #mean_trace = np.mean(trace)
     ax.plot(taxis,trace,linewidth=1,label=label)
     #ax.plot(taxis,trace,linewidth=1)
     #ax.axhline(mean_trace, color='r', linestyle='--', label='Mean Value', linewidth=1.5)
@@ -275,10 +272,6 @@ def replace_outliers_with_nearest_avg(data, window_size=25000, z_thresh=3):
 
     return data
 def get_snr_image(data):
-    fr_rate = 840
-    row_size = 128
-    col_size = 128
-    defect_pixel_mask = np.ones((row_size,col_size))
     mean_image = data[:, :,:].mean(axis=2)
     std_image = data[:, :,:].std(axis=2)
     snr_image = mean_image/std_image
@@ -337,68 +330,6 @@ def get_dff_from_atlas_continuous_circle_mask (dpath,hotpixel_path,center_x, cen
     plot_trace(dff,ax, fs, label="df/f")
     return Trace_raw,dff
 
-def get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange= [25, 85],yyrange= [30, 90],fs=840,photoncount_thre=2000):
-    pixel_array_all_frames,sum_pixel_array,_=decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=photoncount_thre)
-    _,mean_values_over_time,_=get_trace_from_3d_pixel_array(pixel_array_all_frames,sum_pixel_array,xxrange,yyrange)
-    #print('original lenth: ', len(mean_values_over_time))
-    Trace_raw=mean_values_over_time[1:]
-    #print('trace_raw lenth 1: ', len(Trace_raw))
-    Trace_raw = np.append(Trace_raw, Trace_raw[-1])
-    #print('trace_raw lenth 2: ', len(Trace_raw))
-    fig, ax = plt.subplots(figsize=(8, 2))
-    plot_trace(Trace_raw,ax, fs, label="raw_data")
-    
-    lambd = 10e3 # Adjust lambda to get the best fit
-    porder = 1
-    itermax = 15
-    sig_base=fp.airPLS(Trace_raw,lambda_=lambd,porder=porder,itermax=itermax) 
-    signal = (Trace_raw - sig_base)  
-    dff=100*signal / sig_base
-    fig, ax = plt.subplots(figsize=(8, 2))
-    plot_trace(dff,ax, fs, label="df/f")
-    return Trace_raw,dff
-
-def get_zscore_from_atlas_snr_mask (dpath,hotpixel_path,xxrange= [25, 85],yyrange= [30, 90],fs=840,snr_thresh=2,photoncount_thre=2000):
-    pixel_array_all_frames,_,_=decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=photoncount_thre)
-        
-    mean_image, std_image, snr_image = get_snr_image(pixel_array_all_frames)
-    fig, ax = plt.subplots(figsize=(5, 5))
-    # Plot only the SNR image
-    pos = ax.imshow(snr_image, cmap='viridis')  # Adjust colormap if desired
-    ax.set_title('SNR')
-    fig.colorbar(pos, ax=ax)
-    rect = patches.Rectangle((xxrange[0], yyrange[0]), xxrange[1]-xxrange[0], yyrange[1]-yyrange[0], 
-                             linewidth=2, edgecolor='r', facecolor='none')
-    plt.gca().add_patch(rect)
-    plt.show()
-    plt.tight_layout()
-    plt.show()
-    # look at the snr_image with colorbar and set this (pixel value below thresh will be 0 in the mask) 
-    pixel_mask = mask_low_snr_pixels(snr_image, snr_thresh)
-    #construct roi_mask
-    roi_mask,_ = construct_roi_mask(xx_1 = xxrange[0], xx_2 = xxrange[1], yy_1 = yyrange[0] , yy_2 = yyrange[1])
-    
-    #extract the trace based on the roi_mask and hot_pixel_mask
-    trace = extract_trace(pixel_array_all_frames, roi_mask, pixel_mask, activity = 'mean')
-    #print('original lenth: ', len(mean_values_over_time))
-    Trace_raw=trace[1:]
-    #print('trace_raw lenth 1: ', len(Trace_raw))
-    Trace_raw = np.append(Trace_raw, Trace_raw[-1])
-
-    fig, ax = plt.subplots(figsize=(8, 2))
-    plot_trace(Trace_raw,ax, fs, label="raw_data")
-    lambd = 10e3 # Adjust lambda to get the best fit
-    porder = 1
-    itermax = 15
-    sig_base=fp.airPLS(Trace_raw,lambda_=lambd,porder=porder,itermax=itermax) 
-    signal = (Trace_raw - sig_base)  
-    dff=100*signal / sig_base
-    
-    fig, ax = plt.subplots(figsize=(8, 2))
-    plot_trace(dff,ax, fs, label="df/f")
-    plt.show()
-    return Trace_raw,dff
-
 def get_dff_from_atlas_snr_circle_mask (dpath,hotpixel_path,center_x, center_y,radius,fs=840,snr_thresh=2,photoncount_thre=2000):
     pixel_array_all_frames,_,_=decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=photoncount_thre)
         
@@ -451,3 +382,65 @@ def get_total_photonCount_atlas_continuous (dpath,hotpixel_path,xxrange= [25, 85
     plot_trace(Trace_raw,ax, fs, label="raw_data")
 
     return Trace_raw
+
+# def get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange= [25, 85],yyrange= [30, 90],fs=840,photoncount_thre=2000):
+#     pixel_array_all_frames,sum_pixel_array,_=decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=photoncount_thre)
+#     _,mean_values_over_time,_=get_trace_from_3d_pixel_array(pixel_array_all_frames,sum_pixel_array,xxrange,yyrange)
+#     #print('original lenth: ', len(mean_values_over_time))
+#     Trace_raw=mean_values_over_time[1:]
+#     #print('trace_raw lenth 1: ', len(Trace_raw))
+#     Trace_raw = np.append(Trace_raw, Trace_raw[-1])
+#     #print('trace_raw lenth 2: ', len(Trace_raw))
+#     fig, ax = plt.subplots(figsize=(8, 2))
+#     plot_trace(Trace_raw,ax, fs, label="raw_data")
+    
+#     lambd = 10e3 # Adjust lambda to get the best fit
+#     porder = 1
+#     itermax = 15
+#     sig_base=fp.airPLS(Trace_raw,lambda_=lambd,porder=porder,itermax=itermax) 
+#     signal = (Trace_raw - sig_base)  
+#     dff=100*signal / sig_base
+#     fig, ax = plt.subplots(figsize=(8, 2))
+#     plot_trace(dff,ax, fs, label="df/f")
+#     return Trace_raw,dff
+
+# def get_zscore_from_atlas_snr_mask (dpath,hotpixel_path,xxrange= [25, 85],yyrange= [30, 90],fs=840,snr_thresh=2,photoncount_thre=2000):
+#     pixel_array_all_frames,_,_=decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=photoncount_thre)
+        
+#     mean_image, std_image, snr_image = get_snr_image(pixel_array_all_frames)
+#     fig, ax = plt.subplots(figsize=(5, 5))
+#     # Plot only the SNR image
+#     pos = ax.imshow(snr_image, cmap='viridis')  # Adjust colormap if desired
+#     ax.set_title('SNR')
+#     fig.colorbar(pos, ax=ax)
+#     rect = patches.Rectangle((xxrange[0], yyrange[0]), xxrange[1]-xxrange[0], yyrange[1]-yyrange[0], 
+#                              linewidth=2, edgecolor='r', facecolor='none')
+#     plt.gca().add_patch(rect)
+#     plt.show()
+#     plt.tight_layout()
+#     plt.show()
+#     # look at the snr_image with colorbar and set this (pixel value below thresh will be 0 in the mask) 
+#     pixel_mask = mask_low_snr_pixels(snr_image, snr_thresh)
+#     #construct roi_mask
+#     roi_mask,_ = construct_roi_mask(xx_1 = xxrange[0], xx_2 = xxrange[1], yy_1 = yyrange[0] , yy_2 = yyrange[1])
+    
+#     #extract the trace based on the roi_mask and hot_pixel_mask
+#     trace = extract_trace(pixel_array_all_frames, roi_mask, pixel_mask, activity = 'mean')
+#     #print('original lenth: ', len(mean_values_over_time))
+#     Trace_raw=trace[1:]
+#     #print('trace_raw lenth 1: ', len(Trace_raw))
+#     Trace_raw = np.append(Trace_raw, Trace_raw[-1])
+
+#     fig, ax = plt.subplots(figsize=(8, 2))
+#     plot_trace(Trace_raw,ax, fs, label="raw_data")
+#     lambd = 10e3 # Adjust lambda to get the best fit
+#     porder = 1
+#     itermax = 15
+#     sig_base=fp.airPLS(Trace_raw,lambda_=lambd,porder=porder,itermax=itermax) 
+#     signal = (Trace_raw - sig_base)  
+#     dff=100*signal / sig_base
+    
+#     fig, ax = plt.subplots(figsize=(8, 2))
+#     plot_trace(dff,ax, fs, label="df/f")
+#     plt.show()
+#     return Trace_raw,dff

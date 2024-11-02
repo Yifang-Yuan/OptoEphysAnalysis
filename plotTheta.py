@@ -153,10 +153,10 @@ def run_theta_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5):
 def run_theta_plot_main():
     'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
     dpath='E:/ATLAS_SPAD/1820061_PVcre/Day4/'
-    recordingName='SavedRestTrials'
+    recordingName='SavedMovingGoodTrials'
     savename='ThetaSave_Move'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
     LFP_channel='LFP_1'
-    run_theta_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5)
+    run_theta_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.7)
     
 run_theta_plot_main()

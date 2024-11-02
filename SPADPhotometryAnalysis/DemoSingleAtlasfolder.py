@@ -12,16 +12,17 @@ from SPADPhotometryAnalysis import AtlasDecode
 from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 #%% Workable code, above is testin
 #ppath='D:/ATLAS_SPAD/1825505_SimCre/Day2/Atlas/'
-dpath='E:/ATLAS_SPAD/1820061_PVcre/Day4/Atlas/Test/'
+dpath='E:/ATLAS_SPAD/1825505_SimCre/Day2/Atlas/Burst-RS-25200frames-840Hz_2024-10-14_15-04/'
 #dpath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/Burst-RS-1017frames-1017Hz_4uW/'
 #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
 hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
 
 
-pixel_array_all_frames,sum_pixel_array,_=AtlasDecode.decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=2000)
-center_x, center_y,radius=AtlasDecode.find_circle_mask(sum_pixel_array)
-
-Trace_raw,z_score=AtlasDecode.get_dff_from_atlas_snr_circle_mask (dpath,hotpixel_path,center_x, center_y,radius,fs=840,snr_thresh=1,photoncount_thre=2000)
+pixel_array_all_frames,sum_pixel_array,_=AtlasDecode.decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=1000)
+#%%
+center_x, center_y,radius=AtlasDecode.find_circle_mask(sum_pixel_array,radius=15)
+#%%
+Trace_raw,dff=AtlasDecode.get_dff_from_atlas_snr_circle_mask (dpath,hotpixel_path,center_x, center_y,radius,fs=840,snr_thresh=1,photoncount_thre=2000)
 #%%
 day_parent_folder='F:/SPAD2024/SPADdata_SNRtest/5uWComparePSD/'
 folder_name='5uW_Atlas'
@@ -30,7 +31,7 @@ print ('save_folder is', save_folder)
 # Create the folder if it doesn't exist
 if not os.path.exists(save_folder):
     os.makedirs(save_folder)
-np.savetxt(os.path.join(save_folder,'Zscore_traceAll.csv'), z_score, delimiter=',', comments='')
+np.savetxt(os.path.join(save_folder,'Zscore_traceAll.csv'), dff, delimiter=',', comments='')
 np.savetxt(os.path.join(save_folder,'Green_traceAll.csv'), Trace_raw, delimiter=',', comments='')
 
 #%%

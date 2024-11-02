@@ -153,11 +153,11 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5):
 def run_ripple_plot_main():
     'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
     dpath='E:/ATLAS_SPAD/1820061_PVcre/Day4/'
-    recordingName='SavedMovingTrials'
+    recordingName='SavedMovingGoodTrials'
     savename='RippleSave_Sleep'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-    LFP_channel='LFP_4'
-    run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=-0.5)
+    LFP_channel='LFP_1'
+    run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0)
     
 run_ripple_plot_main()
 #%%
