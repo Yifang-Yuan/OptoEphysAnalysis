@@ -16,12 +16,12 @@ import shutil
 def plot_section_for_threshold(fs,dpath):
     '''Time division mode with one ROI, GCamp and isosbestic'''
     '''Read files'''
-    filename=Analysis.Set_filename (dpath, csv_filename="traceValueAll.csv")
+    filename=Analysis.Set_filename (dpath, csv_filename="Green_traceAll.csv")
     Trace_raw=Analysis.getSignalTrace (filename, traceType='Constant',HighFreqRemoval=False,getBinTrace=False,bin_window=100)
     fig, ax = plt.subplots(figsize=(12, 2.5))
-    Analysis.plot_trace(Trace_raw,ax, fs=9938.4, label="Full raw data trace")
+    Analysis.plot_trace(Trace_raw,ax, fs=fs, label="Full raw data trace")
     fig, ax = plt.subplots(figsize=(12, 2.5))
-    Analysis.plot_trace(Trace_raw[0:200],ax, fs=9938.4, label="Part raw data trace")
+    Analysis.plot_trace(Trace_raw[0:int(fs/2)],ax, fs=fs, label="Part raw data trace")
     
     return -1
 
@@ -104,15 +104,16 @@ def copy_results_to_SyncRecording (day_parent_folder,SPAD_parent_folder,new_fold
         copy_file(file_to_copy,source_dir,destination_dir)
     return -1
 #%%
-fs   = 9938.4
-day_parent_folder="F:/2024MScR_NORtask/1732333_SPAD/20240305_Day2/"
-parent_folder=os.path.join(day_parent_folder, 'SPAD')
+#fs   = 9938.4
+fs=840
+day_parent_folder="E:/ATLAS_SPAD/1825504_td_freq_g8f_taper/freq/"
+parent_folder="E:/ATLAS_SPAD/1825504_td_freq_g8f_taper/freq/"
 #%%
 # Step 1. check threshold can signal quality
 'Plot the 1st trial and the last trial to check whether the signal is stable'
-dpath1=os.path.join(parent_folder, '2024_3_5_14_43_11_Trial1')
+dpath1=os.path.join(parent_folder, 'SyncRecording1')
 plot_section_for_threshold(fs,dpath1)
-dpath2=os.path.join(parent_folder, '2024_3_5_15_44_34_Trial6')
+dpath2=os.path.join(parent_folder, 'SyncRecording2')
 plot_section_for_threshold(fs,dpath2)
 #%%
 # Step 2. Do the batch demodulation.

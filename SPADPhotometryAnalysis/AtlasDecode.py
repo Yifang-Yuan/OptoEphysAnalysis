@@ -148,15 +148,15 @@ def find_circle_mask(pixel_array,radius=12):
                     best_center = (center_x, center_y)
     while True: 
         # Plot the image with the best circle overlay
-        plt.figure(figsize=(6, 6))
+        plt.figure(figsize=(4, 4))
         plt.imshow(pixel_array, cmap='hot')
         plt.colorbar(label='Photon Count')
         # Draw the best detected circle
         circle = plt.Circle(best_center, radius, color='cyan', fill=False, linewidth=2, label='Best Circle')
         plt.gca().add_patch(circle)
-        plt.title('Photon Count Image with Best Circle Overlay')
-        plt.xlabel('X')
-        plt.ylabel('Y')
+        plt.title('Find ROI')
+        plt.xlabel('X',fontsize=12)
+        plt.ylabel('Y',fontsize=12)
         plt.legend(loc='upper right')
         plt.show()
         print("Radius:", radius)
@@ -298,6 +298,8 @@ def construct_roi_mask(xx_1 = 50, xx_2 = 150, yy_1 = 100 , yy_2 = 150):
 def extract_trace(raw_data, roi_mask, hot_pixel_mask, activity = 'sum'):
     no_of_data_points = raw_data.shape[2]
     no_of_pixels_per_roi = roi_mask.sum()
+    print ('no_of_pixels_per_roi---', no_of_pixels_per_roi)
+    
     trace = []
     for i in range(no_of_data_points):
         
@@ -331,7 +333,7 @@ def get_dff_from_atlas_continuous_circle_mask (dpath,hotpixel_path,center_x, cen
     return Trace_raw,dff
 
 def get_dff_from_atlas_snr_circle_mask (dpath,hotpixel_path,center_x, center_y,radius,fs=840,snr_thresh=2,photoncount_thre=2000):
-    pixel_array_all_frames,_,_=decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=photoncount_thre)
+    pixel_array_all_frames,_,avg_pixel_array=decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=photoncount_thre)
         
     mean_image, std_image, snr_image = get_snr_image(pixel_array_all_frames)
     pixel_mask = mask_low_snr_pixels(snr_image, snr_thresh)
@@ -344,13 +346,21 @@ def get_dff_from_atlas_snr_circle_mask (dpath,hotpixel_path,center_x, center_y,r
     pos = ax.imshow(snr_image, cmap='viridis')  # Adjust colormap if desired
     ax.set_title('SNR')
     fig.colorbar(pos, ax=ax)
-
+    circle = plt.Circle((center_x,center_y), radius, color='cyan', fill=False, linewidth=2, label='Best Circle')
+    plt.gca().add_patch(circle)
+    plt.tight_layout()
+    plt.show()
+    
+    fig, ax = plt.subplots(figsize=(5, 5))
+    pos = ax.imshow(avg_pixel_array, cmap='viridis')  # Adjust colormap if desired
+    ax.set_title('Averaged')
+    fig.colorbar(pos, ax=ax)
     circle = plt.Circle((center_x,center_y), radius, color='cyan', fill=False, linewidth=2, label='Best Circle')
     plt.gca().add_patch(circle)
     plt.tight_layout()
     plt.show()
     #extract the trace based on the roi_mask and hot_pixel_mask
-    trace = extract_trace(pixel_array_all_frames, roi_mask, pixel_mask, activity = 'mean')
+    trace = extract_trace(pixel_array_all_frames, roi_mask, pixel_mask, activity = 'sum')
     #print('original lenth: ', len(mean_values_over_time))
     Trace_raw=trace[1:]
     #print('trace_raw lenth 1: ', len(Trace_raw))
@@ -370,9 +380,9 @@ def get_dff_from_atlas_snr_circle_mask (dpath,hotpixel_path,center_x, center_y,r
     plt.show()
     return Trace_raw,dff
 
-def get_total_photonCount_atlas_continuous (dpath,hotpixel_path,xxrange= [25, 85],yyrange= [30, 90],fs=840,photoncount_thre=2000):
+def get_total_photonCount_atlas_continuous_circle_mask (dpath,hotpixel_path,center_x, center_y,radius,fs=840,photoncount_thre=2000):
     pixel_array_all_frames,sum_pixel_array,_=decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=photoncount_thre)
-    sum_values_over_time,mean_values_over_time,region_pixel_array=get_trace_from_3d_pixel_array(pixel_array_all_frames,sum_pixel_array,xxrange,yyrange)
+    sum_values_over_time,_=get_trace_from_3d_pixel_array_circle_mask(pixel_array_all_frames,sum_pixel_array,center_x, center_y,radius)
     #print('original lenth: ', len(mean_values_over_time))
     Trace_raw=sum_values_over_time[1:]
     #print('trace_raw lenth 1: ', len(Trace_raw))
@@ -380,9 +390,17 @@ def get_total_photonCount_atlas_continuous (dpath,hotpixel_path,xxrange= [25, 85
     #print('trace_raw lenth 2: ', len(Trace_raw))
     fig, ax = plt.subplots(figsize=(8, 2))
     plot_trace(Trace_raw,ax, fs, label="raw_data")
-
-    return Trace_raw
-
+    
+    lambd = 10e3 # Adjust lambda to get the best fit
+    porder = 1
+    itermax = 15
+    sig_base=fp.airPLS(Trace_raw,lambda_=lambd,porder=porder,itermax=itermax) 
+    signal = (Trace_raw - sig_base)  
+    dff=100*signal / sig_base
+    
+    fig, ax = plt.subplots(figsize=(8, 2))
+    plot_trace(dff,ax, fs, label="df/f")
+    return Trace_raw,dff
 # def get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange= [25, 85],yyrange= [30, 90],fs=840,photoncount_thre=2000):
 #     pixel_array_all_frames,sum_pixel_array,_=decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=photoncount_thre)
 #     _,mean_values_over_time,_=get_trace_from_3d_pixel_array(pixel_array_all_frames,sum_pixel_array,xxrange,yyrange)

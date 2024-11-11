@@ -75,8 +75,8 @@ def read_multiple_photometry_files_in_folder(pydata_folder_path,save_parent_fold
     return -1
 
 def main():
-    pydata_folder_path='G:/YY/New/1756735_PVCre_Jedi2p_Compare/Day1pyPhotometry_Sleep/pyPhotometry'
-    save_parent_folder='G:/YY/New/1756735_PVCre_Jedi2p_Compare/Day1pyPhotometry_Sleep/'
+    pydata_folder_path='E:/ATLAS_SPAD/HardwareTest/pyPhotometry_linearity/pyPhotometry/'
+    save_parent_folder='E:/ATLAS_SPAD/HardwareTest/pyPhotometry_linearity/'
     read_multiple_photometry_files_in_folder(pydata_folder_path,save_parent_folder,new_folder_name='SyncRecording',mode='cont')
 
 if __name__ == "__main__":

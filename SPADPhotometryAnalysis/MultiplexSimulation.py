@@ -9,8 +9,8 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import interpolate
-import traceAnalysis as Ananlysis
-import SPADdemod
+from SPADPhotometryAnalysis import SPADAnalysisTools as Ananlysis
+from SPADPhotometryAnalysis import SPADdemod
 #%%
 x = np.linspace(0, 1000, 1000)
 
@@ -59,65 +59,100 @@ ax2=Ananlysis.plot_trace(red_recovered,ax2, fs=9938.4, label="Red Recovered", co
 fig.tight_layout()
 #%%
 '''Simulate the time division'''
-samples=1000
-fs =9938.4
-t = np.arange(samples)/fs
-
+import numpy as np
+import matplotlib.pyplot as plt
 from scipy import signal
-#t = np.linspace(0, 1, 500, endpoint=False)
-G_Carrier=2*signal.square(2 * np.pi * 1000 * t, duty=0.5)+2
-G_signal=f(t)+20
-G_mod = G_Carrier*G_signal
 
-R_Carrier=signal.square(-2 * np.pi * 1000 * t, duty=0.5)+1
-R_signal=f(t)+2
-R_mod = R_Carrier*R_signal
-#%%
+# Simulate the time division
+samples = 1000
+fs = 9938.4
+t = np.arange(samples) / fs
 
-fig, (ax0, ax1,ax2) = plt.subplots(nrows=3)
-ax0=Ananlysis.plot_trace(G_signal,ax0, fs=9938.4, label="Green Signal", color='g')
-ax1=Ananlysis.plot_trace(G_Carrier[0:500],ax1, fs=9938.4, label="Square wave 1", color='g')
-ax2=Ananlysis.plot_trace(G_mod[0:500],ax2, fs=9938.4, label="Green Modulated Signal", color='g')
+# Define the carriers and signals
+G_Carrier = 2 * signal.square(2 * np.pi * 500 * t, duty=0.3) + 2
+G_signal = f(t) + 10
+G_mod = G_Carrier * G_signal
+
+R_Carrier = signal.square(2 * np.pi * 500 * (t + 0.001), duty=0.3) + 1
+R_signal = f(t) + 5
+R_mod = R_Carrier * R_signal
+
+# Plot G and R channel signals and carriers
+fig, (ax0, ax1, ax2) = plt.subplots(nrows=3, figsize=(6, 4))
+
+# Remove frames, ticks, and labels, and move legend to top-right
+ax0 = Ananlysis.plot_trace(G_signal, ax0, fs=9938.4, label="Green Signal", color='g')
+ax1 = Ananlysis.plot_trace(G_Carrier, ax1, fs=9938.4, label="Square wave 1", color='g')
+ax2 = Ananlysis.plot_trace(G_mod, ax2, fs=9938.4, label="Green Modulated Signal", color='g')
+
+for ax in (ax0, ax1, ax2):
+    ax.legend(loc='upper right', fontsize=10, frameon=False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.set_xticks([])  # Remove x-axis ticks
+    ax.set_yticks([])  # Remove y-axis ticks
+    ax.set_xlabel('')  # Remove x-axis label
+    ax.set_ylabel('')  # Remove y-axis label
+
 fig.tight_layout()
 
-ax0=Ananlysis.plot_trace(R_signal[0:500],ax0, fs=9938.4, label="Red Signal", color='r')
-ax1=Ananlysis.plot_trace(R_Carrier[0:500],ax1, fs=9938.4, label="Square wave 2", color='r')
-ax2=Ananlysis.plot_trace(R_mod[0:500],ax2, fs=9938.4, label="Red Modulated Signal", color='r')
+# Overlay Red Channel on the same plot
+ax0 = Ananlysis.plot_trace(R_signal, ax0, fs=9938.4, label="Red Signal", color='r')
+ax1 = Ananlysis.plot_trace(R_Carrier, ax1, fs=9938.4, label="Square wave 2", color='r')
+ax2 = Ananlysis.plot_trace(R_mod, ax2, fs=9938.4, label="Red Modulated Signal", color='r')
+
+for ax in (ax0, ax1, ax2):
+    ax.legend(loc='upper right', fontsize=10, frameon=False)
+
 fig.tight_layout()
 
-#%%
-Mix_mod=G_mod+R_mod
-GreenGet=Mix_mod*G_Carrier/4
-lmin, lmax=SPADdemod.hl_envelopes_idx(GreenGet, dmin=1, dmax=1, split=False)
-xnew,green_recover=SPADdemod.Interpolate_timeDiv (lmax,GreenGet)
+# Plot Mixed Signal and Channels
+Mix_mod = G_mod + R_mod
+GreenGet = Mix_mod * G_Carrier / 4
+lmin, lmax = SPADdemod.hl_envelopes_idx(GreenGet, dmin=1, dmax=1, split=False)
+xnew, green_recover = SPADdemod.Interpolate_timeDiv(lmax, GreenGet)
 
-RedGet=Mix_mod*R_Carrier
-lmin, lmax=SPADdemod.hl_envelopes_idx(RedGet, dmin=1, dmax=1, split=False)
-xnew,red_recover=SPADdemod.Interpolate_timeDiv (lmax,RedGet)
+RedGet = Mix_mod * R_Carrier
+lmin, lmax = SPADdemod.hl_envelopes_idx(RedGet, dmin=1, dmax=1, split=False)
+xnew, red_recover = SPADdemod.Interpolate_timeDiv(lmax, RedGet)
 
+fig, (ax0, ax1, ax2) = plt.subplots(nrows=3, figsize=(6, 4))
 
-fig, (ax0, ax1,ax2) = plt.subplots(nrows=3)
-ax0=Ananlysis.plot_trace(Mix_mod,ax0, fs=9938.4, label="Mixed Signal",color='b')
-ax1=Ananlysis.plot_trace(GreenGet,ax1, fs=9938.4, label="Green Channel", color='g')
-ax2=Ananlysis.plot_trace(RedGet,ax2, fs=9938.4, label="Red Channel", color='r')
+ax0 = Ananlysis.plot_trace(Mix_mod, ax0, fs=9938.4, label="Mixed Signal", color='b')
+ax1 = Ananlysis.plot_trace(GreenGet, ax1, fs=9938.4, label="Green Channel", color='g')
+ax2 = Ananlysis.plot_trace(RedGet, ax2, fs=9938.4, label="Red Channel", color='r')
+
+for ax in (ax0, ax1, ax2):
+    ax.legend(loc='upper right', fontsize=10, frameon=False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.set_xticks([])  # Remove x-axis ticks
+    ax.set_yticks([])  # Remove y-axis ticks
+    ax.set_xlabel('')  # Remove x-axis label
+    ax.set_ylabel('')  # Remove y-axis label
+
 fig.tight_layout()
-#%%
-fs=9938.4
-dpath=dpath= "C:/SPAD/SPADData/20220507/1432004_TimeDiv_g20r100_2022_5_7_11_47_50"
-filename = os.path.join(dpath, "traceValue4.csv")  #csv file is the file contain values for each frame
-trace = np.genfromtxt(filename, delimiter=',')
 
+# Plot recovered signals
+fig, (ax0, ax1, ax2) = plt.subplots(nrows=3, figsize=(6, 4))
 
-lmin,lmax=hl_envelopes_idx(trace, dmin=1, dmax=1, split=True)
+ax0 = Ananlysis.plot_trace(Mix_mod, ax0, fs=9938.4, label="Mixed Signal", color='b')
+ax1 = Ananlysis.plot_trace(green_recover, ax1, fs=9938.4, label="Green Channel Recovered", color='g')
+ax2 = Ananlysis.plot_trace(red_recover, ax2, fs=9938.4, label="Red Channel Recovered", color='r')
 
-fig, ax = plt.subplots(figsize=(12, 3))
-ax.plot(lmax,trace[lmax], color='g')
-ax.plot(lmin,trace[lmin], color='r')
-#ax.set_xlim(1,40000)
-#%%
-x_red, y_red=Interpolate_timeDiv (lmin,trace)
-x_green, y_green=Interpolate_timeDiv (lmax,trace)
+for ax in (ax0, ax1, ax2):
+    ax.legend(loc='upper right', fontsize=10, frameon=False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.set_xticks([])  # Remove x-axis ticks
+    ax.set_yticks([])  # Remove y-axis ticks
+    ax.set_xlabel('')  # Remove x-axis label
+    ax.set_ylabel('')  # Remove y-axis label
 
-Signal=Ananlysis.getSignal_subtract(y_red,y_green,fs=9938.4)
-fig, ax = plt.subplots(figsize=(12, 3))
-ax=Ananlysis.plot_trace(Signal,ax, title="Signal")
+fig.tight_layout()

@@ -8,7 +8,6 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.fft import irfft, rfft, rfftfreq
-from scipy.signal import hilbert
 import scipy
 from scipy import interpolate
 from scipy.signal import find_peaks

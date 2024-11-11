@@ -171,7 +171,7 @@ def plot_trace(trace,ax, fs=9938.4, label="trace"):
 
 def ShowImage(BinData,dpath,xxRange=[0,180],yyRange=[60,240]):
     '''Show the accumulated image'''
-    BinData=RemoveHotPixelFromTemp(BinData)
+    #BinData=RemoveHotPixelFromTemp(BinData)
     PixelArrary=np.sum(BinData, axis=0)
     magify=1
     Pixel = (((PixelArrary) / (PixelArrary.max()))*255*magify)
@@ -180,20 +180,20 @@ def ShowImage(BinData,dpath,xxRange=[0,180],yyRange=[60,240]):
     Pixel_f = gaussian_filter(Pixel, sigma=1)
 
     img = Image.fromarray(Pixel_f)
-    img.show()
-    filename = os.path.join(dpath, "FOV_image.png")
-    img.save(filename) 
+    #img.show()
+    #filename = os.path.join(dpath, "FOV_image.png")
+    #img.save(filename) 
     
-    plt.figure(figsize=(8, 8))
+    plt.figure(figsize=(6, 4))
     plt.imshow(PixelArrary, cmap='gray')
     plt.colorbar(label='Photon count')
-    plt.title('Image with Selected Region')
-    plt.xlabel('X coordinate')
-    plt.ylabel('Y coordinate')
+    #plt.title('Image with Selected Region')
+    # plt.xlabel('X coordinate')
+    # plt.ylabel('Y coordinate')
     # Add a rectangle around the selected region
-    rect = patches.Rectangle((xxRange[0], yyRange[0]), xxRange[1]-xxRange[0], yyRange[1]-yyRange[0], 
-                              linewidth=2, edgecolor='r', facecolor='none')
-    plt.gca().add_patch(rect)
+    # rect = patches.Rectangle((xxRange[0], yyRange[0]), xxRange[1]-xxRange[0], yyRange[1]-yyRange[0], 
+    #                           linewidth=2, edgecolor='r', facecolor='none')
+    #plt.gca().add_patch(rect)
     filename = os.path.join(dpath, "FOV_image_ROI.png")
     plt.savefig(filename)
 

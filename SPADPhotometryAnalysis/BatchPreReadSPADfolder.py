@@ -21,7 +21,7 @@ def read_multiple_SPAD_bin_folder(parent_folder,xxRange,yyRange):
     # Read the directories in sorted order
     for directory in directories:
         print("Folder:", directory)
-        SPADreadBin.readMultipleBinfiles(directory,9,xxRange=xxRange,yyRange=yyRange)
+        SPADreadBin.readMultipleBinfiles(directory,1,xxRange=xxRange,yyRange=yyRange)
     return -1
 
 'Following functions are used for calculate zscore for continuous recording'
@@ -109,12 +109,12 @@ def main():
     '''
     
     'Reading SPAD binary data'
-    parent_folder="G:/YY/New/1756735_PVCre_Jedi2p_Compare/Day2SPC_Sleep/SPC/"
-    read_multiple_SPAD_bin_folder(parent_folder,xxRange=[20,180],yyRange=[80,240])
-    multiple_SPAD_folders_get_zscore(parent_folder)
-    day_parent_folder="G:/YY/New/1756735_PVCre_Jedi2p_Compare/Day2SPC_Sleep/"
+    SPC_data_folder='E:/ATLAS_SPAD\HardwareTest/SPC_linearity/SPC/'
+    read_multiple_SPAD_bin_folder(SPC_data_folder,xxRange=[135,270],yyRange=[70,205])
+    multiple_SPAD_folders_get_zscore(SPC_data_folder)
+    day_parent_folder='E:/ATLAS_SPAD\HardwareTest/SPC_linearity/'
  
-    copy_results_to_SyncRecording (day_parent_folder,parent_folder,new_folder_name='SyncRecording')
+    copy_results_to_SyncRecording (day_parent_folder,SPC_data_folder,new_folder_name='SyncRecording')
 
 if __name__ == "__main__":
     main()
