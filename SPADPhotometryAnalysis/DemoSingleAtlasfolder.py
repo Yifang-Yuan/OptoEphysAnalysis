@@ -12,16 +12,16 @@ from SPADPhotometryAnalysis import AtlasDecode
 from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 #%% Workable code, above is testin
 #ppath='D:/ATLAS_SPAD/1825505_SimCre/Day2/Atlas/'
-dpath='E:/ATLAS_SPAD/1825504_SimCre_GCamp8f_taper/Day2/Atlas/Burst-RS-25200frames-840Hz_2024-10-28_17-17/'
+dpath='E:/ATLAS_SPAD/ColiimatorFibreNAtest\Fibre_200um_0d57NA/Atlas/Burst-RS-4200frames-840Hz_2024-11-12_12-06_100uW/'
 #dpath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/Burst-RS-1017frames-1017Hz_4uW/'
 #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
 hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
 
-pixel_array_all_frames,_,avg_pixel_array=AtlasDecode.decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=2000)
+pixel_array_all_frames,_,avg_pixel_array=AtlasDecode.decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=5000)
 #%%
 AtlasDecode.show_image_with_pixel_array(avg_pixel_array,showPixel_label=True)
 #%%
-center_x, center_y,radius=AtlasDecode.find_circle_mask(avg_pixel_array,radius=13)
+center_x, center_y,radius=AtlasDecode.find_circle_mask(avg_pixel_array,radius=8,threh=0.1)
 #%%
 #Trace_raw,dff=AtlasDecode.get_dff_from_atlas_snr_circle_mask (dpath,hotpixel_path,center_x, center_y,radius,fs=840,snr_thresh=2,photoncount_thre=5000)
 #%%
@@ -51,7 +51,7 @@ Analysis.plot_wavelet_data(data,sampling_rate,cutoff=300,xlim = ([6,30]))
 #%%
 '''Read binary files for single ROI'''
 # Display the grayscale image
-pixel_array_all_frames,sum_pixel_array,avg_pixel_array=AtlasDecode.decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=1000)
+pixel_array_all_frames,sum_pixel_array,avg_pixel_array=AtlasDecode.decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=2000)
 #%%
 
 #%%

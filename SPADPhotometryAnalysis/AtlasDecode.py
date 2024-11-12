@@ -65,6 +65,7 @@ def decode_atlas_folder (folderpath,hotpixel_path,photoncount_thre=2000):
         matdata = loadmat(single_frame_data_path)
         real_data=matdata['realData']
         readData=loadPCFrame(real_data) #decode data to single pixel frame
+        
         readData=remove_hotpixel(readData,photoncount_thre) #REMOVE hotpixel by a threshold
         single_pixel_array=readData[:,:,0]
         single_pixel_array[hotpixel_indices[:, 0], hotpixel_indices[:, 1]] = 0 #REMOVE HOTPIXEL FROM MASK
@@ -123,13 +124,14 @@ def show_image_with_pixel_array(pixel_array_2d,showPixel_label=True):
     plt.show()
     return -1
 
-def find_circle_mask(pixel_array,radius=12):
+def find_circle_mask(pixel_array,radius=12,threh=0.5):
     shape = pixel_array.shape
     max_avg_photon_count = 0
     best_center = (0, 0)
     # Define ranges for center positions and radii
     center_y_range = range(10, shape[0] - 10)  # Avoid edges for centers
     center_x_range = range(10, shape[1] - 10)
+    radius_range = range(radius, 50)
     # Iterate over possible centers
     for center_y in center_y_range:
         for center_x in center_x_range:
@@ -146,25 +148,52 @@ def find_circle_mask(pixel_array,radius=12):
                 if average_photon_count > max_avg_photon_count:
                     max_avg_photon_count = average_photon_count
                     best_center = (center_x, center_y)
-    while True: 
-        # Plot the image with the best circle overlay
-        plt.figure(figsize=(4, 4))
-        plt.imshow(pixel_array, cmap='hot')
-        plt.colorbar(label='Photon Count')
-        # Draw the best detected circle
-        circle = plt.Circle(best_center, radius, color='cyan', fill=False, linewidth=2, label='Best Circle')
-        plt.gca().add_patch(circle)
-        plt.title('Find ROI')
-        plt.xlabel('X',fontsize=12)
-        plt.ylabel('Y',fontsize=12)
-        plt.legend(loc='upper right')
-        plt.show()
-        print("Radius:", radius)
-        new_radius = input("Enter new radius (or 'q' to quit): ")
-        if new_radius.lower() == 'q':
-            break
-        else:
-            radius=int(new_radius)
+                    
+    for radius in radius_range:
+        outer_circle_mask = (x - best_center[0]) ** 2 + (y - best_center[1]) ** 2 <= radius ** 2
+        inner_circle_mask = (x - best_center[0]) ** 2 + (y - best_center[1]) ** 2 <= (radius-2) ** 2
+        ring_mask = outer_circle_mask & ~inner_circle_mask
+        plt.imshow(ring_mask)
+        mask_area = np.sum(ring_mask)
+        if mask_area > 0:
+            total_photon_count = np.sum(pixel_array[ring_mask])
+            average_photon_count = total_photon_count / mask_area
+    
+            # Update if we find a new maximum average photon count
+            if average_photon_count < max_avg_photon_count*threh:
+                best_radius = radius
+                break
+                
+    plt.figure(figsize=(4, 4))
+    plt.imshow(pixel_array, cmap='hot')
+    plt.colorbar(label='Photon Count')
+    # Draw the best detected circle
+    circle = plt.Circle(best_center, best_radius, color='cyan', fill=False, linewidth=2, label='Best Circle')
+    plt.gca().add_patch(circle)
+    plt.title('Find ROI')
+    plt.xlabel('X',fontsize=12)
+    plt.ylabel('Y',fontsize=12)
+    plt.legend(loc='upper right')
+    plt.show()
+    # while True: 
+    #     # Plot the image with the best circle overlay
+    #     plt.figure(figsize=(4, 4))
+    #     plt.imshow(pixel_array, cmap='hot')
+    #     plt.colorbar(label='Photon Count')
+    #     # Draw the best detected circle
+    #     circle = plt.Circle(best_center, radius, color='cyan', fill=False, linewidth=2, label='Best Circle')
+    #     plt.gca().add_patch(circle)
+    #     plt.title('Find ROI')
+    #     plt.xlabel('X',fontsize=12)
+    #     plt.ylabel('Y',fontsize=12)
+    #     plt.legend(loc='upper right')
+    #     plt.show()
+    #     print("Radius:", radius)
+    #     new_radius = input("Enter new radius (or 'q' to quit): ")
+    #     if new_radius.lower() == 'q':
+    #         break
+    #     else:
+    #         radius=int(new_radius)
             
     print("Best center:", best_center)
     print("Radius:", radius)
@@ -220,7 +249,6 @@ def get_trace_from_3d_pixel_array_circle_mask(pixel_array_all_frames,pixel_array
     plt.show()
     
     masked_values = pixel_array_all_frames[mask, :]
-
     # Calculate the sum and mean for each frame along the length axis (frame axis)
     sum_values_over_time = np.sum(masked_values, axis=0)  # Sum photon counts within mask for each frame
     mean_values_over_time = np.mean(masked_values, axis=0)  # Mean photon count within mask for each frame

@@ -119,40 +119,40 @@ def main():
     'Reading SPAD binary data'
     #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
     hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
-    # center_x, center_y,radius=57, 70, 18
-    # atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Collimator_200um_0d48NA/Atlas/'
-    # day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Collimator_200um_0d48NA/FitROI/'
+    # center_x, center_y,radius=52, 68, 15
+    # atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Collimator_600umNA0.48/Atlas/'
+    # day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Collimator_600umNA0.48/FitROI/'
     # read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=2000)
     
-    # center_x, center_y,radius=57, 70, 23
-    # atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Collimator_200um_0d48NA/Atlas/'
-    # day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Collimator_200um_0d48NA/LargeROI/'
+    # center_x, center_y,radius=52, 68, 45
+    # atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Collimator_600umNA0.48/Atlas/'
+    # day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Collimator_600umNA0.48/LargeROI/'
     # read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=2000)
     
-    # center_x, center_y,radius=56, 59, 23
-    # atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_200um_0d48NA_noCo/Atlas/'
-    # day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_200um_0d48NA_noCo/FitROI/'
-    # read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=10000)
+    center_x, center_y,radius=57, 61, 29
+    atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_200um_0d57NA/Atlas/'
+    day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_200um_0d57NA/FitROI/'
+    read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=10000)
     
     center_x, center_y,radius=56, 59, 31
-    atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_200um_0d48NA_noCo/Atlas/'
-    day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_200um_0d48NA_noCo/LargeROI/'
+    atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_200um_0d57NA/Atlas/'
+    day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_200um_0d57NA/LargeROI/'
     read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=10000)
     
-    center_x, center_y,radius=54, 60, 31
-    atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_400um_0d57NA/Atlas/'
-    day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_400um_0d57NA/FitROI/'
-    read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=10000)
+    # center_x, center_y,radius=54, 60, 31
+    # atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_400um_0d57NA/Atlas/'
+    # day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_400um_0d57NA/FitROI/'
+    # read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=10000)
     
-    center_x, center_y,radius=53, 60, 25
-    atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_600um_0d48NA/Atlas/'
-    day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_600um_0d48NA/FitROI/'
-    read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=15000)
+    # center_x, center_y,radius=53, 60, 25
+    # atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_600um_0d48NA/Atlas/'
+    # day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_600um_0d48NA/FitROI/'
+    # read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=15000)
     
-    center_x, center_y,radius=53, 60, 31
-    atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_600um_0d48NA/Atlas/'
-    day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_600um_0d48NA/LargeROI/'
-    read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=15000)
+    # center_x, center_y,radius=53, 60, 31
+    # atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_600um_0d48NA/Atlas/'
+    # day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_600um_0d48NA/LargeROI/'
+    # read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=15000)
     
 
     
