@@ -13,9 +13,9 @@ import seaborn as sns
 # Load the data
 data = pd.DataFrame({
     'Test ID': [1, 2, 3, 4, 5, 6],
-    'Collimator': [105485, 211942, 220194, 444308, 448382, 583790],
-    'NoCollimation': [98884, 218026, 260467, 3471361, 5113089, 6658394],
-    'percentage_loss': [-0.066754986, 0.027904929, 0.154618435, 0.87200755, 0.912307022, 0.912322701]
+    'Collimator': [489365, 774345, 1718822, 3350769, 4988161, 6605763],
+    'NoCollimation': [597092, 1312825, 3601567, 7204747, 10377942, 13285747],
+    'percentage_loss': [0.180419433, 0.410168911, 0.522757178, 0.534922045, 0.519349694, 0.502793257]
 })
 
 # Calculate means and standard error
@@ -25,10 +25,10 @@ collimator_sem = sem(data['Collimator'])
 no_collimation_sem = sem(data['NoCollimation'])
 
 # Plotting
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), gridspec_kw={'width_ratios': [4, 1]})
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), gridspec_kw={'width_ratios': [0.7, 1]})
 
 # Left subplot: Box plot with horizontal line for mean
-ax1.boxplot([data['Collimator'], data['NoCollimation']], positions=[1, 2], widths=0.5,
+ax1.boxplot([data['Collimator'], data['NoCollimation']], positions=[1, 2], widths=0.7,
             showfliers=False, boxprops=dict(color='white'), medianprops=dict(color='white'))
 
 # Plot the mean as a horizontal line with standard error
@@ -37,7 +37,7 @@ ax1.boxplot([data['Collimator'], data['NoCollimation']], positions=[1, 2], width
 
 # Connecting lines for each test ID with larger data points
 for i, row in data.iterrows():
-    ax1.plot([1, 2], [row['Collimator'], row['NoCollimation']], color='gray', linestyle='--', marker='o', markersize=5)
+    ax1.plot([1, 2], [row['Collimator'], row['NoCollimation']], color='gray', linestyle='--', marker='o', markersize=6)
 
 # Adjust x-ticks and labels with larger font size
 ax1.set_xticks([1, 2])

@@ -189,8 +189,8 @@ def plotSingleTrace (ax, signal, SamplingRate,color='blue', Label=None,linewidth
     t=(len(signal)) / SamplingRate
     time = np.arange(len(signal)) / SamplingRate
     ax.plot(time,signal,color,linewidth=linewidth,label=Label,alpha=0.7)
-    if Label is not None:
-        ax.legend(loc="upper right", frameon=False,fontsize=20)  
+    # if Label is not None:
+    #     ax.legend(loc="upper right", frameon=False,fontsize=20)  
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
     ax.set_xlim(0,t)
@@ -211,7 +211,7 @@ def photometry_smooth_plot (raw_reference,raw_signal,sampling_rate=500, smooth_w
     
     fig = plt.figure(figsize=(16,10))
     ax1 = fig.add_subplot(211)
-    ax1 = plotSingleTrace (ax1, smooth_Signal, SamplingRate=sampling_rate,color='blue',Label='smooth_signal') 
+    ax1 = plotSingleTrace (ax1, smooth_Signal, SamplingRate=sampling_rate,color='crimson',Label='smooth_signal') 
     ax1 = plotSingleTrace (ax1, s_base, SamplingRate=sampling_rate,color='black',Label='baseline_signal',linewidth=2) 
     ax1.spines['top'].set_visible(False)
     ax1.spines['right'].set_visible(False)
@@ -222,6 +222,23 @@ def photometry_smooth_plot (raw_reference,raw_signal,sampling_rate=500, smooth_w
     ax2.spines['right'].set_visible(False)
     
     return smooth_reference,smooth_Signal,r_base,s_base
+
+def photometry_smooth_signal (raw_signal,sampling_rate=500, smooth_win = 10):
+    smooth_Signal = smooth_signal(raw_signal, smooth_win)
+    
+    lambd = 10e4 # Adjust lambda to get the best fit
+    porder = 1
+    itermax = 15
+    
+    s_base=airPLS(smooth_Signal,lambda_=lambd,porder=porder,itermax=itermax)
+    
+    fig = plt.figure(figsize=(16,5))
+    ax1 = fig.add_subplot(111)
+    ax1 = plotSingleTrace (ax1, smooth_Signal, SamplingRate=sampling_rate,color='crimson',Label='smooth_signal') 
+    ax1 = plotSingleTrace (ax1, s_base, SamplingRate=sampling_rate,color='black',Label='baseline_signal',linewidth=2) 
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+    return smooth_Signal,s_base
 
 def read_photometry_data (folder, file_name, readCamSync='True',plot=False,sampling_rate=130):
     PhotometryData = pd.read_csv(folder+file_name,index_col=False) # Adjust this line depending on your data file

@@ -58,11 +58,11 @@ def plot_ripple_heatmap(ripple_band_lfps,lfps,zscores,Fs=10000):
     axs[1].fill_between(time, lfps_CI[0], lfps_CI[1], color='dodgerblue', alpha=0.2, label='0.95 CI')
     axs[2].plot(time, zscores_mean, color='limegreen', label='Ripple Zscore Mean')
     axs[2].fill_between(time, zscores_CI[0], zscores_CI[1], color='limegreen', alpha=0.2, label='0.95 CI')
-    axs[0].set_title('Averaged Ripple Epoch')
+    axs[0].set_title('Averaged Ripple Epoch',fontsize=18)
     for i in range(3):
         axs[i].set_xlim(time[0], time[-1])
         axs[i].margins(x=0)  # Remove any additional margins on x-axis
-        axs[i].legend()
+        #axs[i].legend()
         # Remove the frame (spines) from the first three plots
         axs[i].spines['top'].set_visible(False)
         axs[i].spines['right'].set_visible(False)
@@ -73,13 +73,16 @@ def plot_ripple_heatmap(ripple_band_lfps,lfps,zscores,Fs=10000):
     axs[1].tick_params(labelbottom=False, bottom=False)  # Remove x-ticks and labels for axs[1]
               
     sns.heatmap(lfps, cmap="viridis", ax=axs[3], cbar=False)
-    axs[3].set_title('Heatmap of LFPs')
-    axs[3].set_ylabel('Epoch Number')
+    #axs[3].set_title('Heatmap of LFPs',fontsize=24)
+    axs[3].set_ylabel('Epoch Number',fontsize=20)
     
     sns.heatmap(zscores, cmap="viridis", ax=axs[4], cbar=False)
-    axs[4].set_title('Heatmap of Zscores')
-    axs[4].set_ylabel('Epoch Number')
+    #axs[4].set_title('Heatmap of Zscores',fontsize=24)
+    axs[4].set_ylabel('Epoch Number',fontsize=20)
+    axs[3].tick_params(axis='both', which='major', labelsize=16, rotation=0)  # Adjust the size as needed
+    axs[4].tick_params(axis='both', which='major', labelsize=16, rotation=0)  # Adjust the size as needed
     axs[3].tick_params(labelbottom=False, bottom=False)
+    axs[4].tick_params(labelbottom=False, bottom=False)
     plt.tight_layout()
     plt.show()
     return fig
@@ -132,7 +135,7 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5):
     For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
     rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,
                                                 ep_start=10,ep_end=40,
-                                                Low_thres=2,High_thres=10,
+                                                Low_thres=1,High_thres=10,
                                                 plot_segment=False,plot_ripple_ep=False,excludeTheta=True)
 
     'GEVI has a negative'
@@ -152,12 +155,12 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5):
 
 def run_ripple_plot_main():
     'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
-    dpath='E:/ATLAS_SPAD/1820061_PVcre/Day4/'
-    recordingName='SavedMovingGoodTrials'
+    dpath='D:/2024_OEC_Atlas_main/1765507_iGlu_Atlas/RippleAll/'
+    recordingName='SyncRecording11'
     savename='RippleSave_Sleep'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
     LFP_channel='LFP_1'
-    run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0)
+    run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=2)
     
 run_ripple_plot_main()
 #%%

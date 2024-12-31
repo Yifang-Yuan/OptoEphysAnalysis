@@ -12,21 +12,22 @@ from SPADPhotometryAnalysis import AtlasDecode
 from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 #%% Workable code, above is testin
 #ppath='D:/ATLAS_SPAD/1825505_SimCre/Day2/Atlas/'
-dpath='E:/ATLAS_SPAD/ColiimatorFibreNAtest\Fibre_200um_0d57NA/Atlas/Burst-RS-4200frames-840Hz_2024-11-12_12-06_100uW/'
-#dpath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/Burst-RS-1017frames-1017Hz_4uW/'
+
+dpath='E:/2025_ATLAS_SPAD/1842514_Jedi2p/Day2/Atlas/Test/'
 #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
 hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
 
-pixel_array_all_frames,_,avg_pixel_array=AtlasDecode.decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=5000)
+pixel_array_all_frames,_,avg_pixel_array=AtlasDecode.decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=500)
 #%%
 AtlasDecode.show_image_with_pixel_array(avg_pixel_array,showPixel_label=True)
 #%%
-center_x, center_y,radius=AtlasDecode.find_circle_mask(avg_pixel_array,radius=8,threh=0.1)
+center_x, center_y,best_radius=AtlasDecode.find_circle_mask(avg_pixel_array,radius=30,threh=0.2)
 #%%
-#Trace_raw,dff=AtlasDecode.get_dff_from_atlas_snr_circle_mask (dpath,hotpixel_path,center_x, center_y,radius,fs=840,snr_thresh=2,photoncount_thre=5000)
+center_x, center_y,best_radius=53, 46, 15
+Trace_raw,dff=AtlasDecode.get_dff_from_atlas_snr_circle_mask (dpath,hotpixel_path,center_x, center_y,best_radius,fs=840,snr_thresh=2,photoncount_thre=1000)
 #%%
 'GET TOTAL PHOTON COUNT'
-Trace_raw,dff=AtlasDecode.get_total_photonCount_atlas_continuous_circle_mask (dpath,hotpixel_path,center_x, center_y,radius,fs=840,photoncount_thre=2000)
+Trace_raw,dff=AtlasDecode.get_total_photonCount_atlas_continuous_circle_mask (dpath,hotpixel_path,center_x, center_y,best_radius,fs=840,photoncount_thre=2000)
 #%%
 day_parent_folder='F:/SPAD2024/SPADdata_SNRtest/5uWComparePSD/'
 folder_name='5uW_Atlas'

@@ -142,10 +142,10 @@ def readEphysChannel_withSessionInput (session,recordingNum,Fs=30000):
     Sync3=samples[:,18]
     Sync4=samples[:,19]
     
-    LFP_clean1= butter_filter(LFP1, btype='low', cutoff=2000, fs=Fs, order=5)
-    LFP_clean2= butter_filter(LFP2, btype='low', cutoff=2000, fs=Fs, order=5)
-    LFP_clean3= butter_filter(LFP3, btype='low', cutoff=2000, fs=Fs, order=5)
-    LFP_clean4= butter_filter(LFP4, btype='low', cutoff=2000, fs=Fs, order=5)
+    LFP_clean1= butter_filter(LFP1, btype='low', cutoff=1000, fs=Fs, order=5)
+    LFP_clean2= butter_filter(LFP2, btype='low', cutoff=1000, fs=Fs, order=5)
+    LFP_clean3= butter_filter(LFP3, btype='low', cutoff=1000, fs=Fs, order=5)
+    LFP_clean4= butter_filter(LFP4, btype='low', cutoff=1000, fs=Fs, order=5)
     # LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
     # LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
     # LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
@@ -939,27 +939,28 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
 
     x = np.linspace(-half_window, half_window, len(mean_zscore))
     if plotmode=='two':
-        fig, (ax1,ax2) = plt.subplots(2,1,figsize=(8, 8))
+        fig, (ax1,ax2) = plt.subplots(2,1,figsize=(6, 6))
         # Plot mean z-score on the first y-axis
         ax1.plot(x, mean_zscore, color=sns.color_palette("husl", 8)[3], label='Mean zscore')
         ax1.fill_between(x, CI_zscore[0], CI_zscore[1], color=sns.color_palette("husl", 8)[3], alpha=0.3,label='0.95 CI')
         ax1.axvline(x=0, color='k',linestyle='--')
         
-        ax1.set_ylabel('Zscore', color='k',fontsize=16)
-        ax1.set_title('Mean z-score and Mean LFP during a theta cycle')
-        ax1.legend(loc='upper right',frameon=False)
+        ax1.set_ylabel('Zscore', color='k',fontsize=12)
+        ax1.set_title('Averaged z-score and LFP during a theta cycles',fontsize=14)
+        ax1.tick_params(labelbottom=False, bottom=False)
+        #ax1.legend(loc='upper right',frameon=False)
         # Create a second y-axis and plot mean LFP on it
         ax2.plot(x, mean_lfp, color=sns.color_palette("husl", 8)[5], label='Mean LFP')
         ax2.fill_between(x, CI_LFP[0], CI_LFP[1], color=sns.color_palette("husl", 8)[5], alpha=0.3,label='0.95 CI')
-        ax2.set_ylabel('Amplitude (μV)', color='k',fontsize=16)
+        ax2.set_ylabel('Amplitude (μV)', color='k',fontsize=12)
         ax2.axvline(x=0, color='k',linestyle='--')
-        ax2.legend(loc='upper right',frameon=False)
-        ax2.set_xlabel('Time (seconds)',fontsize=14)
+        #ax2.legend(loc='upper right',frameon=False)
+        ax2.set_xlabel('Time (seconds)',fontsize=12)
         # ax1.legend().set_visible(False)
         # ax2.legend().set_visible(False)
         ax1.spines['top'].set_visible(False)
         ax1.spines['right'].set_visible(False)
-        #ax1.spines['bottom'].set_visible(False)
+        ax1.spines['bottom'].set_visible(False)
         #ax1.spines['left'].set_visible(False)
         ax2.spines['top'].set_visible(False)
         ax2.spines['right'].set_visible(False)
@@ -967,6 +968,7 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
         ax2.set_xlim([-0.15,0.15])
         #ax2.spines['bottom'].set_visible(False)
         #ax2.spines['left'].set_visible(False)
+        #plt.tight_layout()
         plt.show()
     return -1
 

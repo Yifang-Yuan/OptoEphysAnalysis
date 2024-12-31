@@ -15,13 +15,14 @@ from SPADPhotometryAnalysis import photometry_functions as fp
 import os
 # Folder with your files
 # Modify it depending on where your file is located
-folder ="G:/pyPhotometry_data/1746062_chemoInhibit_Rbp4_EC5a/"
+folder ="C:/SPAD/pyPhotometry_v0.3.1/data/"
 # File name
-file_name = '1746062inh-2024-05-31-163322.csv'
+file_name = 'Jd17059Ana-2023-10-11-120121_25mA_theta.csv'
 sampling_rate=130
 '''Read csv file and calculate zscore of the fluorescent signal'''
-raw_signal,raw_reference,Cam_Sync=fp.read_photometry_data (folder, file_name, readCamSync=True,plot=True)
-plt.tight_layout()
+raw_signal,raw_reference=fp.read_photometry_data (folder, file_name, readCamSync=False,plot=True)
+# raw_signal,raw_reference,Cam_Sync=fp.read_photometry_data (folder, file_name, readCamSync=True,plot=True)
+# plt.tight_layout()
 #%%
 '''Get zdFF directly'''
 zdFF = fp.get_zdFF(raw_reference,raw_signal,smooth_win=2,remove=0,lambd=5e4,porder=1,itermax=50)
@@ -29,14 +30,14 @@ fig = plt.figure(figsize=(16, 5))
 ax1 = fig.add_subplot(111)
 ax1 = fp.plotSingleTrace (ax1, zdFF, SamplingRate=sampling_rate,color='black',Label='zscore_signal')
 '''Save signal'''
-greenfname = os.path.join(folder, "Green_traceAll.csv")
-np.savetxt(greenfname, raw_signal, delimiter=",")
-redfname = os.path.join(folder, "Red_traceAll.csv")
-np.savetxt(redfname, raw_reference, delimiter=",")
-zscorefname = os.path.join(folder, "Zscore_traceAll.csv")
-np.savetxt(zscorefname, zdFF, delimiter=",")
-CamSyncfname = os.path.join(folder, "CamSync_photometry.csv")
-np.savetxt(CamSyncfname, Cam_Sync, fmt='%d',delimiter=",")
+# greenfname = os.path.join(folder, "Green_traceAll.csv")
+# np.savetxt(greenfname, raw_signal, delimiter=",")
+# redfname = os.path.join(folder, "Red_traceAll.csv")
+# np.savetxt(redfname, raw_reference, delimiter=",")
+# zscorefname = os.path.join(folder, "Zscore_traceAll.csv")
+# np.savetxt(zscorefname, zdFF, delimiter=",")
+# CamSyncfname = os.path.join(folder, "CamSync_photometry.csv")
+# np.savetxt(CamSyncfname, Cam_Sync, fmt='%d',delimiter=",")
 #%%
 '''Define the segments you want to zoom in, in seconds'''
 def get_part_trace(data,start_time,end_time,fs):
@@ -46,19 +47,19 @@ def get_part_trace(data,start_time,end_time,fs):
     return sliced_data
 
 '''!!!Skip this part or comment these four lines if you dont want to cut your data'''
-start_time=50
-end_time=120
+start_time=10
+end_time=130
 
 raw_signal=get_part_trace(raw_signal,start_time=start_time,end_time=end_time,fs=sampling_rate)
 raw_reference=get_part_trace(raw_reference,start_time=start_time,end_time=end_time,fs=sampling_rate)
-Cam_Sync=get_part_trace(Cam_Sync,start_time=start_time,end_time=end_time,fs=sampling_rate).to_numpy()
+#Cam_Sync=get_part_trace(Cam_Sync,start_time=start_time,end_time=end_time,fs=sampling_rate).to_numpy()
 fig = plt.figure(figsize=(12, 8))
 ax1 = fig.add_subplot(311)
 ax1 = fp.plotSingleTrace (ax1, raw_signal, SamplingRate=sampling_rate,color='green',Label='Signal')
 ax2 = fig.add_subplot(312)
 ax2 = fp.plotSingleTrace (ax2, raw_reference, SamplingRate=sampling_rate,color='purple',Label='Reference')
-ax3 = fig.add_subplot(313)
-ax3 = fp.plotSingleTrace (ax3, Cam_Sync, SamplingRate=sampling_rate,color='orange',Label='Digital_Sync')
+# ax3 = fig.add_subplot(313)
+# ax3 = fp.plotSingleTrace (ax3, Cam_Sync, SamplingRate=sampling_rate,color='orange',Label='Digital_Sync')
 plt.tight_layout()
 #%%
 '''
@@ -70,6 +71,7 @@ smoothed signal, corrected signal, normalised signal and the final zsocre
 '''
 '''Step 1, plot smoothed traces'''
 smooth_win = 10
+smooth_signal,s_base = fp.photometry_smooth_signal (raw_signal,sampling_rate=sampling_rate, smooth_win = smooth_win)
 smooth_reference,smooth_signal,r_base,s_base = fp.photometry_smooth_plot (
     raw_reference,raw_signal,sampling_rate=sampling_rate, smooth_win = smooth_win)
 #%%
@@ -83,9 +85,9 @@ ax1 = fig.add_subplot(311)
 ax1 = fp.plotSingleTrace (ax1, signal, SamplingRate=sampling_rate,color='blue',Label='corrected_signal')
 ax2 = fig.add_subplot(312)
 ax2 = fp.plotSingleTrace (ax2, reference, SamplingRate=sampling_rate,color='purple',Label='corrected_reference')
-ax3 = fig.add_subplot(313)
-ax3 = fp.plotSingleTrace (ax3, Cam_Sync, SamplingRate=sampling_rate,color='orange',Label='Digital_Sync')
-plt.tight_layout()
+# ax3 = fig.add_subplot(313)
+# ax3 = fp.plotSingleTrace (ax3, Cam_Sync, SamplingRate=sampling_rate,color='orange',Label='Digital_Sync')
+# plt.tight_layout()
 #%%
 '''Step 3, plot normalised traces'''
 z_reference = (reference - np.median(reference)) / np.std(reference)

@@ -9,7 +9,8 @@ from SPADPhotometryAnalysis import AtlasDecode
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-'xxRange=[25, 85],yyRange=[30, 90]'
+import re
+from datetime import datetime
 
 def replace_outliers_with_avg(data, threshold):
     # Identify the outliers
@@ -82,15 +83,28 @@ def Remove_outliers_for_session (parent_folder,TargetfolderName='SyncRecording')
 
     return -1
 
+def extract_timestamp(folder_name):
+    # Assuming the timestamp is at the end in the format "YYYY-MM-DD_HH-MM"
+    timestamp_str = folder_name.split('_')[-2]+ '_' +folder_name.split('_')[-1] 
+    # Convert the string to a datetime object
+    return datetime.strptime(timestamp_str,  '%Y-%m-%d_%H-%M')
+
 def read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=2000):
     '''When using this batch processing function, please make sure the ROI did not change for this whole experiment.'''
     # Get a list of all directories in the parent folder
-    directories = [os.path.join(atlas_parent_folder, d) for d in os.listdir(atlas_parent_folder) if os.path.isdir(os.path.join(atlas_parent_folder, d))]
-    # Sort the directories by creation time
-    directories.sort(key=lambda x: os.path.getctime(x))
+    all_atlas_folders = os.listdir(atlas_parent_folder)
+    # Sort by folder name
+    pattern = r'^Burst-RS-\d+frames-\d+Hz_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}$'
+    folders = [
+        item for item in all_atlas_folders
+        if os.path.isdir(os.path.join(atlas_parent_folder, item)) and re.match(pattern, item)
+    ]
+    # Sort folders by the extracted timestamp
+    sorted_atlas_folders = sorted(folders, key=extract_timestamp)
     # Read the directories in sorted order
     i=0
-    for directory in directories:
+    for foldername in sorted_atlas_folders:
+        directory=os.path.join(atlas_parent_folder, foldername)
         print("Folder:", directory)
         Trace_raw,dff=AtlasDecode.get_dff_from_atlas_snr_circle_mask (directory,hotpixel_path,center_x, center_y,radius,
                                                                         fs=840,snr_thresh=2,photoncount_thre=photoncount_thre)
@@ -119,40 +133,11 @@ def main():
     'Reading SPAD binary data'
     #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
     hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
-    # center_x, center_y,radius=52, 68, 15
-    # atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Collimator_600umNA0.48/Atlas/'
-    # day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Collimator_600umNA0.48/FitROI/'
-    # read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=2000)
     
-    # center_x, center_y,radius=52, 68, 45
-    # atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Collimator_600umNA0.48/Atlas/'
-    # day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Collimator_600umNA0.48/LargeROI/'
-    # read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=2000)
-    
-    center_x, center_y,radius=57, 61, 29
-    atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_200um_0d57NA/Atlas/'
-    day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_200um_0d57NA/FitROI/'
-    read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=10000)
-    
-    center_x, center_y,radius=56, 59, 31
-    atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_200um_0d57NA/Atlas/'
-    day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_200um_0d57NA/LargeROI/'
-    read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=10000)
-    
-    # center_x, center_y,radius=54, 60, 31
-    # atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_400um_0d57NA/Atlas/'
-    # day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_400um_0d57NA/FitROI/'
-    # read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=10000)
-    
-    # center_x, center_y,radius=53, 60, 25
-    # atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_600um_0d48NA/Atlas/'
-    # day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_600um_0d48NA/FitROI/'
-    # read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=15000)
-    
-    # center_x, center_y,radius=53, 60, 31
-    # atlas_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_600um_0d48NA/Atlas/'
-    # day_parent_folder='E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_600um_0d48NA/LargeROI/'
-    # read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=15000)
+    center_x, center_y,radius=49, 61, 36
+    atlas_parent_folder='E:/2025_ATLAS_SPAD/1842514_Jedi2p/Day2/Atlas/'
+    day_parent_folder='E:/2025_ATLAS_SPAD/1842514_Jedi2p/Day2/'
+    read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=500)
     
 
     

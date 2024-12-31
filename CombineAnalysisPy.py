@@ -16,25 +16,26 @@ import matplotlib.pyplot as plt
 #%%
 '''recordingMode: use py, Atlas, SPAD for different systems
 '''
-dpath='E:/ATLAS_SPAD/1820061_PVcre/Day4/MovingTrials/'
-recordingName='SavedMovingTrials'
+dpath='E:/2025_ATLAS_SPAD/1842514_Jedi2p/Day1/'
+recordingName='SavedOpenFieldTrials'
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,
                                      recordingMode='Atlas',indicator='GEVI') 
 #%%
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-LFP_channel='LFP_1'
+LFP_channel='LFP_3'
 #%%
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined theta period.
 nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
 theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.5,High_thres=10,save=False,plot_theta=True)
+#%%
 #This is to calculate and plot the trace around theta trough
 Recording1.plot_theta_correlation(LFP_channel)
 #%% Detect theta event
 '''THETA PEAK DETECTION
 For a rigid threshold to get larger amplitude theta events: Low_thres=1, for more ripple events, Low_thres=0.5'''
-data_segment,timestamps=Recording1.pynappleThetaAnalysis (lfp_channel=LFP_channel,ep_start=0,ep_end=5,
-                                                                         Low_thres=1,High_thres=10,plot_segment=True,plot_ripple_ep=False)
+data_segment,timestamps=Recording1.pynappleThetaAnalysis (lfp_channel=LFP_channel,ep_start=10,ep_end=30,
+                                                                         Low_thres=0,High_thres=10,plot_segment=True,plot_ripple_ep=True)
 #time_duration=transient_trace.index[-1].total_seconds()
 
  #%% Detect ripple event

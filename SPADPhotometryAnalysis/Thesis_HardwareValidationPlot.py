@@ -271,17 +271,17 @@ plt.show()
 #%%
 '''Compare Linearity Collimator'''
 
-dpath="E:/ATLAS_SPAD/ColiimatorFibreNAtest/Collimator_200um_0d48NA/LargeROI/"
+dpath="E:/ATLAS_SPAD/ColiimatorFibreNAtest/Collimator_600umNA0.48/LargeROI/"
 GreenList=["SyncRecording1","SyncRecording2","SyncRecording3",
               "SyncRecording4","SyncRecording5","SyncRecording6"]
 
 Green_Auto=PhotonCountMeans(dpath,GreenList)
-Green_Auto=[x * 1 for x in Green_Auto]
+Green_Auto=[x * 4 for x in Green_Auto]
 Green_Power = np.array([3,8,21,45,71,100])
 
-dpath="E:/ATLAS_SPAD/ColiimatorFibreNAtest/Collimator_200um_0d48NA/FitROI/"
+dpath="E:/ATLAS_SPAD/ColiimatorFibreNAtest/Collimator_600umNA0.48/FitROI/"
 Green_Auto1=PhotonCountMeans(dpath,GreenList)
-Green_Auto1=[x * 1 for x in Green_Auto1]
+Green_Auto1=[x * 4 for x in Green_Auto1]
 
 
 
@@ -298,15 +298,15 @@ plt.legend()
 plt.legend(frameon=False)
 plt.show()
 
-dpath="E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_200um_0d48NA_noCo/FitROI/"
+dpath="E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_600um_0d48NA/LargeROI/"
 GreenList=["SyncRecording1","SyncRecording2","SyncRecording3",
               "SyncRecording4","SyncRecording5","SyncRecording6"]
 
-Green_Auto=PhotonCountMeans(dpath,GreenList)
+Green_Auto3=PhotonCountMeans(dpath,GreenList)
 
 Green_Power = np.array([3,8,21,45,71,100])
 
-plt.plot(Green_Power,Green_Auto,'D-',color='#2ca02c',label='No Collimator')# 2ca02c is green,ff7f0e is orange,1f77b4 is blue
+plt.plot(Green_Power,Green_Auto3,'D-',color='#2ca02c',label='No Collimator')# 2ca02c is green,ff7f0e is orange,1f77b4 is blue
 plt.rc('font', size=16)  # Adjust as needed
 plt.xlabel('Continuous LED power (uW)',fontsize=16)
 plt.ylabel('Total Photon Count',fontsize=16)
@@ -321,7 +321,7 @@ plt.show()
 #%%
 '''Coefficient covarience'''
 
-dpath="E:/ATLAS_SPAD/ColiimatorFibreNAtest/Collimator_200um_0d48NA/LargeROI/"
+dpath="E:/ATLAS_SPAD/ColiimatorFibreNAtest/Collimator_600umNA0.48/LargeROI/"
 folder_list=["SyncRecording1","SyncRecording2","SyncRecording3",
               "SyncRecording4","SyncRecording5","SyncRecording6"]
 
@@ -329,11 +329,11 @@ CVs_1=CalculateCVs_SPAD(dpath,folder_list,840,lowpass=False)
 
 LED_current_cont = np.array([3,8,21,45,71,100])
 
-dpath="E:/ATLAS_SPAD/ColiimatorFibreNAtest/Collimator_200um_0d48NA/FitROI/"
+dpath="E:/ATLAS_SPAD/ColiimatorFibreNAtest/Collimator_600umNA0.48/FitROI/"
 CVs_2=CalculateCVs_SPAD(dpath,folder_list,840,lowpass=False)
 
 
-dpath="E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_200um_0d48NA_noCo/FitROI/"
+dpath="E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_600um_0d48NA/LargeROI/"
 
 CVs_3=CalculateCVs_SPAD(dpath,folder_list,840,lowpass=False)
 
@@ -356,7 +356,7 @@ plt.legend(frameon=False)
 plt.show()
 
 #%%
-dpath="E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_200um_0d48NA_noCo/LargeROI/"
+dpath="E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_200um_0d57NA/LargeROI/"
 GreenList=["SyncRecording1","SyncRecording2","SyncRecording3",
               "SyncRecording4","SyncRecording5"]
 
@@ -372,7 +372,7 @@ Green_Auto1=[x * 1 for x in Green_Auto1]
 dpath="E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_600um_0d48NA/LargeROI/"
 Green_Auto2=PhotonCountMeans(dpath,GreenList)
 
-plt.plot(Green_Power,Green_Auto,'o-',label='200um-NA0.48')# 2ca02c is green,ff7f0e is orange,1f77b4 is blue
+plt.plot(Green_Power,Green_Auto,'o-',label='200um-NA0.57')# 2ca02c is green,ff7f0e is orange,1f77b4 is blue
 plt.plot(Green_Power,Green_Auto1,'^-',label='400um-NA0.57')# 2ca02c is green,ff7f0e is orange,1f77b4 is blue
 plt.plot(Green_Power,Green_Auto2,'D-',label='600um-NA0.48')# 2ca02c is green,ff7f0e is orange,1f77b4 is blue
 plt.rc('font', size=16)  # Adjust as needed
@@ -388,7 +388,7 @@ plt.show()
 #%%
 '''Coefficient covarience'''
 
-dpath="E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_200um_0d48NA_noCo/FitROI/"
+dpath="E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_200um_0d57NA/FitROI/"
 folder_list=["SyncRecording1","SyncRecording2","SyncRecording3",
               "SyncRecording4","SyncRecording5"]
 
@@ -404,7 +404,7 @@ dpath="E:/ATLAS_SPAD/ColiimatorFibreNAtest/Fibre_600um_0d48NA/FitROI/"
 
 CVs_3=CalculateCVs_SPAD(dpath,folder_list,840,lowpass=False)
 
-plt.plot(LED_current_cont, CVs_1,'o-', label='200um-NA0.48')
+plt.plot(LED_current_cont, CVs_1,'o-', label='200um-NA0.57')
 plt.plot(LED_current_cont, CVs_2,'^-', label='400um-NA0.57')
 plt.plot(LED_current_cont, CVs_3,'D-', label='600um-NA0.48')
 
