@@ -124,7 +124,7 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5):
     save_path = os.path.join(dpath,savename)
     Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,
                                          read_aligned_data_from_file=True,
-                                         recordingMode='py',indicator='GECI') 
+                                         recordingMode='Atlas',indicator='GEVI') 
 
     '''separate the theta and non-theta parts.
     theta_thres: the theta band power should be bigger than 80% to be defined theta period.
@@ -134,7 +134,7 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5):
     '''RIPPLE DETECTION
     For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
     rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,
-                                                ep_start=10,ep_end=40,
+                                                ep_start=0,ep_end=20,
                                                 Low_thres=1,High_thres=10,
                                                 plot_segment=False,plot_ripple_ep=False,excludeTheta=True)
 
@@ -154,13 +154,13 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5):
     return -1
 
 def run_ripple_plot_main():
-    'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
-    dpath='D:/2024_OEC_Atlas_main/1765507_iGlu_Atlas/RippleAll/'
-    recordingName='SyncRecording11'
+    'This is to process a single or concatenated rial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
+    dpath='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day5/'
+    recordingName='SavedPostSleepTrials'
     savename='RippleSave_Sleep'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-    LFP_channel='LFP_1'
-    run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=2)
+    LFP_channel='LFP_3'
+    run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=1)
     
 run_ripple_plot_main()
 #%%

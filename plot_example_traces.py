@@ -16,29 +16,32 @@ import matplotlib.pyplot as plt
 #%%
 '''recordingMode: use py, Atlas, SPAD for different systems
 '''
-dpath='D:/2024MScR_NORtask/1732333_pyramidal_G8f_Atlas/20240420_Day1/'
-recordingName='SavedOpenFieldTrials'
+dpath='E:/2025_ATLAS_SPAD/1842514_Jedi2p/Day2Theta/'
+#dpath='E:/ATLAS_SPAD/1825507_mCherry/Day1/'
+recordingName='SavedAllTrials'
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,
-                                     recordingMode='py',indicator='GECI') 
-LFP_channel='LFP_1'
+                                     recordingMode='Atlas',indicator='GEVI') 
+LFP_channel='LFP_3'
 #%%
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined theta period.
 nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
 theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.5,High_thres=8,save=False,plot_theta=True)
 #%%
-'''To plot the feature of a part of the signal'''
-start_time=0
-end_time=5
-coherence=Recording1.plot_freq_power_coherence (LFP_channel,start_time,end_time,SPAD_cutoff=20,lfp_cutoff=100)
-
-Recording1.plot_segment_band_feature (LFP_channel,start_time,end_time,SPAD_cutoff=20,lfp_cutoff=100)
-#%%
 '''Here for the spectrum, I used a 0.5Hz high pass filter to process both signals'''
 timewindow=5 #the duration of the segment, in seconds
-viewNum=10 #the number of segments
+viewNum=18 #the number of segments
 for i in range(viewNum):
-    Recording1.plot_segment_band_feature (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=100)
+    Recording1.plot_segment_band_feature (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=200)
+    Recording1.plot_freq_power_coherence (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=200)
+
+#%%
+'''To plot the feature of a part of the signal'''
+start_time=1
+end_time=6
+coherence=Recording1.plot_freq_power_coherence (LFP_channel,start_time,end_time,SPAD_cutoff=50,lfp_cutoff=500)
+
+Recording1.plot_segment_band_feature (LFP_channel,start_time,end_time,SPAD_cutoff=50,lfp_cutoff=500)
 
 #%%
 '''To plot the spectrum coherence for LFP and optical signal'''

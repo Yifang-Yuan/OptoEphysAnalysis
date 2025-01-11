@@ -134,11 +134,10 @@ def main():
     #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
     hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
     
-    center_x, center_y,radius=49, 61, 36
-    atlas_parent_folder='E:/2025_ATLAS_SPAD/1842514_Jedi2p/Day2/Atlas/'
-    day_parent_folder='E:/2025_ATLAS_SPAD/1842514_Jedi2p/Day2/'
+    center_x, center_y,radius=51, 62, 30
+    atlas_parent_folder='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day2/Atlas/'
+    day_parent_folder='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day2/'
     read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=500)
-    
 
     
 if __name__ == "__main__":

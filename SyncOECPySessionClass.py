@@ -466,29 +466,29 @@ class SyncOEpyPhotometrySession:
         silced_recording=self.slicing_pd_data (self.Ephys_tracking_spad_aligned,start_time=start_time, end_time=end_time)
         #SPAD_smooth= OE.butter_filter(data['zscore_raw'], btype='high', cutoff=0.5, fs=self.fs, order=5)
         SPAD_smooth= OE.smooth_signal(silced_recording['zscore_raw'],Fs=self.fs,cutoff=SPAD_cutoff)
-        SPAD_smooth= OE.butter_filter(SPAD_smooth, btype='high', cutoff=4, fs=self.fs, order=3)
-        lfp_lowpass = OE.butter_filter(silced_recording[LFP_channel], btype='high', cutoff=2, fs=self.fs, order=3)
+        SPAD_smooth= OE.butter_filter(SPAD_smooth, btype='high', cutoff=2, fs=self.fs, order=5)
+        lfp_lowpass = OE.butter_filter(silced_recording[LFP_channel], btype='high', cutoff=2, fs=self.fs, order=5)
         lfp_lowpass = OE.butter_filter(lfp_lowpass, btype='low', cutoff=lfp_cutoff, fs=self.fs, order=5)
         spad_low = pd.Series(SPAD_smooth, index=silced_recording['zscore_raw'].index)
         lfp_low = pd.Series(lfp_lowpass, index=silced_recording[LFP_channel].index)
         
-        fig, ax = plt.subplots(5, 1, figsize=(12, 8))
+        fig, ax = plt.subplots(6, 1, figsize=(16, 8))
         OE.plot_trace_in_seconds_ax (ax[0],spad_low,self.fs,label='GEVI',color=sns.color_palette("husl", 8)[3],
                                ylabel='z-score',xlabel=False)
         #spad_filtered=OE.band_pass_filter(spad_data,120,300,self.fs)
         sst_spad,frequency,power_spad,global_ws=OE.Calculate_wavelet(spad_low,lowpassCutoff=100,Fs=self.fs,scale=40)
-        OE.plot_wavelet(ax[1],sst_spad,frequency,power_spad,Fs=self.fs,colorBar=False,logbase=True)
+        OE.plot_wavelet(ax[1],sst_spad,frequency,power_spad,Fs=self.fs,colorBar=False,logbase=False)
         lfp_low=lfp_low
         OE.plot_trace_in_seconds_ax (ax[2],lfp_low,self.fs,label='LFP',color=sns.color_palette("dark", 8)[7],ylabel='mV',xlabel=False)
         #lfp_data_filtered=OE.band_pass_filter(lfp_data,120,300,self.fs)
         sst_lfp,frequency,power_lfp,global_ws=OE.Calculate_wavelet(lfp_low,lowpassCutoff=500,Fs=self.fs,scale=40)
-        OE.plot_wavelet(ax[3],sst_lfp,frequency,power_lfp,Fs=self.fs,colorBar=False,logbase=True)
+        OE.plot_wavelet(ax[3],sst_lfp,frequency,power_lfp,Fs=self.fs,colorBar=False,logbase=False)
         
         cross_power = np.abs(power_spad * np.conj(power_lfp))**2
         coherence = cross_power / (np.abs(power_spad) * np.abs(power_lfp))
         
-        ax[1].set_ylim(0,100)
-        ax[3].set_ylim(0,100)
+        ax[1].set_ylim(0,20)
+        ax[3].set_ylim(0,20)
         ax[3].set_xlabel('Time (seconds)')
         ax[0].legend().set_visible(False)
         ax[2].legend().set_visible(False)
@@ -519,28 +519,56 @@ class SyncOEpyPhotometrySession:
         CS = ax[4].contourf(time, frequency, coherence, level, vmin=vmin, vmax=vmax)
         #OE.plot_wavelet(ax[4],sst_spad,frequency,coherence,Fs=self.fs,colorBar=True,logbase=True)
 
-        ax[4].set_yscale('log', base=2, subs=None)
+        #ax[4].set_yscale('log', base=2, subs=None)
         ax[4].set_ylim([np.min(frequency), np.max(frequency)])
         #yax = plt.gca().yaxis
         #yax.set_major_formatter(ticker.ScalarFormatter())
 
-        ax[4].set_ylim(0,100)
+        ax[4].set_ylim(0,20)
         ax[4].set_ylabel('Frequency [Hz]')
         ax[4].set_xlabel('Time [s]')
         ax[4].set_title('Coherence between SPAD and LFP')
         
+        SPAD_smooth= OE.smooth_signal(silced_recording['zscore_raw'],Fs=self.fs,cutoff=SPAD_cutoff)
+        SPAD_smooth= OE.butter_filter(SPAD_smooth, btype='high', cutoff=15, fs=self.fs, order=5)
+        lfp_lowpass = OE.butter_filter(silced_recording[LFP_channel], btype='high', cutoff=15, fs=self.fs, order=5)
+        lfp_lowpass = OE.butter_filter(lfp_lowpass, btype='low', cutoff=lfp_cutoff, fs=self.fs, order=5)
+        spad_low = pd.Series(SPAD_smooth, index=silced_recording['zscore_raw'].index)
+        lfp_low = pd.Series(lfp_lowpass, index=silced_recording[LFP_channel].index)
+        
+        sst_spad,frequency,power_spad,global_ws=OE.Calculate_wavelet(spad_low,lowpassCutoff=100,Fs=self.fs,scale=40)
+        
+        sst_lfp,frequency,power_lfp,global_ws=OE.Calculate_wavelet(lfp_low,lowpassCutoff=500,Fs=self.fs,scale=40)
+        
+        cross_power = np.abs(power_spad * np.conj(power_lfp))**2
+        coherence = cross_power / (np.abs(power_spad) * np.abs(power_lfp))
+        
+        vmin = coherence.min()*1  # Replace with your desired minimum value
+        vmax = coherence.max()*0.9  # Replace with your desired maximum value
+        CS = ax[5].contourf(time, frequency, coherence, level, vmin=vmin, vmax=vmax)
+        #OE.plot_wavelet(ax[4],sst_spad,frequency,coherence,Fs=self.fs,colorBar=True,logbase=True)
+
+        #ax[5].set_yscale('log', base=2, subs=None)
+        ax[5].set_ylim([np.min(frequency), np.max(frequency)])
+        #yax = plt.gca().yaxis
+        #yax.set_major_formatter(ticker.ScalarFormatter())
+
+        ax[5].set_ylim(0,50)
+        ax[5].set_ylabel('Frequency [Hz]')
+        ax[5].set_xlabel('Time [s]')
+        ax[5].set_title('Coherence above 15Hz')
         #plt.tight_layout()
         output_path=os.path.join(self.savepath,'makefigure','example_coherence.png')
         fig.savefig(output_path, bbox_inches='tight', pad_inches=0, transparent=True)
         plt.show()
         
-        return coherence
+        return -1
     
     def plot_segment_band_feature (self,LFP_channel,start_time,end_time,SPAD_cutoff,lfp_cutoff):
         silced_recording=self.slicing_pd_data (self.Ephys_tracking_spad_aligned,start_time=start_time, end_time=end_time)
         #SPAD_smooth= OE.butter_filter(data['zscore_raw'], btype='high', cutoff=0.5, fs=self.fs, order=5)
         SPAD_smooth= OE.smooth_signal(silced_recording['zscore_raw'],Fs=self.fs,cutoff=SPAD_cutoff)
-        SPAD_smooth= OE.butter_filter(SPAD_smooth, btype='high', cutoff=4, fs=self.fs, order=3)
+        SPAD_smooth= OE.butter_filter(SPAD_smooth, btype='high', cutoff=2, fs=self.fs, order=3)
         lfp_lowpass = OE.butter_filter(silced_recording[LFP_channel], btype='high', cutoff=2, fs=self.fs, order=3)
         lfp_lowpass = OE.butter_filter(lfp_lowpass, btype='low', cutoff=lfp_cutoff, fs=self.fs, order=5)
         spad_low = pd.Series(SPAD_smooth, index=silced_recording['zscore_raw'].index)
@@ -550,12 +578,12 @@ class SyncOEpyPhotometrySession:
         OE.plot_trace_in_seconds_ax (ax[0],spad_low,self.fs,label='GEVI',color=sns.color_palette("husl", 8)[3],
                                ylabel='z-score',xlabel=False)
         #spad_filtered=OE.band_pass_filter(spad_data,120,300,self.fs)
-        sst,frequency,power,global_ws=OE.Calculate_wavelet(spad_low,lowpassCutoff=100,Fs=self.fs,scale=40)
+        sst,frequency,power,global_ws=OE.Calculate_wavelet(spad_low,lowpassCutoff=100,Fs=self.fs,scale=20)
         OE.plot_wavelet(ax[1],sst,frequency,power,Fs=self.fs,colorBar=False,logbase=False)
         lfp_low=lfp_low
         OE.plot_trace_in_seconds_ax (ax[2],lfp_low,self.fs,label='LFP',color=sns.color_palette("dark", 8)[7],ylabel='mV',xlabel=False)
         #lfp_data_filtered=OE.band_pass_filter(lfp_data,120,300,self.fs)
-        sst,frequency,power,global_ws=OE.Calculate_wavelet(lfp_low,lowpassCutoff=500,Fs=self.fs,scale=40)
+        sst,frequency,power,global_ws=OE.Calculate_wavelet(lfp_low,lowpassCutoff=500,Fs=self.fs,scale=20)
         OE.plot_wavelet(ax[3],sst,frequency,power,Fs=self.fs,colorBar=True,logbase=False)
         ax[1].set_ylim(0,20)
         ax[3].set_ylim(0,20)
@@ -581,10 +609,10 @@ class SyncOEpyPhotometrySession:
         ax[3].set_xlabel([])
         ax[3].set_xlabel('')  # Hide x-axis label
         
-        SPAD_theta= OE.butter_filter(silced_recording['zscore_raw'], btype='low', cutoff=9, fs=self.fs, order=5)
-        SPAD_theta= OE.butter_filter(SPAD_theta, btype='high', cutoff=4, fs=self.fs, order=5)
+        SPAD_theta= OE.butter_filter(silced_recording['zscore_raw'], btype='high', cutoff=4, fs=self.fs, order=5)
+        SPAD_theta= OE.butter_filter(SPAD_theta, btype='low', cutoff=10, fs=self.fs, order=5)
         lfp_theta = OE.butter_filter(silced_recording[LFP_channel], btype='high', cutoff=4, fs=self.fs, order=5)
-        lfp_theta = OE.butter_filter(lfp_theta, btype='low', cutoff=12, fs=self.fs, order=5)
+        lfp_theta = OE.butter_filter(lfp_theta, btype='low', cutoff=10, fs=self.fs, order=5)
         SPAD_theta = pd.Series(SPAD_theta, index=silced_recording['zscore_raw'].index)
         lfp_theta = pd.Series(lfp_theta, index=silced_recording[LFP_channel].index)
         OE.plot_trace_in_seconds_ax (ax[4],SPAD_theta,self.fs,label='GEVI',color=sns.color_palette("husl", 8)[3],
@@ -595,11 +623,11 @@ class SyncOEpyPhotometrySession:
         
         ax[4].legend().set_visible(False)
         ax[5].legend().set_visible(False)
-        
-        SPAD_beta= OE.butter_filter(silced_recording['zscore_raw'], btype='low', cutoff=30, fs=self.fs, order=5)
-        SPAD_beta= OE.butter_filter(SPAD_beta, btype='high', cutoff=15, fs=self.fs, order=5)
-        lfp_beta = OE.butter_filter(silced_recording[LFP_channel], btype='high', cutoff=15, fs=self.fs, order=5)
-        lfp_beta = OE.butter_filter(lfp_beta, btype='low', cutoff=30, fs=self.fs, order=5)
+        #Beta: 15-30Hz
+        SPAD_beta= OE.butter_filter(silced_recording['zscore_raw'], btype='high', cutoff=20, fs=self.fs, order=5)
+        SPAD_beta= OE.butter_filter(SPAD_beta, btype='low', cutoff=40, fs=self.fs, order=5)
+        lfp_beta = OE.butter_filter(silced_recording[LFP_channel], btype='high', cutoff=20, fs=self.fs, order=5)
+        lfp_beta = OE.butter_filter(lfp_beta, btype='low', cutoff=40, fs=self.fs, order=5)
         SPAD_beta = pd.Series(SPAD_beta, index=silced_recording['zscore_raw'].index)
         lfp_beta = pd.Series(lfp_beta, index=silced_recording[LFP_channel].index)
         OE.plot_trace_in_seconds_ax (ax[6],SPAD_beta,self.fs,label='GEVI',color=sns.color_palette("husl", 8)[3],
@@ -629,8 +657,8 @@ class SyncOEpyPhotometrySession:
     def plot_lowpass_two_trace (self,data, LFP_channel,SPAD_cutoff,lfp_cutoff, plotSpeed=False):
         #SPAD_smooth= OE.butter_filter(data['zscore_raw'], btype='high', cutoff=0.5, fs=self.fs, order=5)
         SPAD_smooth= OE.smooth_signal(data['zscore_raw'],Fs=self.fs,cutoff=SPAD_cutoff)
-        SPAD_smooth= OE.butter_filter(SPAD_smooth, btype='high', cutoff=1, fs=self.fs, order=1)
-        lfp_lowpass = OE.butter_filter(data[LFP_channel], btype='high', cutoff=1, fs=self.fs, order=1)
+        SPAD_smooth= OE.butter_filter(SPAD_smooth, btype='high', cutoff=1, fs=self.fs, order=5)
+        lfp_lowpass = OE.butter_filter(data[LFP_channel], btype='high', cutoff=1, fs=self.fs, order=5)
         lfp_lowpass = OE.butter_filter(lfp_lowpass, btype='low', cutoff=lfp_cutoff, fs=self.fs, order=5)
         spad_low = pd.Series(SPAD_smooth, index=data['zscore_raw'].index)
         lfp_low = pd.Series(lfp_lowpass, index=data[LFP_channel].index)
@@ -790,12 +818,14 @@ class SyncOEpyPhotometrySession:
         #silced_recording=self.Ephys_tracking_spad_aligned
         silced_recording=silced_recording.reset_index(drop=True)
         #print (silced_recording.index)
-        silced_recording['theta_angle']=OE.calculate_theta_phase_angle(silced_recording[LFP_channel], theta_low=5, theta_high=9)
+        silced_recording['theta_angle']=OE.calculate_theta_phase_angle(silced_recording[LFP_channel], theta_low=5, theta_high=9) #range 5 to 9
         OE.plot_trace_in_seconds(silced_recording['theta_angle'],Fs=10000,title='theta angle')
         trough_index = OE.calculate_theta_trough_index(silced_recording,Fs=10000)
         #print (trough_index)
         OE.plot_theta_cycle (silced_recording, LFP_channel,trough_index,half_window=0.15,fs=10000,plotmode='two')
-        return -1
+        OE.plot_zscore_to_theta_phase (silced_recording['theta_angle'],silced_recording['zscore_raw'])
+
+        return trough_index
     
     def pynappleAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,
                           Low_thres=1,High_thres=10,plot_segment=False,plot_ripple_ep=True,excludeTheta=True,excludeREM=False):
@@ -1174,10 +1204,10 @@ class SyncOEpyPhotometrySession:
         SPAD_smooth=nap.Tsd(t = timestamps, d = SPAD_smooth_np, time_units = 's')  
         'Calculate theta band for optical signal'
         'To detect gamma'
-        ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd = OE.getRippleEvents (LFP,self.fs,windowlen=1000,
+        ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd = OE.getRippleEvents (LFP,self.fs,windowlen=400,
                                                                            Low_thres=Low_thres,High_thres=High_thres,
-                                                                           low_freq=50,high_freq=150)
-        SPAD_ripple_band_filtered = pyna.eeg_processing.bandpass_filter(SPAD, 50, 150, self.fs)
+                                                                           low_freq=20,high_freq=70)
+        SPAD_ripple_band_filtered = pyna.eeg_processing.bandpass_filter(SPAD, 20, 70, self.fs)
         # SPAD_ripple_band_filtered = OE.band_pass_filter(SPAD,120,300,self.fs)
         # SPAD_ripple_band_filtered=nap.Tsd(t = timestamps, d = SPAD_ripple_band_filtered, time_units = 's')
         
@@ -1432,13 +1462,13 @@ class SyncOEpyPhotometrySession:
                                                                               Low_thres=Low_thres,High_thres=High_thres)
         gamma_band_filtered_spad,_,_,_,_ = OE.getRippleEvents (SPAD,self.fs,windowlen=1000,
                                                                             Low_thres=0,High_thres=8,
-                                                                            low_freq=50,high_freq=150)
+                                                                            low_freq=20,high_freq=50)
         'To detect theta by LFP'
         theta_band_filtered,_,_,rip_ep,rip_tsd = OE.getThetaEvents (LFP,self.fs,windowlen=2000,
                                                                          Low_thres=Low_thres,High_thres=High_thres)  
         gamma_band_filtered,_,_,_,_ = OE.getRippleEvents (LFP,self.fs,windowlen=1000,
                                                                             Low_thres=0,High_thres=8,
-                                                                            low_freq=50,high_freq=150)
+                                                                            low_freq=20,high_freq=50)
 
         '''To calculate cross-correlation'''
         event_peak_times=rip_tsd.index.to_numpy()
@@ -1463,17 +1493,17 @@ class SyncOEpyPhotometrySession:
                     fig, ax = plt.subplots(6, 1, figsize=(9, 12))
                     #Set the title of ripple feature
                     plot_title = "Theta nested gamma (Optical)" 
-                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(gamma_band_filtered_spad_ep,lowpassCutoff=400,Fs=self.fs,scale=40)
+                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(gamma_band_filtered_spad_ep,lowpassCutoff=100,Fs=self.fs,scale=40)
                     time = np.arange(-len(sst_ep)/2,len(sst_ep)/2) *(1/self.fs)
                     
                     OE.plot_two_trace_overlay(ax[0], time,SPAD_smooth_ep,theta_band_filtered_spad_ep, title='Theta band optical',color1='lime', color2='black')   
                     OE.plot_ripple_trace(ax[1],time,gamma_band_filtered_spad_ep,color='red')
                     OE.plot_theta_nested_gamma_overlay (ax[2],LFP_ep,gamma_band_filtered_spad_ep,frequency,power,time,
-                                           theta_band_filtered_spad_ep,150,plot_title,plotLFP=False,plotSPAD=False,plotTheta=True)   
+                                           theta_band_filtered_spad_ep,100,plot_title,plotLFP=False,plotSPAD=False,plotTheta=True)   
                         
                     #Set the title of ripple feature
                     plot_title = "Theta nested gamma (Ephys)" 
-                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(gamma_band_filtered_ep,lowpassCutoff=400,Fs=self.fs,scale=40) 
+                    sst_ep,frequency,power,global_ws=OE.Calculate_wavelet(gamma_band_filtered_ep,lowpassCutoff=100,Fs=self.fs,scale=40) 
                     OE.plot_two_trace_overlay(ax[3], time,LFP_ep,theta_band_filtered_ep, title='Theta band LFP',color1='blue', color2='black')   
                     OE.plot_ripple_trace(ax[4],time,gamma_band_filtered_ep,color='red')
                     OE.plot_theta_nested_gamma_overlay (ax[5],gamma_band_filtered_ep,gamma_band_filtered_ep,frequency,power,time,
@@ -1492,13 +1522,21 @@ class SyncOEpyPhotometrySession:
     def plot_gamma_power_on_theta_cycle(self,LFP_channel):
         silced_recording=self.theta_part
         silced_recording=silced_recording.reset_index(drop=True)
-        #print (silced_recording.index)
+
         silced_recording['theta_angle']=OE.calculate_theta_phase_angle(silced_recording[LFP_channel], theta_low=5, theta_high=9)
         #OE.plot_trace_in_seconds(silced_recording['theta_angle'],Fs=10000,title='theta angle')
         trough_index = OE.calculate_theta_trough_index(silced_recording,Fs=self.fs)
-        #print (trough_index)
-        OE.plot_gamma_power_on_theta(self.fs,silced_recording, 
-                                                  LFP_channel,trough_index,half_window=0.15)
+        # #print (trough_index)
+        OE.plot_gamma_power_on_theta(self.fs,silced_recording,LFP_channel,trough_index,half_window=0.2)
+        
+        #silced_recording=self.Ephys_tracking_spad_aligned
+        zscore=OE.smooth_signal(silced_recording['zscore_raw'], self.fs,100,window='flat')
+        gamma_band = OE.band_pass_filter(silced_recording[LFP_channel], 30, 80, self.fs)
+        
+        OE.compute_and_plot_gamma_power_correlation(zscore, gamma_band, self.fs)
+        OE.plot_gamma_power_on_theta_phase(silced_recording[LFP_channel], silced_recording['zscore_raw'], 
+                                           self.fs, theta_band=(4, 12), gamma_band=(30, 80), bins=30)
+        
         return -1
 
     def get_mean_corr_two_traces (self, spad_data,lfp_data,corr_window):
@@ -1697,7 +1735,7 @@ class SyncOEpyPhotometrySession:
         if mode=='theta':
             event_peak_times=self.theta_tsd.index.to_numpy()
             savename='_ThetaPeak_'
-            cutoff=50
+            cutoff=20
                  
         timestamps=self.Ephys_tracking_spad_aligned['timestamps']
         z_score_values = []
@@ -1724,6 +1762,7 @@ class SyncOEpyPhotometrySession:
                 segment_data = self.Ephys_tracking_spad_aligned[start_idx:end_idx]
                 segment_zscore=segment_data['zscore_raw']
                 z_score=OE.smooth_signal(segment_zscore,Fs=self.fs,cutoff=cutoff)
+                #z_score=OE.butter_filter(segment_zscore, btype='low', cutoff=cutoff, fs=self.fs, order=5)
                 #z_score=segment_zscore.to_numpy()
                 # normalise to zscore
                 normalized_z_score = OE.getNormalised (z_score)

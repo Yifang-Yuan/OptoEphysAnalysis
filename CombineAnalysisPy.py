@@ -16,48 +16,58 @@ import matplotlib.pyplot as plt
 #%%
 '''recordingMode: use py, Atlas, SPAD for different systems
 '''
-dpath='E:/2025_ATLAS_SPAD/1842514_Jedi2p/Day1/'
-recordingName='SavedOpenFieldTrials'
+# dpath='E:/ATLAS_SPAD/1825507_mCherry/Day1/'
+# recordingName='SavedMovingTrials'
+
+dpath='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day2Theta/' #LFP1
+recordingName='SyncRecording12'
+
+# dpath='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day1/'  #LFP3
+# recordingName='SyncRecording9'
+
+# dpath='E:/MScR_Roshni/1765508_Jedi2p_Atlas/20240501_Day3/'  #LFP1
+# recordingName='SyncRecording3'
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,
                                      recordingMode='Atlas',indicator='GEVI') 
 #%%
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-LFP_channel='LFP_3'
+LFP_channel='LFP_1'
 #%%
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined theta period.
 nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.5,High_thres=10,save=False,plot_theta=True)
+Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.5,High_thres=10,save=False,plot_theta=True)
 #%%
 #This is to calculate and plot the trace around theta trough
 Recording1.plot_theta_correlation(LFP_channel)
+#%%
+'plot feature can be LFP or SPAD to show the power spectrum of LFP or SPAD'
+Recording1.plot_gamma_power_on_theta_cycle(LFP_channel=LFP_channel)
 #%% Detect theta event
 '''THETA PEAK DETECTION
 For a rigid threshold to get larger amplitude theta events: Low_thres=1, for more ripple events, Low_thres=0.5'''
-data_segment,timestamps=Recording1.pynappleThetaAnalysis (lfp_channel=LFP_channel,ep_start=10,ep_end=30,
-                                                                         Low_thres=0,High_thres=10,plot_segment=True,plot_ripple_ep=True)
+data_segment,timestamps=Recording1.pynappleThetaAnalysis (lfp_channel=LFP_channel,ep_start=2,ep_end=5,
+                                                                         Low_thres=-0.50,High_thres=10,plot_segment=True,plot_ripple_ep=False)
 #time_duration=transient_trace.index[-1].total_seconds()
 
  #%% Detect ripple event
 '''RIPPLE DETECTION
 For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
-rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,ep_start=0,ep_end=10,
-                                                                          Low_thres=1,High_thres=10,plot_segment=True,
-                                                                          plot_ripple_ep=False,excludeTheta=False)
+rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,ep_start=10,ep_end=30,
+                                                                          Low_thres=0.5,High_thres=20,plot_segment=True,
+                                                                          plot_ripple_ep=False,excludeTheta=True)
 #%% Detect ripple event
-'''Gamma band plot
+'''GAMMA DETECTION
 For a rigid threshold to get larger amplitude Gamma events: Low_thres=1, for more ripple events, Low_thres=0'''
-rip_ep,rip_tsd=Recording1.pynappleGammaAnalysis (lfp_channel=LFP_channel,ep_start=0,ep_end=10,
-                                                                          Low_thres=1,High_thres=8,plot_segment=True,
-                                                                          plot_ripple_ep=True,excludeTheta=False,excludeNonTheta=False)
+rip_ep,rip_tsd=Recording1.pynappleGammaAnalysis (lfp_channel=LFP_channel,ep_start=16,ep_end=18,
+                                                                          Low_thres=1.5,High_thres=8,plot_segment=True,
+                                                                          plot_ripple_ep=False,excludeTheta=False,excludeNonTheta=False)
 #%% Detect theta nested gamma event
 '''Theta nested Gamma plot
 For a rigid threshold to get larger amplitude Gamma events: Low_thres=1, for more ripple events, Low_thres=0'''
-rip_ep,rip_tsd=Recording1.PlotThetaNestedGamma (lfp_channel=LFP_channel,Low_thres=0.5,High_thres=10,plot_segment=False, plot_ripple_ep=False)
+rip_ep,rip_tsd=Recording1.PlotThetaNestedGamma (lfp_channel=LFP_channel,Low_thres=-0.5,High_thres=10,plot_segment=False, plot_ripple_ep=False)
 
-#%%
-'plot feature can be LFP or SPAD to show the power spectrum of LFP or SPAD'
-Recording1.plot_gamma_power_on_theta_cycle(LFP_channel=LFP_channel)
+
 
 #%%
 '''To plot the feature of a part of the signal'''
@@ -74,12 +84,12 @@ Recording1.plot_band_power_feature (LFP_channel,start_time,end_time,LFP=True)
 timewindow=5 #the duration of the segment, in seconds
 viewNum=6 #the number of segments
 for i in range(viewNum):
-    Recording1.plot_segment_feature (LFP_channel=LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=20,lfp_cutoff=100)
+    Recording1.plot_segment_feature (LFP_channel=LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=100)
     #Recording1.plot_band_power_feature (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),LFP=True)
 #%%
 '''sliced_recording:choose a segment or a part of your recording, this can be defined with start and end time,
 or just by theta_part, non_theta_part'''
-silced_recording=Recording1.slicing_pd_data (Recording1.Ephys_tracking_spad_aligned,start_time=45, end_time=48)
+silced_recording=Recording1.slicing_pd_data (Recording1.Ephys_tracking_spad_aligned,start_time=0, end_time=90)
 #silced_recording=theta_part
 '''Calculate the cross correlation between two power spectrun over time at a specific frequency'''
 sst_spad,frequency_spad,power_spad,global_ws_spad=OE.Calculate_wavelet(silced_recording['zscore_raw'],lowpassCutoff=500,Fs=10000)
@@ -126,3 +136,64 @@ LFP=Recording1.Ephys_tracking_spad_aligned[LFP_channel]
 fig, ax = plt.subplots(1, 1, figsize=(3, 6))
 OpticalAnlaysis.PSD_plot (LFP,fs=Fs,method="welch",color='tab:green', xlim=[0,100],linewidth=2,linestyle='--',label='LFP',ax=ax)
 #OpticalAnlaysis.PSD_plot (optical_theta,fs=Fs,method="welch",color='tab:green', xlim=[0,100],linewidth=2,linestyle='-',label='move',ax=ax)
+
+#%%
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import butter, filtfilt, hilbert
+from tensorpac import Pac
+
+
+# Example data (replace these with your actual data)
+fs = 10000  # Sampling frequency in Hz
+
+LFP = Recording1.theta_part[LFP_channel] # Example LFP signal
+SPAD=Recording1.theta_part['zscore_raw'] 
+LFP=LFP.to_numpy()
+SPAD=SPAD.to_numpy()
+# Define a Pac object
+p_obj = Pac(idpac=(6,0,0),f_pha=(2, 12, 2, 0.4), f_amp=(20, 100, 10, 2))
+#%%
+# Filter the data and extract pac
+xpac = p_obj.filterfit(fs, SPAD)
+
+# plot your Phase-Amplitude Coupling :
+p_obj.comodulogram(xpac.mean(-1), cmap='Spectral_r', plotas='contour', ncontours=5,
+               title=r'theta phase$\Leftrightarrow$Gamma amplitude coupling',
+               fz_title=14, fz_labels=13)
+
+p_obj.show()
+#%%
+xpac = p_obj.filterfit(fs, LFP)
+
+# plot your Phase-Amplitude Coupling :
+p_obj.comodulogram(xpac.mean(-1), cmap='Spectral_r', plotas='contour', ncontours=5,
+               title=r'theta phase$\Leftrightarrow$Gamma amplitude coupling',
+               fz_title=14, fz_labels=13)
+
+p_obj.show()
+#%%
+# extract all of the phases and amplitudes
+pha_LFP = p_obj.filter(fs, LFP, ftype='phase')
+amp_LFP = p_obj.filter(fs, LFP, ftype='amplitude')
+
+pha_SPAD = p_obj.filter(fs, SPAD, ftype='phase')
+amp_SPAD = p_obj.filter(fs, SPAD, ftype='amplitude')
+
+pac_LFP = p_obj.fit(pha_LFP, amp_LFP).mean(-1)
+pac_SPAD = p_obj.fit(pha_SPAD, amp_SPAD).mean(-1)
+pac_LFPtheta_SPADgamma =p_obj.fit(pha_LFP, amp_SPAD).mean(-1)
+#%%
+vmax = np.min([pac_LFP.max(), pac_SPAD.max(), pac_LFPtheta_SPADgamma.max()])
+kw = dict(vmax=vmax, vmin=0, cmap='viridis')
+plt.figure(figsize=(14, 4))
+plt.subplot(131)
+p_obj.comodulogram(pac_LFP, title="PAC LFP", **kw)
+plt.subplot(132)
+p_obj.comodulogram(pac_SPAD, title="PAC SPAD", **kw)
+plt.ylabel('')
+plt.subplot(133)
+p_obj.comodulogram(pac_LFPtheta_SPADgamma, title="PAC LFP-SPAD", **kw)
+plt.ylabel('')
+plt.tight_layout()
+plt.show()

@@ -23,6 +23,8 @@ import seaborn as sns
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy import stats
 from matplotlib.ticker import MaxNLocator
+from tensorpac import Pac
+from scipy.stats import pearsonr, spearmanr
 
 def butter_filter(data, btype='low', cutoff=10, fs=9938.4, order=5): 
     # cutoff and fs in Hz
@@ -59,6 +61,7 @@ def smooth_signal(data,Fs,cutoff,window='flat'):
         the smoothed signal        
     """
     window_len=int(Fs/cutoff)
+
     x=data.reset_index(drop=True)
     if x.ndim != 1:
         raise(ValueError, "smooth only accepts 1 dimension arrays.")
@@ -142,14 +145,14 @@ def readEphysChannel_withSessionInput (session,recordingNum,Fs=30000):
     Sync3=samples[:,18]
     Sync4=samples[:,19]
     
-    LFP_clean1= butter_filter(LFP1, btype='low', cutoff=1000, fs=Fs, order=5)
-    LFP_clean2= butter_filter(LFP2, btype='low', cutoff=1000, fs=Fs, order=5)
-    LFP_clean3= butter_filter(LFP3, btype='low', cutoff=1000, fs=Fs, order=5)
-    LFP_clean4= butter_filter(LFP4, btype='low', cutoff=1000, fs=Fs, order=5)
-    # LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
-    # LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
-    # LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
-    # LFP_clean4= notchfilter (LFP_clean4,f0=50,bw=5)
+    LFP_clean1= butter_filter(LFP1, btype='low', cutoff=2000, fs=Fs, order=5)
+    LFP_clean2= butter_filter(LFP2, btype='low', cutoff=2000, fs=Fs, order=5)
+    LFP_clean3= butter_filter(LFP3, btype='low', cutoff=2000, fs=Fs, order=5)
+    LFP_clean4= butter_filter(LFP4, btype='low', cutoff=2000, fs=Fs, order=5)
+    LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
+    LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
+    LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
+    LFP_clean4= notchfilter (LFP_clean4,f0=50,bw=5)
     
     EphysData = pd.DataFrame({
         'timestamps': timestamps,
@@ -272,7 +275,7 @@ def getRippleEvents (lfp_raw,Fs,windowlen=200,Low_thres=1,High_thres=10,low_freq
     nSS2 = nSS.threshold(Low_thres, method='above')
     nSS3 = nSS2.threshold(High_thres, method='below')
     # Round 2 : Excluding ripples whose length < minRipLen and greater than Maximum Ripple Length
-    minRipLen = 10 # ms
+    minRipLen = 20 # ms
     maxRipLen = 500 # ms   //200ms 
     rip_ep = nSS3.time_support
     rip_ep = rip_ep.drop_short_intervals(minRipLen, time_units = 'ms')
@@ -299,7 +302,7 @@ def getRippleEvents (lfp_raw,Fs,windowlen=200,Low_thres=1,High_thres=10,low_freq
     return ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd
 
 def getThetaEvents (lfp_raw,Fs,windowlen=1000,Low_thres=2,High_thres=10):
-    theta_band_filtered = pyna.eeg_processing.bandpass_filter(lfp_raw, 5, 9, Fs,order=2)
+    theta_band_filtered = pyna.eeg_processing.bandpass_filter(lfp_raw, 5, 9, Fs,order=2) #range 5 to 9
     squared_signal = np.square(theta_band_filtered.values)
     window = np.ones(windowlen)/windowlen
     nSS = filtfilt(window, 1, squared_signal)
@@ -310,7 +313,7 @@ def getThetaEvents (lfp_raw,Fs,windowlen=1000,Low_thres=2,High_thres=10):
     nSS2 = nSS.threshold(Low_thres, method='above')
     nSS3 = nSS2.threshold(High_thres, method='below')
     # Round 2 : Excluding ripples whose length < minRipLen and greater than Maximum Ripple Length
-    minThetaLen = 80 # ms
+    minThetaLen = 200 # ms
     maxThetaLen = 10000 # ms    
     rip_ep = nSS3.time_support
     rip_ep = rip_ep.drop_short_intervals(minThetaLen, time_units = 'ms')
@@ -908,6 +911,70 @@ def calculate_theta_trough_index(df,Fs=10000):
     #trough_time=trough_index/Fs
     return trough_index
 
+def plot_zscore_to_theta_phase (theta_angle,zscore_data):
+    # Create a polar plot of ΔF/F against theta phase
+    zscore_data=butter_filter(zscore_data, btype='low', cutoff=50, fs=10000, order=5)
+    #zscore_data=smooth_signal(zscore_data, Fs=10000, cutoff=50)
+    bins=30
+    plt.figure(figsize=(8, 8))
+    ax = plt.subplot(111, polar=True)
+    # Create a histogram of theta phases weighted by zscore_data
+    ax.hist(theta_angle, bins=bins, weights=zscore_data, color='blue', alpha=0.6, edgecolor='black')
+    ax.set_title("ΔF/F vs Theta Phase (Histogram)", va='bottom')
+    plt.show()
+    
+    bin_edges = np.linspace(-np.pi, np.pi, bins + 1)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+    zscore_means = []
+
+    for i in range(len(bin_edges) - 1):
+        indices = (theta_angle >= bin_edges[i]) & (theta_angle < bin_edges[i + 1])
+        zscore_means.append(np.mean(zscore_data[indices]))
+
+    zscore_means = np.array(zscore_means)
+
+    # Close the circular data
+    zscore_means = np.append(zscore_means, zscore_means[0])
+    bin_centers = np.append(bin_centers, bin_centers[0])
+
+    # Create the polar plot
+    plt.figure(figsize=(8, 8))
+    ax = plt.subplot(111, polar=True)
+    ax.plot(bin_centers, zscore_means, color='blue', linewidth=2)
+    #ax.fill(bin_centers, zscore_means, color='blue', alpha=0.3)
+    ax.set_title("ΔF/F vs Theta Phase (Star Plot)", va='bottom')
+    plt.show()
+
+
+def get_theta_cycle_value(df, LFP_channel, trough_index, half_window, fs=10000):
+    df=df.reset_index(drop=True)
+    half_window = half_window  # second
+    # Initialize lists to store cycle data
+    cycle_data_values_zscore = []
+    cycle_data_values_lfp = []
+    #half_cycle_time = pd.to_timedelta(half_window, unit='s')
+    half_cycle_time=half_window
+    # Extract A values for each cycle and calculate mean and std
+    # zscore_filtered=band_pass_filter(df['zscore_raw'],4,20,fs)
+    # df['zscore_raw']=zscore_filtered
+    for i in range(len(trough_index)):
+        start = int(trough_index[i] - half_cycle_time*fs)
+        end = int(trough_index[i] + half_cycle_time*fs)
+        cycle_zscore = df['zscore_raw'].loc[start:end]
+        #print ('length of the cycle',len(cycle_zscore))
+        cycle_zscore=smooth_signal(cycle_zscore,fs,cutoff=50,window='flat')
+        cycle_lfp = df[LFP_channel].loc[start:end]
+        #cycle_zscore_np = cycle_zscore.to_numpy()
+        cycle_zscore_np = cycle_zscore
+        cycle_lfp_np = cycle_lfp.to_numpy()
+        if len(cycle_lfp_np) > half_window * fs * 2:
+            cycle_data_values_zscore.append(cycle_zscore_np)
+            cycle_data_values_lfp.append(cycle_lfp_np)
+    #print(cycle_data_values_zscore)
+    cycle_data_values_zscore_np = np.vstack(cycle_data_values_zscore)
+    cycle_data_values_lfp_np = np.vstack(cycle_data_values_lfp)
+    return cycle_data_values_zscore_np,cycle_data_values_lfp_np
+    
 def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmode='one'):
     half_window = half_window  # second
     # Initialize lists to store cycle data
@@ -922,8 +989,8 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
         start = int(trough_index[i] - half_cycle_time*fs)
         end = int(trough_index[i] + half_cycle_time*fs)
         cycle_zscore = df['zscore_raw'].loc[start:end]
-        print ('length of the cycle',len(cycle_zscore))
-        cycle_zscore=smooth_signal(cycle_zscore,10000,cutoff=50,window='flat')
+        #print ('length of the cycle',len(cycle_zscore))
+        cycle_zscore=smooth_signal(cycle_zscore,fs,cutoff=50,window='flat')
         cycle_lfp = df[LFP_channel].loc[start:end]
         #cycle_zscore_np = cycle_zscore.to_numpy()
         cycle_zscore_np = cycle_zscore
@@ -931,6 +998,7 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
         if len(cycle_lfp_np) > half_window * fs * 2:
             cycle_data_values_zscore.append(cycle_zscore_np)
             cycle_data_values_lfp.append(cycle_lfp_np)
+    #print(cycle_data_values_zscore)
     cycle_data_values_zscore_np = np.vstack(cycle_data_values_zscore)
     cycle_data_values_lfp_np = np.vstack(cycle_data_values_lfp)
     
@@ -972,6 +1040,143 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
         plt.show()
     return -1
 
+
+def compute_and_plot_gamma_correlation(zscore, gamma_band, fs):
+    # Compute the envelope (power) of gamma-band-filtered LFP
+    gamma_power = np.abs(signal.hilbert(gamma_band))
+
+    # Downsample zscore and gamma_power if necessary to match sampling rates
+    if len(zscore) != len(gamma_power):
+        min_len = min(len(zscore), len(gamma_power))
+        zscore = zscore[:min_len]
+        gamma_power = gamma_power[:min_len]
+
+    # Compute Pearson and Spearman correlations
+    pearson_corr, _ = pearsonr(zscore, gamma_power)
+    spearman_corr, _ = spearmanr(zscore, gamma_power)
+
+    # Print correlation values
+    print(f"Pearson Correlation: {pearson_corr:.3f}")
+    print(f"Spearman Correlation: {spearman_corr:.3f}")
+
+    # Scatter plot with regression line
+    plt.figure(figsize=(8, 6))
+    
+    # Create a hexbin plot to manage dense scatter points
+    hb = plt.hexbin(gamma_power, zscore, gridsize=50, cmap='Blues', mincnt=1)
+    cb = plt.colorbar(hb)
+    cb.set_label('Count')
+
+    # Regression line (least squares fit)
+    m, b = np.polyfit(gamma_power, zscore, 1)
+    x = np.linspace(np.min(gamma_power), np.max(gamma_power), 100)
+    plt.plot(x, m * x + b, color='red', label=f'Regression Line (R={pearson_corr:.2f})')
+
+    # Plot details
+    plt.xlabel("Gamma Power (Envelope)")
+    plt.ylabel("ΔF/F (Z-score)")
+    plt.title("Correlation Between Gamma Power and ΔF/F")
+    plt.legend()
+    plt.grid(alpha=0.3)
+    plt.show()
+    
+def compute_and_plot_gamma_power_correlation(zscore, LFP, fs):
+    # Filter for gamma band (30-80 Hz)
+    zscore_gamma_band = band_pass_filter(zscore, 50, 80, fs)
+    LFP_gamma_band = band_pass_filter(LFP, 50, 80, fs)
+
+    # Compute the envelope (power) of gamma-band-filtered signals
+    zscore_gamma_power = np.abs(signal.hilbert(zscore_gamma_band))
+    LFP_gamma_power = np.abs(signal.hilbert(LFP_gamma_band))
+
+    # Downsample if necessary to match sampling rates
+    if len(zscore_gamma_power) != len(LFP_gamma_power):
+        min_len = min(len(zscore_gamma_power), len(LFP_gamma_power))
+        zscore_gamma_power = zscore_gamma_power[:min_len]
+        LFP_gamma_power = LFP_gamma_power[:min_len]
+
+    # Compute Pearson and Spearman correlations
+    pearson_corr, _ = pearsonr(LFP_gamma_power, zscore_gamma_power)
+    spearman_corr, _ = spearmanr(LFP_gamma_power, zscore_gamma_power)
+
+    # Print correlation values
+    print(f"Pearson Correlation: {pearson_corr:.3f}")
+    print(f"Spearman Correlation: {spearman_corr:.3f}")
+
+    # Scatter plot with regression line
+    plt.figure(figsize=(8, 6))
+    
+    # Create a hexbin plot to manage dense scatter points
+    hb = plt.hexbin(LFP_gamma_power, zscore_gamma_power, gridsize=50, cmap='Blues', mincnt=1)
+    cb = plt.colorbar(hb)
+    cb.set_label('Count')
+
+    # Regression line (least squares fit)
+    m, b = np.polyfit(LFP_gamma_power, zscore_gamma_power, 1)
+    x = np.linspace(np.min(LFP_gamma_power), np.max(LFP_gamma_power), 100)
+    plt.plot(x, m * x + b, color='red', label=f'Regression Line (R={pearson_corr:.2f})')
+
+    # Plot details
+    plt.xlabel("LFP Gamma Power (Envelope)")
+    plt.ylabel("ΔF/F Gamma Power (Envelope)")
+    plt.title("Correlation Between LFP Gamma Power and ΔF/F Gamma Power")
+    plt.legend()
+    plt.grid(alpha=0.3)
+    plt.show()
+    
+def plot_gamma_power_on_theta_phase(LFP, zscore, fs, theta_band=(4, 12), gamma_band=(30, 80), bins=30):
+    # Filter LFP for theta and gamma bands
+    theta_filtered = band_pass_filter(LFP, theta_band[0], theta_band[1], fs)
+    gamma_filtered_LFP = band_pass_filter(LFP, gamma_band[0], gamma_band[1], fs)
+    gamma_filtered_zscore = band_pass_filter(zscore, gamma_band[0], gamma_band[1], fs)
+
+    # Compute theta phase and gamma power
+    theta_phase = np.angle(signal.hilbert(theta_filtered))
+    gamma_power_LFP = np.abs(signal.hilbert(gamma_filtered_LFP))
+    gamma_power_zscore = np.abs(signal.hilbert(gamma_filtered_zscore))
+
+    # Bin the theta phase and average gamma power within each bin
+    bin_edges = np.linspace(-np.pi, np.pi, bins + 1)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+    gamma_power_avg_LFP = []
+    gamma_power_avg_zscore = []
+
+    for i in range(len(bin_edges) - 1):
+        indices = (theta_phase >= bin_edges[i]) & (theta_phase < bin_edges[i + 1])
+        gamma_power_avg_LFP.append(np.mean(gamma_power_LFP[indices]))
+        gamma_power_avg_zscore.append(np.mean(gamma_power_zscore[indices]))
+
+    gamma_power_avg_LFP = np.array(gamma_power_avg_LFP)
+    gamma_power_avg_zscore = np.array(gamma_power_avg_zscore)
+
+    # Close the circular data for smooth plotting
+    gamma_power_avg_LFP = np.append(gamma_power_avg_LFP, gamma_power_avg_LFP[0])
+    gamma_power_avg_zscore = np.append(gamma_power_avg_zscore, gamma_power_avg_zscore[0])
+    bin_centers = np.append(bin_centers, bin_centers[0])
+
+    # Create polar plot
+    plt.figure(figsize=(8, 8))
+    ax = plt.subplot(111, polar=True)
+    
+    # Plot LFP gamma power
+    ax.plot(bin_centers, gamma_power_avg_LFP, color='blue', linewidth=2, label='LFP Gamma Power')
+    ax.fill(bin_centers, gamma_power_avg_LFP, color='blue', alpha=0.3)
+    
+    plt.figure(figsize=(8, 8))
+    ax = plt.subplot(111, polar=True)
+
+    # Plot ΔF/F gamma power
+    ax.plot(bin_centers, gamma_power_avg_zscore, color='green', linewidth=2, label='ΔF/F Gamma Power')
+    ax.fill(bin_centers, gamma_power_avg_zscore, color='green', alpha=0.3)
+
+    # Add legend and title
+    ax.set_title("Gamma Power on Theta Phase", va='bottom')
+    ax.legend(loc='upper right')
+
+    # Show plot
+    plt.show()
+    
 def plot_gamma_power_on_theta(Fs,df, LFP_channel, trough_index, half_window):
     'plot low gamma'
     half_window = half_window  # second
@@ -993,9 +1198,10 @@ def plot_gamma_power_on_theta(Fs,df, LFP_channel, trough_index, half_window):
     for i in range(len(trough_index)):
         start = int(trough_index[i] - half_window*Fs)
         end = int(trough_index[i] + half_window*Fs)
-        cycle_zscore = df['zscore_raw'].loc[start:end]
+        cycle_zscore_raw = df['zscore_raw'].loc[start:end]
         #print ('length of the cycle',len(cycle_zscore))
-        cycle_zscore=smooth_signal(cycle_zscore,Fs,cutoff=100,window='flat')
+        cycle_zscore=smooth_signal(cycle_zscore_raw,Fs,cutoff=100,window='flat')
+        cycle_zscore_theta=smooth_signal(cycle_zscore_raw,Fs,cutoff=15,window='flat')
         cycle_lfp = df[LFP_channel].loc[start:end]
         #cycle_zscore_np = cycle_zscore.to_numpy()
         cycle_zscore_np = cycle_zscore
@@ -1004,16 +1210,16 @@ def plot_gamma_power_on_theta(Fs,df, LFP_channel, trough_index, half_window):
         sst_theta,theta_frequency,theta_power_cycle,_=Calculate_wavelet(theta_band_filtered_cycle_lfp,lowpassCutoff=50,Fs=Fs,scale=80) 
         theta_power_max=theta_power_cycle[16]
         
-        gamma_band_filtered_cycle_lfp=band_pass_filter(cycle_lfp_np,low_freq=20,high_freq=50,Fs=Fs)
-        sst_gamma_lfp,frequency,power_cycle,_=Calculate_wavelet(gamma_band_filtered_cycle_lfp,lowpassCutoff=100,Fs=Fs,scale=80) 
+        gamma_band_filtered_cycle_lfp=band_pass_filter(cycle_lfp_np,low_freq=30,high_freq=50,Fs=Fs)
+        sst_gamma_lfp,frequency,power_cycle,_=Calculate_wavelet(gamma_band_filtered_cycle_lfp,lowpassCutoff=100,Fs=Fs,scale=40) 
         gamma_power_max_lfp=power_cycle[8]
         
-        gamma_band_filtered_cycle_spad=band_pass_filter(cycle_zscore_np,low_freq=20,high_freq=50,Fs=Fs)
-        sst_gamma_spad,frequency_spad,power_cycle_spad,_=Calculate_wavelet(gamma_band_filtered_cycle_spad,lowpassCutoff=100,Fs=Fs,scale=80) 
+        gamma_band_filtered_cycle_spad=band_pass_filter(cycle_zscore_np,low_freq=30,high_freq=50,Fs=Fs)
+        sst_gamma_spad,frequency_spad,power_cycle_spad,_=Calculate_wavelet(gamma_band_filtered_cycle_spad,lowpassCutoff=100,Fs=Fs,scale=40) 
         gamma_power_max_spad=power_cycle_spad[8]
         
         if len(cycle_lfp_np) > half_window * Fs * 2:
-            cycle_data_values_zscore.append(cycle_zscore_np)
+            cycle_data_values_zscore.append(cycle_zscore_theta)
             cycle_data_values_lfp.append(cycle_lfp_np)
             theta_power_values.append(theta_power_cycle)
             gamma_power_values.append(power_cycle)
@@ -1139,9 +1345,10 @@ def plot_gamma_power_on_theta(Fs,df, LFP_channel, trough_index, half_window):
     for i in range(len(trough_index)):
         start = int(trough_index[i] - half_cycle_time*Fs)
         end = int(trough_index[i] + half_cycle_time*Fs)
-        cycle_zscore = df['zscore_raw'].loc[start:end]
+        cycle_zscore_raw = df['zscore_raw'].loc[start:end]
         #print ('length of the cycle',len(cycle_zscore))
-        cycle_zscore=smooth_signal(cycle_zscore,Fs,cutoff=100,window='flat')
+        cycle_zscore=smooth_signal(cycle_zscore_raw,Fs,cutoff=100,window='flat')
+        cycle_zscore_theta=smooth_signal(cycle_zscore_raw,Fs,cutoff=20,window='flat')
         cycle_lfp = df[LFP_channel].loc[start:end]
         #cycle_zscore_np = cycle_zscore.to_numpy()
         cycle_zscore_np = cycle_zscore
@@ -1150,16 +1357,16 @@ def plot_gamma_power_on_theta(Fs,df, LFP_channel, trough_index, half_window):
         sst_theta,theta_frequency,theta_power_cycle,_=Calculate_wavelet(theta_band_filtered_cycle_lfp,lowpassCutoff=50,Fs=Fs,scale=80) 
         theta_power_max=theta_power_cycle[16]
         
-        gamma_band_filtered_cycle_lfp=band_pass_filter(cycle_lfp_np,low_freq=50,high_freq=90,Fs=Fs)
+        gamma_band_filtered_cycle_lfp=band_pass_filter(cycle_lfp_np,low_freq=50,high_freq=80,Fs=Fs)
         sst_gamma_lfp,frequency,power_cycle,_=Calculate_wavelet(gamma_band_filtered_cycle_lfp,lowpassCutoff=200,Fs=Fs,scale=80) 
         gamma_power_max_lfp=power_cycle[3]
         
-        gamma_band_filtered_cycle_spad=band_pass_filter(cycle_zscore_np,low_freq=50,high_freq=90,Fs=Fs)
+        gamma_band_filtered_cycle_spad=band_pass_filter(cycle_zscore_np,low_freq=50,high_freq=80,Fs=Fs)
         sst_gamma_spad,frequency_spad,power_cycle_spad,_=Calculate_wavelet(gamma_band_filtered_cycle_spad,lowpassCutoff=200,Fs=Fs,scale=80) 
         gamma_power_max_spad=power_cycle_spad[3]
         
         if len(cycle_lfp_np) > half_window * Fs * 2:
-            cycle_data_values_zscore.append(cycle_zscore_np)
+            cycle_data_values_zscore.append(cycle_zscore_theta)
             cycle_data_values_lfp.append(cycle_lfp_np)
             theta_power_values.append(theta_power_cycle)
             gamma_power_values.append(power_cycle)
