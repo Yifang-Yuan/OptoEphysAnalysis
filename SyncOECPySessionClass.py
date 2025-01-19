@@ -42,7 +42,7 @@ class SyncOEpyPhotometrySession:
         if self.recordingMode=='SPAD':
             self.Spad_fs = 9938.4
         if self.recordingMode=='Atlas':
-            self.Spad_fs = 840
+            self.Spad_fs = 841.68
             
         self.ephys_fs = 30000
         self.tracking_fs = 10
@@ -203,6 +203,7 @@ class SyncOEpyPhotometrySession:
         print ('Ephys synced part data length', len(self.Ephys_sync_data)/self.ephys_fs)
         return -1     
     def form_ephys_spad_sync_data (self):
+        
         mask = self.Ephys_data['SPAD_mask'] 
         self.Ephys_sync_data=self.Ephys_data[mask]
         # OE.plot_two_raw_traces (mask,self.Ephys_sync_data['LFP_1'], spad_label='spad_mask',lfp_label='LFP_raw')
@@ -1526,16 +1527,16 @@ class SyncOEpyPhotometrySession:
         silced_recording['theta_angle']=OE.calculate_theta_phase_angle(silced_recording[LFP_channel], theta_low=5, theta_high=9)
         #OE.plot_trace_in_seconds(silced_recording['theta_angle'],Fs=10000,title='theta angle')
         trough_index = OE.calculate_theta_trough_index(silced_recording,Fs=self.fs)
-        # #print (trough_index)
-        OE.plot_gamma_power_on_theta(self.fs,silced_recording,LFP_channel,trough_index,half_window=0.2)
+        #print (trough_index)
         
-        #silced_recording=self.Ephys_tracking_spad_aligned
+        gamma_band=(55, 80)
+        OE.plot_gamma_power_on_theta(self.fs,silced_recording,LFP_channel,trough_index,half_window=0.2,gamma_band=gamma_band)
+        
+        '''plot correlation using hilbert '''
         zscore=OE.smooth_signal(silced_recording['zscore_raw'], self.fs,100,window='flat')
-        gamma_band = OE.band_pass_filter(silced_recording[LFP_channel], 30, 80, self.fs)
-        
-        OE.compute_and_plot_gamma_power_correlation(zscore, gamma_band, self.fs)
-        OE.plot_gamma_power_on_theta_phase(silced_recording[LFP_channel], silced_recording['zscore_raw'], 
-                                           self.fs, theta_band=(4, 12), gamma_band=(30, 80), bins=30)
+        OE.compute_and_plot_gamma_power_correlation(zscore, silced_recording[LFP_channel],gamma_band, self.fs)
+        OE.plot_gamma_amplitude_on_theta_phase(silced_recording[LFP_channel], silced_recording['zscore_raw'], 
+                                            self.fs, theta_band=(5, 12), gamma_band=gamma_band, bins=30)
         
         return -1
 
@@ -1731,7 +1732,7 @@ class SyncOEpyPhotometrySession:
         if mode=='ripple':
             event_peak_times=self.rip_tsd.index.to_numpy()
             savename='_RipplePeak_'
-            cutoff=100
+            cutoff=200
         if mode=='theta':
             event_peak_times=self.theta_tsd.index.to_numpy()
             savename='_ThetaPeak_'
@@ -1900,7 +1901,7 @@ class SyncOEpyPhotometrySession:
         if mode=='ripple':
             savename='_Ripple_'
             event_peak_times=self.rip_tsd.index.to_numpy()
-            cutoff=150
+            cutoff=100
         if mode=='theta':
             savename='_Theta_'
             event_peak_times=self.theta_tsd.index.to_numpy()

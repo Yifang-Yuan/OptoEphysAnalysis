@@ -96,15 +96,15 @@ def plot_ripple_heatmap(ripple_band_lfps,lfps,zscores,Fs=10000):
     plt.show()
     return fig
     
-def plot_aligned_ripple_save (save_path,ripple_triggered_lfps,ripple_triggered_zscores,Fs=10000):
+def plot_aligned_ripple_save (save_path,LFP_channel,recordingName,ripple_triggered_lfps,ripple_triggered_zscores,Fs=10000):
     
     os.makedirs(save_path, exist_ok=True)
     'Assume my ripple PETH are all process by OEC ripple detection, Fs=10000, length=4000'
     ripple_sample_numbers=len(ripple_triggered_lfps[0])
     midpoint=ripple_sample_numbers//2
     'align ripple in a 200ms window '
-    start_idx=int(midpoint-0.25*Fs) #
-    end_idx=int(midpoint+0.25*Fs)  #0,25
+    start_idx=int(midpoint-0.15*Fs) #
+    end_idx=int(midpoint+0.15*Fs)  #0,25
     print (midpoint,start_idx,end_idx)
     
     '''Align by peak'''
@@ -114,13 +114,14 @@ def plot_aligned_ripple_save (save_path,ripple_triggered_lfps,ripple_triggered_z
     
     'PLOT BEFORE ALIGN, originally align by phase trough'
     fig=plot_ripple_heatmap(ripple_band_lfps_by_phase,ripple_triggered_lfps,ripple_triggered_zscores,Fs)
-    
+    fig_path = os.path.join(save_path, recordingName+LFP_channel+'Theta_aligned_heatmap_1s.png')
+    fig.savefig(fig_path, transparent=True)
     
     fig=plot_ripple_heatmap(ripple_band_lfps_by_phase[:,start_idx:end_idx],
                             ripple_triggered_lfps[:,start_idx:end_idx],
                             ripple_triggered_zscores[:,start_idx:end_idx],Fs)
-    
-    
+    fig_path = os.path.join(save_path, recordingName+LFP_channel+'Theta_aligned_heatmap_300ms.png')
+    fig.savefig(fig_path, transparent=True)
     
     cross_corr_values = []
     for i in range(len(aligned_lfps)):
@@ -152,63 +153,63 @@ def plot_aligned_ripple_save (save_path,ripple_triggered_lfps,ripple_triggered_z
     plt.show()
     
     
-    '''PLOT HEATMAP after aligning by peak'''
-    fig=plot_ripple_heatmap(aligned_ripple_band_lfps,aligned_lfps,aligned_zscores,Fs)
-    fig_path = os.path.join(save_path, 'Theta_aligned_heatmap_1s.png')
-    fig.savefig(fig_path, transparent=True)
+    # '''PLOT HEATMAP after aligning by peak'''
+    # fig=plot_ripple_heatmap(aligned_ripple_band_lfps,aligned_lfps,aligned_zscores,Fs)
+    # fig_path = os.path.join(save_path, 'Theta_aligned_heatmap_1s.png')
+    # fig.savefig(fig_path, transparent=True)
     
-    fig=plot_ripple_heatmap(aligned_ripple_band_lfps[:,start_idx:end_idx],
-                            aligned_lfps[:,start_idx:end_idx],aligned_zscores[:,start_idx:end_idx],Fs)
-    fig_path = os.path.join(save_path, 'Theta_aligned_heatmap_500ms.png')
-    fig.savefig(fig_path, transparent=True)
-    save_file_path = os.path.join(save_path,'ailgned_theta_LFP.pkl')
-    with open(save_file_path, "wb") as file:
-        pickle.dump(aligned_lfps, file)
-    save_file_path = os.path.join(save_path,'ailgned_theta_bandpass_LFP.pkl')
-    with open(save_file_path, "wb") as file:
-        pickle.dump(aligned_ripple_band_lfps, file)
-    save_file_path = os.path.join(save_path,'ailgned_theta_Zscore.pkl')
-    with open(save_file_path, "wb") as file:
-        pickle.dump(aligned_zscores, file)
+    # fig=plot_ripple_heatmap(aligned_ripple_band_lfps[:,start_idx:end_idx],
+    #                         aligned_lfps[:,start_idx:end_idx],aligned_zscores[:,start_idx:end_idx],Fs)
+    # fig_path = os.path.join(save_path, 'Theta_aligned_heatmap_500ms.png')
+    # fig.savefig(fig_path, transparent=True)
+    # save_file_path = os.path.join(save_path,'ailgned_theta_LFP.pkl')
+    # with open(save_file_path, "wb") as file:
+    #     pickle.dump(aligned_lfps, file)
+    # save_file_path = os.path.join(save_path,'ailgned_theta_bandpass_LFP.pkl')
+    # with open(save_file_path, "wb") as file:
+    #     pickle.dump(aligned_ripple_band_lfps, file)
+    # save_file_path = os.path.join(save_path,'ailgned_theta_Zscore.pkl')
+    # with open(save_file_path, "wb") as file:
+    #     pickle.dump(aligned_zscores, file)
         
         
-    cross_corr_values = []
-    for i in range(len(aligned_lfps)):
-        # segment_z_score=aligned_zscores[i,start_idx:end_idx]
-        # segment_LFP=aligned_lfps[i,start_idx:end_idx]
-        segment_z_score=aligned_zscores[i,int(midpoint-0.4*Fs):int(midpoint+0.4*Fs)]
-        segment_LFP=aligned_lfps[i,int(midpoint-0.4*Fs):int(midpoint+0.4*Fs)]
-        lags,cross_corr =OE.calculate_correlation_with_detrend (segment_z_score,segment_LFP)
-        cross_corr_values.append(cross_corr)
-    cross_corr_values = np.array(cross_corr_values,dtype=float)
+    # cross_corr_values = []
+    # for i in range(len(aligned_lfps)):
+    #     # segment_z_score=aligned_zscores[i,start_idx:end_idx]
+    #     # segment_LFP=aligned_lfps[i,start_idx:end_idx]
+    #     segment_z_score=aligned_zscores[i,int(midpoint-0.4*Fs):int(midpoint+0.4*Fs)]
+    #     segment_LFP=aligned_lfps[i,int(midpoint-0.4*Fs):int(midpoint+0.4*Fs)]
+    #     lags,cross_corr =OE.calculate_correlation_with_detrend (segment_z_score,segment_LFP)
+    #     cross_corr_values.append(cross_corr)
+    # cross_corr_values = np.array(cross_corr_values,dtype=float)
 
-    event_corr_array=cross_corr_values
-    mean_cross_corr,std_cross_corr, CI_cross_corr=OE.calculateStatisticNumpy (event_corr_array)
+    # event_corr_array=cross_corr_values
+    # mean_cross_corr,std_cross_corr, CI_cross_corr=OE.calculateStatisticNumpy (event_corr_array)
     
-    x = np.linspace((-len(mean_cross_corr)/2)/Fs, (len(mean_cross_corr)/2)/Fs, len(mean_cross_corr))  
-    fig, ax = plt.subplots(figsize=(5, 3))
-    # Plot the mean cross-correlation
-    ax.plot(x, mean_cross_corr, color='#404040', label='Mean Cross Correlation')
-    # Fill between for the confidence interval
-    ax.fill_between(x, CI_cross_corr[0], CI_cross_corr[1], color='#404040', alpha=0.2, label='0.95 CI')
-    # Set labels and title
-    ax.set_xlabel('Lags (seconds)')
-    ax.set_ylabel('Cross-Correlation')
-    ax.set_title('Mean Cross-Correlation (1-Second Window)')
+    # x = np.linspace((-len(mean_cross_corr)/2)/Fs, (len(mean_cross_corr)/2)/Fs, len(mean_cross_corr))  
+    # fig, ax = plt.subplots(figsize=(5, 3))
+    # # Plot the mean cross-correlation
+    # ax.plot(x, mean_cross_corr, color='#404040', label='Mean Cross Correlation')
+    # # Fill between for the confidence interval
+    # ax.fill_between(x, CI_cross_corr[0], CI_cross_corr[1], color='#404040', alpha=0.2, label='0.95 CI')
+    # # Set labels and title
+    # ax.set_xlabel('Lags (seconds)')
+    # ax.set_ylabel('Cross-Correlation')
+    # ax.set_title('Mean Cross-Correlation (1-Second Window)')
     
-    # Remove spines
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    #ax.set_xlim([-0.5,0.5])
-    #ax.spines['bottom'].set_visible(False)
-    #ax.spines['left'].set_visible(False)
-    # Optionally remove ticks and labels
-    #ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
-    ax.legend().set_visible(False)
-    #plt.grid()
-    fig_path = os.path.join(save_path, 'Theta aligned correlation 200ms.png')
-    fig.savefig(fig_path, transparent=True)
-    plt.show()
+    # # Remove spines
+    # ax.spines['top'].set_visible(False)
+    # ax.spines['right'].set_visible(False)
+    # #ax.set_xlim([-0.5,0.5])
+    # #ax.spines['bottom'].set_visible(False)
+    # #ax.spines['left'].set_visible(False)
+    # # Optionally remove ticks and labels
+    # #ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
+    # ax.legend().set_visible(False)
+    # #plt.grid()
+    # fig_path = os.path.join(save_path, 'Theta aligned correlation 200ms.png')
+    # fig.savefig(fig_path, transparent=True)
+    # plt.show()
 
     return -1
 
@@ -259,20 +260,26 @@ def run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low
     
     trough_index=Recording1.plot_theta_correlation(LFP_channel)
     theta_part=Recording1.theta_part
+    #theta_part=Recording1.Ephys_tracking_spad_aligned
     theta_zscores_np,theta_lfps_np=OE.get_theta_cycle_value(theta_part, LFP_channel, trough_index, half_window=0.5, fs=Recording1.fs)
-    plot_aligned_ripple_save (save_path,theta_lfps_np,theta_zscores_np,Fs=10000)
+    plot_aligned_ripple_save (save_path,LFP_channel,recordingName,theta_lfps_np,theta_zscores_np,Fs=10000)
     return -1
 
 def run_theta_plot_main():
     'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
-    #dpath='E:/MScR_Roshni/1765508_Jedi2p_Atlas/20240501_Day3/'
-    dpath='E:/ATLAS_SPAD/1820061_PVcre_mNeon/Day1/'
-    recordingName='SyncRecording6'
+    #dpath='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day1/'
+    dpath='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day1/' 
+    recordingName='SyncRecording8'
     savename='ThetaSave_Move'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-    LFP_channel='LFP_1'
+    LFP_channel='LFP_3'
     run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low_thres=-0.5)
     #run_theta_plot_selectpeak (dpath,LFP_channel,recordingName,savename,theta_low_thres=0.5)
     
     
-run_theta_plot_main()
+
+def main():    
+    run_theta_plot_main()
+    
+if __name__ == "__main__":
+    main()

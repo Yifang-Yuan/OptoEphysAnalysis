@@ -101,6 +101,7 @@ def read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixe
     ]
     # Sort folders by the extracted timestamp
     sorted_atlas_folders = sorted(folders, key=extract_timestamp)
+    print (sorted_atlas_folders)
     # Read the directories in sorted order
     i=0
     for foldername in sorted_atlas_folders:
@@ -134,11 +135,30 @@ def main():
     #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
     hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
     
-    center_x, center_y,radius=51, 62, 30
-    atlas_parent_folder='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day2/Atlas/'
-    day_parent_folder='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day2/'
-    read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=500)
-
+    center_x, center_y,radius=56, 61, 35
+    day_parent_folder='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day1/'
+    atlas_parent_folder=os.path.join(day_parent_folder,'Atlas')
+    read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=200)
     
+    # center_x, center_y,radius=56, 61, 35
+    # day_parent_folder='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day2/'
+    # atlas_parent_folder=os.path.join(day_parent_folder,'Atlas')
+    # read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=200)
+    
+    # center_x, center_y,radius=54, 62, 35
+    # day_parent_folder='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day3/'
+    # atlas_parent_folder=os.path.join(day_parent_folder,'Atlas')
+    # read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=200)
+    
+    # center_x, center_y,radius=54, 62, 35
+    # day_parent_folder='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day4/'
+    # atlas_parent_folder=os.path.join(day_parent_folder,'Atlas')
+    # read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=200)
+    
+    # center_x, center_y,radius=53, 62, 35
+    # day_parent_folder='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day5/'
+    # atlas_parent_folder=os.path.join(day_parent_folder,'Atlas')
+    # read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=200)
+
 if __name__ == "__main__":
     main()

@@ -11,6 +11,8 @@ import pandas as pd
 import pickle
 from SyncOECPySessionClass import SyncOEpyPhotometrySession
 import OpenEphysTools as OE
+import plotRipple
+import plotTheta
 
 def ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', IsTracking=False,
                        read_aligned_data_from_file=False,recordingMode='SPAD',indicator='GEVI'):
@@ -35,17 +37,25 @@ def ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', IsTrackin
             LFP_channel='LFP_'+str(i+1)
             #LFP_channel='LFP_4'
             theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.5,High_thres=10)
-            '''RIPPLE DETECTION
-            For a rigid threshold to get larger amplitude ripple events: Low_thres=3'''
-            rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,
-                                                        ep_start=0,ep_end=80,Low_thres=2,High_thres=10, 
-                                                        plot_segment=False,plot_ripple_ep=False,excludeTheta=True)
+
             '''THETA PEAK DETECTION
             For a rigid threshold to get larger amplitude theta events: Low_thres=1, for more ripple events, Low_thres=0.5'''
-            rip_ep,rip_tsd=Recording1.pynappleThetaAnalysis (lfp_channel=LFP_channel,
-                                                             ep_start=0,ep_end=100,Low_thres=0.5,High_thres=10,
-                                                             plot_segment=False,plot_ripple_ep=False)
-            Recording1.plot_theta_correlation(LFP_channel)
+            # rip_ep,rip_tsd=Recording1.pynappleThetaAnalysis (lfp_channel=LFP_channel,
+            #                                                  ep_start=0,ep_end=100,Low_thres=0,High_thres=10,
+            #                                                  plot_segment=False,plot_ripple_ep=False)
+            savename='ThetaSave'
+            '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
+
+            plotTheta.run_theta_plot_all_cycle (parent_folder,LFP_channel,SyncRecordingName,savename,theta_low_thres=-0.5)
+            
+            '''RIPPLE DETECTION
+            For a rigid threshold to get larger amplitude ripple events: Low_thres=3'''
+            # rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,
+            #                                             ep_start=0,ep_end=80,Low_thres=1,High_thres=10, 
+            #                                             plot_segment=False,plot_ripple_ep=False,excludeTheta=True)
+            savename='RippleSave'
+            plotRipple.run_ripple_plot (parent_folder,LFP_channel,SyncRecordingName,savename,Low_thres=0.5)
+            #Recording1.plot_theta_correlation(LFP_channel)
             'Save Current Recording Class for this LFP channel to pickle'
             # current_trial_folder_path = os.path.join(parent_folder, SyncRecordingName)
             # Trial_save_path = os.path.join(current_trial_folder_path, SyncRecordingName+LFP_channel+'_Class.pkl')
@@ -59,9 +69,9 @@ def main():
     Put all your parent folders here for batch processing.
     recordingMode: 'py' for pyPhotometry recording, 'SPAD' for SPAD-SPC recording
     '''
-    parent_folder='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day2/'
+    parent_folder='E:/ATLAS_SPAD/1825505_SimCre_mNeon_taper/Day1/'
     ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', 
-                                          IsTracking=True,read_aligned_data_from_file=False,recordingMode='Atlas',indicator='GEVI')
+                                          IsTracking=True,read_aligned_data_from_file=False,recordingMode='Atlas',indicator='GECI')
     
 if __name__ == "__main__":
     main()

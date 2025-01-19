@@ -19,14 +19,14 @@ import matplotlib.pyplot as plt
 # dpath='E:/ATLAS_SPAD/1825507_mCherry/Day1/'
 # recordingName='SavedMovingTrials'
 
-dpath='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day2Theta/' #LFP1
-recordingName='SyncRecording12'
+dpath='D:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day2/' #LFP1
+recordingName='SyncRecording7'
 
-# dpath='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day1/'  #LFP3
-# recordingName='SyncRecording9'
+# dpath='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day3/'  #LFP3
+# recordingName='SyncRecording7'
 
 # dpath='E:/MScR_Roshni/1765508_Jedi2p_Atlas/20240501_Day3/'  #LFP1
-# recordingName='SyncRecording3'
+# recordingName='SyncRecording6'
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,
                                      recordingMode='Atlas',indicator='GEVI') 
 #%%
@@ -36,7 +36,7 @@ LFP_channel='LFP_1'
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined theta period.
 nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.5,High_thres=10,save=False,plot_theta=True)
+Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-1,High_thres=10,save=False,plot_theta=True)
 #%%
 #This is to calculate and plot the trace around theta trough
 Recording1.plot_theta_correlation(LFP_channel)
@@ -152,7 +152,7 @@ SPAD=Recording1.theta_part['zscore_raw']
 LFP=LFP.to_numpy()
 SPAD=SPAD.to_numpy()
 # Define a Pac object
-p_obj = Pac(idpac=(6,0,0),f_pha=(2, 12, 2, 0.4), f_amp=(20, 100, 10, 2))
+p_obj = Pac(idpac=(6,0,0),f_pha=(2, 20, 2, 0.4), f_amp=(30, 100, 10, 2))
 #%%
 # Filter the data and extract pac
 xpac = p_obj.filterfit(fs, SPAD)
@@ -183,7 +183,7 @@ amp_SPAD = p_obj.filter(fs, SPAD, ftype='amplitude')
 pac_LFP = p_obj.fit(pha_LFP, amp_LFP).mean(-1)
 pac_SPAD = p_obj.fit(pha_SPAD, amp_SPAD).mean(-1)
 pac_LFPtheta_SPADgamma =p_obj.fit(pha_LFP, amp_SPAD).mean(-1)
-#%%
+
 vmax = np.min([pac_LFP.max(), pac_SPAD.max(), pac_LFPtheta_SPADgamma.max()])
 kw = dict(vmax=vmax, vmin=0, cmap='viridis')
 plt.figure(figsize=(14, 4))

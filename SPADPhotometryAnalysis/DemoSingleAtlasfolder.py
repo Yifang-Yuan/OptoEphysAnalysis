@@ -13,38 +13,78 @@ from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 #%% Workable code, above is testin
 #ppath='D:/ATLAS_SPAD/1825505_SimCre/Day2/Atlas/'
 
-dpath='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day2/Atlas/Test/'
+dpath='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day3/Test/'
 #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
 hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
 
-pixel_array_all_frames,_,avg_pixel_array=AtlasDecode.decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=500)
+pixel_array_all_frames,_,avg_pixel_array=AtlasDecode.decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=200)
 #%%
 AtlasDecode.show_image_with_pixel_array(avg_pixel_array,showPixel_label=True)
 #%%
-center_x, center_y,best_radius=AtlasDecode.find_circle_mask(avg_pixel_array,radius=25,threh=0.2)
+center_x, center_y,best_radius=AtlasDecode.find_circle_mask(avg_pixel_array,radius=30,threh=0.2)
 #%%
-center_x, center_y,best_radius=53, 46, 15
-Trace_raw,dff=AtlasDecode.get_dff_from_atlas_snr_circle_mask (dpath,hotpixel_path,center_x, center_y,best_radius,fs=840,snr_thresh=2,photoncount_thre=1000)
-#%%
+#center_x, center_y,best_radius=53, 46, 15
+Trace_raw=AtlasDecode.get_dff_from_pixel_array (pixel_array_all_frames,avg_pixel_array,hotpixel_path,center_x, center_y,best_radius,fs=840,snr_thresh=0)
 'GET TOTAL PHOTON COUNT'
-Trace_raw,dff=AtlasDecode.get_total_photonCount_atlas_continuous_circle_mask (dpath,hotpixel_path,center_x, center_y,best_radius,fs=840,photoncount_thre=2000)
+#Trace_raw,dff=AtlasDecode.get_total_photonCount_atlas_continuous_circle_mask (dpath,hotpixel_path,center_x, center_y,best_radius,fs=840,photoncount_thre=2000)
+
 #%%
-day_parent_folder='F:/SPAD2024/SPADdata_SNRtest/5uWComparePSD/'
-folder_name='5uW_Atlas'
-save_folder = os.path.join(day_parent_folder, folder_name)
-print ('save_folder is', save_folder)
-# Create the folder if it doesn't exist
-if not os.path.exists(save_folder):
-    os.makedirs(save_folder)
-np.savetxt(os.path.join(save_folder,'Zscore_traceAll.csv'), dff, delimiter=',', comments='')
-np.savetxt(os.path.join(save_folder,'Green_traceAll.csv'), Trace_raw, delimiter=',', comments='')
+signal = Trace_raw  # Your square wave signal as a NumPy array
+threshold = 200  # Set a threshold to separate high and low states
+square_wave_frequency = 100  # Known frequency of the square wave (in Hz)
+period = 1 / square_wave_frequency  # Period of the square wave (in seconds)
+
+rising_edges = np.where((signal[:-1] <= threshold) & (signal[1:] > threshold))[0]  # Indices of rising edges
+# Count the number of cycles
+num_cycles = len(rising_edges)
+
+# Calculate recording duration
+recording_duration = num_cycles * period
+print(f"Number of cycles: {num_cycles}")
+print(f"Recording duration: {recording_duration:.2f} seconds")
+
+if len(rising_edges) > 1:  # Ensure there are at least two cycles
+    cycle_samples = np.diff(rising_edges)  # Samples between consecutive rising edges
+    print(f"Samples per cycle: {cycle_samples}")
+    print(f"Average samples per cycle: {np.mean(cycle_samples)}")
+else:
+    print("Not enough cycles to calculate samples per cycle.")
+sampling_rate_calculated=1680/recording_duration
+print(f"Estimated sampling rate {sampling_rate_calculated}")
+#print('-------')
+#%%
+# Load the square wave signal
+for i in range (3):
+    signal = Trace_raw[int(840*10*i):int(840*10*(i+1))]  # Your square wave signal as a NumPy array
+    threshold = 30  # Set a threshold to separate high and low states
+    square_wave_frequency = 10  # Known frequency of the square wave (in Hz)
+    period = 1 / square_wave_frequency  # Period of the square wave (in seconds)
+    
+    rising_edges = np.where((signal[:-1] <= threshold) & (signal[1:] > threshold))[0]  # Indices of rising edges
+    # Count the number of cycles
+    num_cycles = len(rising_edges)
+    
+    # Calculate recording duration
+    recording_duration = num_cycles * period
+    print(f"Number of cycles: {num_cycles}")
+    print(f"Recording duration: {recording_duration:.2f} seconds")
+    
+    if len(rising_edges) > 1:  # Ensure there are at least two cycles
+        cycle_samples = np.diff(rising_edges)  # Samples between consecutive rising edges
+        print(f"Samples per cycle: {cycle_samples}")
+        print(f"Average samples per cycle: {np.mean(cycle_samples)}")
+    else:
+        print("Not enough cycles to calculate samples per cycle.")
+    sampling_rate_calculated=840*10/recording_duration
+    print(f"Estimated sampling rate {sampling_rate_calculated}")
+    print('-------')
 
 #%%
 data=Trace_raw
 sampling_rate=840
 #Plot the image of the pixel array
 fig, ax = plt.subplots(figsize=(8, 2))
-AtlasDecode.plot_trace(Trace_raw[16800:25200],ax, fs=840, label="raw_data")
+AtlasDecode.plot_trace(Trace_raw[0:840],ax, fs=840, label="raw_data")
 #%%
 '''Wavelet spectrum ananlysis'''
 Analysis.plot_wavelet_data(data,sampling_rate,cutoff=300,xlim = ([6,30]))

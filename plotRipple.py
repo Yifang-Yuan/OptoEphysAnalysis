@@ -14,6 +14,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import glob
 
+
+
 def align_ripples (lfps,zscores,start_idx,end_idx,midpoint,Fs=10000):
     aligned_ripple_band_lfps = np.zeros_like(lfps)
     aligned_lfps=np.zeros_like(lfps)
@@ -87,7 +89,7 @@ def plot_ripple_heatmap(ripple_band_lfps,lfps,zscores,Fs=10000):
     plt.show()
     return fig
     
-def plot_aligned_ripple_save (save_path,ripple_triggered_lfps,ripple_triggered_zscores,Fs=10000):
+def plot_aligned_ripple_save (save_path,LFP_channel,recordingName,ripple_triggered_lfps,ripple_triggered_zscores,Fs=10000):
     os.makedirs(save_path, exist_ok=True)
     'Assume my ripple PETH are all process by OEC ripple detection, Fs=10000, length=4000'
     ripple_sample_numbers=len(ripple_triggered_lfps[0])
@@ -99,12 +101,12 @@ def plot_aligned_ripple_save (save_path,ripple_triggered_lfps,ripple_triggered_z
     aligned_ripple_band_lfps,aligned_lfps,aligned_zscores=align_ripples (ripple_triggered_lfps,
                                                                          ripple_triggered_zscores,start_idx,end_idx,midpoint,Fs)
     fig=plot_ripple_heatmap(aligned_ripple_band_lfps,aligned_lfps,aligned_zscores,Fs)
-    fig_path = os.path.join(save_path, 'Ripple_aligned_heatmap_400ms.png')
+    fig_path = os.path.join(save_path, recordingName+LFP_channel+'Ripple_aligned_heatmap_400ms.png')
     fig.savefig(fig_path, transparent=True)
     
     fig=plot_ripple_heatmap(aligned_ripple_band_lfps[:,start_idx:end_idx],
                             aligned_lfps[:,start_idx:end_idx],aligned_zscores[:,start_idx:end_idx],Fs)
-    fig_path = os.path.join(save_path, 'Ripple_aligned_heatmap_200ms.png')
+    fig_path = os.path.join(save_path, recordingName+LFP_channel+'Ripple_aligned_heatmap_200ms.png')
     fig.savefig(fig_path, transparent=True)
 
     
@@ -135,7 +137,7 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5):
     For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
     rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,
                                                 ep_start=0,ep_end=20,
-                                                Low_thres=1,High_thres=10,
+                                                Low_thres=1.5,High_thres=10,
                                                 plot_segment=False,plot_ripple_ep=False,excludeTheta=True)
 
     'GEVI has a negative'
@@ -150,19 +152,24 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5):
         ripple_triggered_LFP_values=Recording1.ripple_triggered_LFP_values_4
 
     ripple_triggered_zscore_values=Recording1.ripple_triggered_zscore_values
-    plot_aligned_ripple_save (save_path,ripple_triggered_LFP_values,ripple_triggered_zscore_values,Fs=10000)
+    plot_aligned_ripple_save (save_path,LFP_channel,recordingName,ripple_triggered_LFP_values,ripple_triggered_zscore_values,Fs=10000)
     return -1
 
 def run_ripple_plot_main():
     'This is to process a single or concatenated rial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
-    dpath='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day5/'
-    recordingName='SavedPostSleepTrials'
+    dpath='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day1/' 
+    recordingName='SyncRecording15'
     savename='RippleSave_Sleep'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
     LFP_channel='LFP_3'
-    run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=1)
+    run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5)
+
+
+def main():    
+    run_ripple_plot_main()
     
-run_ripple_plot_main()
+if __name__ == "__main__":
+    main()
 #%%
 'concatenate ripple'
 # parent_path='F:/2024_OEC_Atlas/1765508_Jedi2p_Atlas/'

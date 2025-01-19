@@ -13,11 +13,20 @@ from open_ephys.analysis import Session
 import matplotlib.pylab as plt
 from matplotlib.ticker import MaxNLocator
 
-def read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode='py',Ephys_fs=30000,new_folder_name='SyncRecording',recordingTime=30):
+def read_multiple_Ephys_data_in_folder(save_parent_folder,mode='py',Ephys_fs=30000,new_folder_name='SyncRecording',recordingTime=30):
     '''
     mode: py--to read session recorded with pyPhotometry
         SPAD--to read session recorded with SPAD (I haven't code for SPAD batch processing yet')
     '''
+    # Full path to the 'Ephys' folder
+    ephys_folder = os.path.join(save_parent_folder, "Ephys")
+
+    subfolders = [f for f in os.listdir(ephys_folder) if os.path.isdir(os.path.join(ephys_folder, f))]
+    if len(subfolders) == 1:
+        Ephys_folder_path = os.path.join(ephys_folder, subfolders[0])
+        print("Full path:", Ephys_folder_path)
+
+
     thisSession = Session(Ephys_folder_path)
     totalRecordingNums=len(thisSession.recordnodes[0].recordings)
     print ('processing folder:',Ephys_folder_path)
@@ -122,12 +131,11 @@ def main():
     Ephys_fs=30000 #Ephys sampling rate
     '''IF ATLAS'''
     Frame_num=25200
-    Fs_atlas=840
+    Fs_atlas=841.68
     recordingTime=Frame_num/Fs_atlas
     
-    Ephys_folder_path = 'E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day2/Ephys/2025-01-05_15-44-01/'
-    save_parent_folder='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day2/'
-    read_multiple_Ephys_data_in_folder(Ephys_folder_path,save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
+    save_parent_folder='E:/ATLAS_SPAD/1825505_SimCre_mNeon_taper/Day2/'
+    read_multiple_Ephys_data_in_folder(save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
 
 if __name__ == "__main__":
     main()
