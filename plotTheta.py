@@ -153,7 +153,7 @@ def plot_aligned_ripple_save (save_path,LFP_channel,recordingName,ripple_trigger
     plt.show()
     
     
-    # '''PLOT HEATMAP after aligning by peak'''
+    '''PLOT HEATMAP after aligning by peak'''
     # fig=plot_ripple_heatmap(aligned_ripple_band_lfps,aligned_lfps,aligned_zscores,Fs)
     # fig_path = os.path.join(save_path, 'Theta_aligned_heatmap_1s.png')
     # fig.savefig(fig_path, transparent=True)
@@ -240,7 +240,7 @@ def run_theta_plot_selectpeak (dpath,LFP_channel,recordingName,savename,theta_lo
 
     theta_triggered_zscore_values=Recording1.theta_triggered_zscore_values
     
-    plot_aligned_ripple_save (save_path,theta_triggered_LFP_values,theta_triggered_zscore_values,Fs=10000)
+    plot_aligned_ripple_save (save_path,LFP_channel,recordingName,theta_triggered_LFP_values,theta_triggered_zscore_values,Fs=10000)
     return -1
 
 '''recordingMode: use py, Atlas, SPAD for different systems'''
@@ -268,13 +268,13 @@ def run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low
 def run_theta_plot_main():
     'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
     #dpath='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day1/'
-    dpath='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day1/' 
-    recordingName='SyncRecording8'
+    dpath='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day5/'
+    recordingName='SyncRecording5'
     savename='ThetaSave_Move'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-    LFP_channel='LFP_3'
-    run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low_thres=-0.5)
-    #run_theta_plot_selectpeak (dpath,LFP_channel,recordingName,savename,theta_low_thres=0.5)
+    LFP_channel='LFP_1'
+    run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low_thres=0)
+    #run_theta_plot_selectpeak (dpath,LFP_channel,recordingName,savename,theta_low_thres=-0.3)
     
     
 

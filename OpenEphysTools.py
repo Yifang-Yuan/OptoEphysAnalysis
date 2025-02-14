@@ -954,18 +954,22 @@ def get_theta_cycle_value(df, LFP_channel, trough_index, half_window, fs=10000):
     cycle_data_values_lfp = []
     #half_cycle_time = pd.to_timedelta(half_window, unit='s')
     half_cycle_time=half_window
+    zscore_raw_smoothed=smooth_signal(df['zscore_raw'],fs,cutoff=50,window='flat')
+    if len(zscore_raw_smoothed) == len(df['zscore_raw']):
+        zscore_raw_smoothed_series = pd.Series(zscore_raw_smoothed, index=df['zscore_raw'].index)
+    else:
+        print("Error: Mismatched lengths between the smoothed data and the DataFrame.")
     # Extract A values for each cycle and calculate mean and std
     # zscore_filtered=band_pass_filter(df['zscore_raw'],4,20,fs)
     # df['zscore_raw']=zscore_filtered
     for i in range(len(trough_index)):
         start = int(trough_index[i] - half_cycle_time*fs)
         end = int(trough_index[i] + half_cycle_time*fs)
-        cycle_zscore = df['zscore_raw'].loc[start:end]
-        #print ('length of the cycle',len(cycle_zscore))
-        cycle_zscore=smooth_signal(cycle_zscore,fs,cutoff=50,window='flat')
+        cycle_zscore = zscore_raw_smoothed_series.loc[start:end]
+
         cycle_lfp = df[LFP_channel].loc[start:end]
-        #cycle_zscore_np = cycle_zscore.to_numpy()
-        cycle_zscore_np = cycle_zscore
+        cycle_zscore_np = cycle_zscore.to_numpy()
+        #cycle_zscore_np = cycle_zscore
         cycle_lfp_np = cycle_lfp.to_numpy()
         if len(cycle_lfp_np) > half_window * fs * 2:
             cycle_data_values_zscore.append(cycle_zscore_np)

@@ -78,9 +78,34 @@ def main():
     '''Set the folder for the Behaviour recording, defualt folder names are usually date and time'''
     '''Set the parent folder your session results, this should be the same parent folder to save optical data'''
     
-    save_parent_folder='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day2/'
-    BehaviourData_folder_path='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day2/Behaviour/'
+    save_parent_folder='E:/2025_ATLAS_SPAD/1844609_WT_Jedi2p/Day4/'
+    BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
     label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
+    
+    save_parent_folder='E:/2025_ATLAS_SPAD/1844609_WT_Jedi2p/Day5/'
+    BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
+    label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
+    
+    save_parent_folder='E:/2025_ATLAS_SPAD/1844608_WT_mNeon/Day5/'
+    BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
+    label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
+    
+    save_parent_folder='E:/2025_ATLAS_SPAD/1844608_WT_mNeon/Day6/'
+    BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
+    label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
+    
+    save_parent_folder='E:/2025_ATLAS_SPAD/1836686_PV_mNeon_F/Day6/'
+    BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
+    label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
+    
+    save_parent_folder='E:/2025_ATLAS_SPAD/1836686_PV_mNeon_F/Day7/'
+    BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
+    label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
+    
+    save_parent_folder='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day6/'
+    BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
+    label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
+    
     
     #plot_multiple_behaviour_files_in_folder(BehaviourData_folder_path,tracking_fs=10)
 if __name__ == "__main__":

@@ -16,17 +16,17 @@ import matplotlib.pyplot as plt
 #%%
 '''recordingMode: use py, Atlas, SPAD for different systems
 '''
-dpath='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day2/'
+dpath='E:/2025_ATLAS_SPAD/1836686_PV_mNeon_F/Day4/'
 #dpath='E:/ATLAS_SPAD/1825507_mCherry/Day1/'
-recordingName='SyncRecording2'
+recordingName='SyncRecording3'
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,
                                      recordingMode='Atlas',indicator='GEVI') 
-LFP_channel='LFP_1'
+LFP_channel='LFP_3'
 #%%
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined theta period.
 nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.5,High_thres=8,save=False,plot_theta=True)
+theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.3,High_thres=8,save=False,plot_theta=True)
 #%%
 '''Here for the spectrum, I used a 0.5Hz high pass filter to process both signals'''
 timewindow=5 #the duration of the segment, in seconds
@@ -37,8 +37,8 @@ for i in range(viewNum):
 
 #%%
 '''To plot the feature of a part of the signal'''
-start_time=1
-end_time=6
+start_time=16
+end_time=21
 coherence=Recording1.plot_freq_power_coherence (LFP_channel,start_time,end_time,SPAD_cutoff=50,lfp_cutoff=500)
 
 Recording1.plot_segment_band_feature (LFP_channel,start_time,end_time,SPAD_cutoff=50,lfp_cutoff=500)

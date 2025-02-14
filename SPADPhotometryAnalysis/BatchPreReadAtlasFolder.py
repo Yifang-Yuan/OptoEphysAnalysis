@@ -135,30 +135,29 @@ def main():
     #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
     hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
     
-    center_x, center_y,radius=56, 61, 35
-    day_parent_folder='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day1/'
-    atlas_parent_folder=os.path.join(day_parent_folder,'Atlas')
-    read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=200)
-    
-    # center_x, center_y,radius=56, 61, 35
-    # day_parent_folder='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day2/'
-    # atlas_parent_folder=os.path.join(day_parent_folder,'Atlas')
-    # read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=200)
-    
-    # center_x, center_y,radius=54, 62, 35
-    # day_parent_folder='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day3/'
-    # atlas_parent_folder=os.path.join(day_parent_folder,'Atlas')
-    # read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=200)
-    
-    # center_x, center_y,radius=54, 62, 35
-    # day_parent_folder='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day4/'
-    # atlas_parent_folder=os.path.join(day_parent_folder,'Atlas')
-    # read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=200)
     
     # center_x, center_y,radius=53, 62, 35
     # day_parent_folder='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day5/'
     # atlas_parent_folder=os.path.join(day_parent_folder,'Atlas')
     # read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=200)
+    #15 not done
+   
+
+    center_x, center_y,radius=48, 64, 25
+    day_parent_folder='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day6/'
+    atlas_parent_folder=os.path.join(day_parent_folder,'Atlas')
+    read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=500)
+    
+    center_x, center_y,radius=48, 64, 25
+    day_parent_folder='E:/2025_ATLAS_SPAD/1836686_PV_mNeon_F/Day6/'
+    atlas_parent_folder=os.path.join(day_parent_folder,'Atlas')
+    read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=350)
+    
+    center_x, center_y,radius=48, 63, 25
+    day_parent_folder='E:/2025_ATLAS_SPAD/1836686_PV_mNeon_F/Day7/'
+    atlas_parent_folder=os.path.join(day_parent_folder,'Atlas')
+    read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=350)
+    
 
 if __name__ == "__main__":
     main()

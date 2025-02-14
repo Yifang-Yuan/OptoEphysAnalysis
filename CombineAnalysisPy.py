@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 # dpath='E:/ATLAS_SPAD/1825507_mCherry/Day1/'
 # recordingName='SavedMovingTrials'
 
-dpath='D:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day2/' #LFP1
+dpath='E:/2025_ATLAS_SPAD/1836686_PV_mNeon_F/Day4/'#LFP1
 recordingName='SyncRecording7'
 
 # dpath='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day3/'  #LFP3
@@ -31,12 +31,12 @@ Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_a
                                      recordingMode='Atlas',indicator='GEVI') 
 #%%
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-LFP_channel='LFP_1'
+LFP_channel='LFP_3'
 #%%
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined theta period.
 nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-1,High_thres=10,save=False,plot_theta=True)
+Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.3,High_thres=10,save=False,plot_theta=True)
 #%%
 #This is to calculate and plot the trace around theta trough
 Recording1.plot_theta_correlation(LFP_channel)

@@ -138,7 +138,7 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5):
     rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,
                                                 ep_start=0,ep_end=20,
                                                 Low_thres=1.5,High_thres=10,
-                                                plot_segment=False,plot_ripple_ep=False,excludeTheta=True)
+                                                plot_segment=False,plot_ripple_ep=False,excludeTheta=False)
 
     'GEVI has a negative'
     index = LFP_channel.split('_')[-1] 
@@ -157,11 +157,11 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5):
 
 def run_ripple_plot_main():
     'This is to process a single or concatenated rial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
-    dpath='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day1/' 
-    recordingName='SyncRecording15'
+    dpath='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day7/'
+    recordingName='SyncRecording20'
     savename='RippleSave_Sleep'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-    LFP_channel='LFP_3'
+    LFP_channel='LFP_4'
     run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5)
 
 

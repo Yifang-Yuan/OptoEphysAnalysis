@@ -132,7 +132,7 @@ class SyncOEpyPhotometrySession:
                 
         while True: #remove noise by cutting part of the synchronised the data
             OE.plot_two_traces_in_seconds (self.Ephys_tracking_spad_aligned['zscore_raw'],self.fs, 
-                                       self.Ephys_tracking_spad_aligned['LFP_3'], self.fs, label1='zscore_raw',label2='LFP_3')
+                                       self.Ephys_tracking_spad_aligned['LFP_1'], self.fs, label1='zscore_raw',label2='LFP_1')
             start_time = input("Enter the start time to move noise (or 'q' to quit): ")
             if start_time.lower() == 'q':
                 break
@@ -173,7 +173,7 @@ class SyncOEpyPhotometrySession:
         self.Ephys_tracking_spad_aligned.reset_index(drop=True, inplace=True)  
         
         OE.plot_two_traces_in_seconds (self.Ephys_tracking_spad_aligned['zscore_raw'],self.fs, 
-                                       self.Ephys_tracking_spad_aligned['LFP_3'], self.fs, label1='zscore_raw',label2='LFP_3')
+                                       self.Ephys_tracking_spad_aligned['LFP_1'], self.fs, label1='zscore_raw',label2='LFP_1')
         
         while True: #remove noise by cutting part of the synchronised the data
             start_time = input("Enter the start time to move noise (or 'q' to quit): ")
@@ -186,7 +186,7 @@ class SyncOEpyPhotometrySession:
             self.remove_noise(start_time=int(start_time),end_time=int(end_time))
         
             OE.plot_two_traces_in_seconds (self.Ephys_tracking_spad_aligned['zscore_raw'],self.fs, 
-                                       self.Ephys_tracking_spad_aligned['LFP_3'], self.fs, label1='zscore_raw',label2='LFP_3')
+                                       self.Ephys_tracking_spad_aligned['LFP_1'], self.fs, label1='zscore_raw',label2='LFP_1')
         return -1
     
     def read_open_ephys_data (self):
@@ -1732,7 +1732,7 @@ class SyncOEpyPhotometrySession:
         if mode=='ripple':
             event_peak_times=self.rip_tsd.index.to_numpy()
             savename='_RipplePeak_'
-            cutoff=200
+            cutoff=100
         if mode=='theta':
             event_peak_times=self.theta_tsd.index.to_numpy()
             savename='_ThetaPeak_'

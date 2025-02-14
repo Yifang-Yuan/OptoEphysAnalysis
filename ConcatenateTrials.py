@@ -46,7 +46,7 @@ def ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile
 
 def main():
     'Specify the session and trial indice you want to concatenate'
-    parent_folder='E:/ATLAS_SPAD/1825505_SimCre_mNeon/Day2Theta/'
+    parent_folder='E:/2025_ATLAS_SPAD/1844609_WT_Jedi2p/Day4/'
     
 
     
