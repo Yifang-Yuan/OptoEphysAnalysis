@@ -13,11 +13,11 @@ from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 #%% Workable code, above is testin
 #ppath='D:/ATLAS_SPAD/1825505_SimCre/Day2/Atlas/'
 
-dpath='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day6/Test/'
+dpath='D:/2025_ATLAS_SPAD/Batch1/1836686_PV_mNeon_F/Day10/Test/'
 #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
 hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
 
-pixel_array_all_frames,_,avg_pixel_array=AtlasDecode.decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=500)
+pixel_array_all_frames,_,avg_pixel_array=AtlasDecode.decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=300)
 #%%
 AtlasDecode.show_image_with_pixel_array(avg_pixel_array,showPixel_label=True)
 #%%

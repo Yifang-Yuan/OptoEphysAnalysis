@@ -569,23 +569,24 @@ class SyncOEpyPhotometrySession:
         silced_recording=self.slicing_pd_data (self.Ephys_tracking_spad_aligned,start_time=start_time, end_time=end_time)
         #SPAD_smooth= OE.butter_filter(data['zscore_raw'], btype='high', cutoff=0.5, fs=self.fs, order=5)
         SPAD_smooth= OE.smooth_signal(silced_recording['zscore_raw'],Fs=self.fs,cutoff=SPAD_cutoff)
-        SPAD_smooth= OE.butter_filter(SPAD_smooth, btype='high', cutoff=2, fs=self.fs, order=3)
-        lfp_lowpass = OE.butter_filter(silced_recording[LFP_channel], btype='high', cutoff=2, fs=self.fs, order=3)
-        lfp_lowpass = OE.butter_filter(lfp_lowpass, btype='low', cutoff=lfp_cutoff, fs=self.fs, order=5)
+        #SPAD_smooth= OE.butter_filter(SPAD_smooth, btype='high', cutoff=2, fs=self.fs, order=3)
+        
+        lfp_lowpass = OE.butter_filter(silced_recording[LFP_channel], btype='low', cutoff=lfp_cutoff, fs=self.fs, order=5)
+        #lfp_lowpass = OE.butter_filter(lfp_lowpass, btype='high', cutoff=2, fs=self.fs, order=3)
         spad_low = pd.Series(SPAD_smooth, index=silced_recording['zscore_raw'].index)
         lfp_low = pd.Series(lfp_lowpass, index=silced_recording[LFP_channel].index)
         
-        fig, ax = plt.subplots(8, 1, figsize=(24, 16))
+        fig, ax = plt.subplots(8, 1, figsize=(24, 20))
         OE.plot_trace_in_seconds_ax (ax[0],spad_low,self.fs,label='GEVI',color=sns.color_palette("husl", 8)[3],
                                ylabel='z-score',xlabel=False)
         #spad_filtered=OE.band_pass_filter(spad_data,120,300,self.fs)
         sst,frequency,power,global_ws=OE.Calculate_wavelet(spad_low,lowpassCutoff=100,Fs=self.fs,scale=20)
         OE.plot_wavelet(ax[1],sst,frequency,power,Fs=self.fs,colorBar=False,logbase=False)
-        lfp_low=lfp_low
+
         OE.plot_trace_in_seconds_ax (ax[2],lfp_low,self.fs,label='LFP',color=sns.color_palette("dark", 8)[7],ylabel='mV',xlabel=False)
         #lfp_data_filtered=OE.band_pass_filter(lfp_data,120,300,self.fs)
         sst,frequency,power,global_ws=OE.Calculate_wavelet(lfp_low,lowpassCutoff=500,Fs=self.fs,scale=20)
-        OE.plot_wavelet(ax[3],sst,frequency,power,Fs=self.fs,colorBar=True,logbase=False)
+        OE.plot_wavelet(ax[3],sst,frequency,power,Fs=self.fs,colorBar=False,logbase=False)
         ax[1].set_ylim(0,20)
         ax[3].set_ylim(0,20)
         ax[3].set_xlabel('Time (seconds)')
@@ -763,7 +764,7 @@ class SyncOEpyPhotometrySession:
             indices_theta_epoch.extend(indices_theta_epoch_i.astype(int))
             
         self.Ephys_tracking_spad_aligned.iloc[indices_theta_epoch, self.Ephys_tracking_spad_aligned.columns.get_loc('BrainState')]='theta' 
-        self.save_data(self.Ephys_tracking_spad_aligned, 'Ephys_tracking_photometry_aligned.pkl')
+        #self.save_data(self.Ephys_tracking_spad_aligned, 'Ephys_tracking_photometry_aligned.pkl')
 
         print ('---Theta labelling saved, plotting theta and nontheta features---') 
         '''This will separate theta and non-theta period, but only for visualisation.
@@ -819,13 +820,12 @@ class SyncOEpyPhotometrySession:
         #silced_recording=self.Ephys_tracking_spad_aligned
         silced_recording=silced_recording.reset_index(drop=True)
         #print (silced_recording.index)
-        silced_recording['theta_angle']=OE.calculate_theta_phase_angle(silced_recording[LFP_channel], theta_low=5, theta_high=9) #range 5 to 9
+        silced_recording['theta_angle']=OE.calculate_theta_phase_angle(silced_recording[LFP_channel], theta_low=5, theta_high=12) #range 5 to 9
         OE.plot_trace_in_seconds(silced_recording['theta_angle'],Fs=10000,title='theta angle')
         trough_index = OE.calculate_theta_trough_index(silced_recording,Fs=10000)
         #print (trough_index)
         OE.plot_theta_cycle (silced_recording, LFP_channel,trough_index,half_window=0.15,fs=10000,plotmode='two')
         OE.plot_zscore_to_theta_phase (silced_recording['theta_angle'],silced_recording['zscore_raw'])
-
         return trough_index
     
     def pynappleAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,

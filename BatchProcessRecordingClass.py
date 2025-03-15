@@ -34,27 +34,31 @@ def ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', IsTrackin
                                              read_aligned_data_from_file=read_aligned_data_from_file,
                                              recordingMode=recordingMode,indicator=indicator) 
         for i in range (1):
-            LFP_channel='LFP_'+str(i+2)
+            LFP_channel='LFP_'+str(i+4)
             #LFP_channel='LFP_4'
-            theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.5,High_thres=10)
+            #theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.5,High_thres=10)
     
             '''THETA PEAK DETECTION
             For a rigid threshold to get larger amplitude theta events: Low_thres=1, for more ripple events, Low_thres=0.5'''
             # rip_ep,rip_tsd=Recording1.pynappleThetaAnalysis (lfp_channel=LFP_channel,
             #                                                  ep_start=0,ep_end=100,Low_thres=0,High_thres=10,
             #                                                  plot_segment=False,plot_ripple_ep=False)
+            
+            'plot theta heatmap'
             savename='ThetaSave'
             '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
     
-            plotTheta.run_theta_plot_all_cycle (parent_folder,LFP_channel,SyncRecordingName,savename,theta_low_thres=0)
+            #plotTheta.run_theta_plot_all_cycle (parent_folder,LFP_channel,SyncRecordingName,savename,theta_low_thres=0)
             
             '''RIPPLE DETECTION
             For a rigid threshold to get larger amplitude ripple events: Low_thres=3'''
             # rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,
             #                                             ep_start=0,ep_end=80,Low_thres=1,High_thres=10, 
             #                                             plot_segment=False,plot_ripple_ep=False,excludeTheta=True)
+            
+            'plot ripple heatmap'
             savename='RippleSave'
-            plotRipple.run_ripple_plot (parent_folder,LFP_channel,SyncRecordingName,savename,Low_thres=1)
+            plotRipple.run_ripple_plot (parent_folder,LFP_channel,SyncRecordingName,savename,theta_cutoff=1)
             
             #Recording1.plot_theta_correlation(LFP_channel)
             'Save Current Recording Class for this LFP channel to pickle'
@@ -70,7 +74,7 @@ def main():
     Put all your parent folders here for batch processing.
     recordingMode: 'py' for pyPhotometry recording, 'SPAD' for SPAD-SPC recording
     '''
-    parent_folder='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day7/'
+    parent_folder='D:/2025_ATLAS_SPAD/Batch1/1836686_PV_mNeon_F/Day10Sleep/'
     ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', 
                                           IsTracking=True,read_aligned_data_from_file=False,recordingMode='Atlas',indicator='GEVI')
     

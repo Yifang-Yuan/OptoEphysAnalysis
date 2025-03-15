@@ -23,7 +23,7 @@ import seaborn as sns
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy import stats
 from matplotlib.ticker import MaxNLocator
-from tensorpac import Pac
+#from tensorpac import Pac
 from scipy.stats import pearsonr, spearmanr
 
 def butter_filter(data, btype='low', cutoff=10, fs=9938.4, order=5): 
@@ -102,24 +102,24 @@ def readEphysChannel (Directory,recordingNum,Fs=30000):
     Sync3=samples[:,18]
     Sync4=samples[:,19]
     
-    LFP_clean1= butter_filter(LFP1, btype='low', cutoff=2000, fs=Fs, order=5)
-    LFP_clean2= butter_filter(LFP2, btype='low', cutoff=2000, fs=Fs, order=5)
-    LFP_clean3= butter_filter(LFP3, btype='low', cutoff=2000, fs=Fs, order=5)
-    LFP_clean4= butter_filter(LFP4, btype='low', cutoff=2000, fs=Fs, order=5)
-    LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
-    LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
-    LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
-    LFP_clean4= notchfilter (LFP_clean4,f0=50,bw=5)
+    # LFP1= butter_filter(LFP1, btype='low', cutoff=2000, fs=Fs, order=5)
+    # LFP2= butter_filter(LFP2, btype='low', cutoff=2000, fs=Fs, order=5)
+    # LFP3= butter_filter(LFP3, btype='low', cutoff=2000, fs=Fs, order=5)
+    # LFP4= butter_filter(LFP4, btype='low', cutoff=2000, fs=Fs, order=5)
+    # LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
+    # LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
+    # LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
+    # LFP_clean4= notchfilter (LFP_clean4,f0=50,bw=5)
     
     EphysData = pd.DataFrame({
         'timestamps': timestamps,
         'CamSync': Sync1,
         'SPADSync': Sync2,
         'AtlasSync': Sync3,
-        'LFP_1': LFP_clean1,
-        'LFP_2': LFP_clean2,
-        'LFP_3': LFP_clean3,
-        'LFP_4': LFP_clean4,
+        'LFP_1': LFP1,
+        'LFP_2': LFP2,
+        'LFP_3': LFP3,
+        'LFP_4': LFP4,
     })
     
     return EphysData
@@ -149,10 +149,10 @@ def readEphysChannel_withSessionInput (session,recordingNum,Fs=30000):
     LFP_clean2= butter_filter(LFP2, btype='low', cutoff=2000, fs=Fs, order=5)
     LFP_clean3= butter_filter(LFP3, btype='low', cutoff=2000, fs=Fs, order=5)
     LFP_clean4= butter_filter(LFP4, btype='low', cutoff=2000, fs=Fs, order=5)
-    LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
-    LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
-    LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
-    LFP_clean4= notchfilter (LFP_clean4,f0=50,bw=5)
+    # LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
+    # LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
+    # LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
+    # LFP_clean4= notchfilter (LFP_clean4,f0=50,bw=5)
     
     EphysData = pd.DataFrame({
         'timestamps': timestamps,
@@ -178,7 +178,7 @@ def SPAD_sync_mask (SPAD_Sync, start_lim, end_lim):
        	Returns: SPAD_mask : numpy list
        		0 and 1 mask, 1 means SPAD is recording during this time.
     '''
-    SPAD_mask=np.zeros(len(SPAD_Sync),dtype=np.int)
+    SPAD_mask=np.zeros(len(SPAD_Sync),dtype=int)
     SPAD_mask[np.where(SPAD_Sync <5000)[0]]=1
     SPAD_mask[0:start_lim]=0
     SPAD_mask[end_lim:]=0
@@ -197,7 +197,7 @@ def SPAD_sync_mask (SPAD_Sync, start_lim, end_lim):
 
 def Atlas_sync_mask (Atlas_Sync, start_lim, end_lim,recordingTime=30):
     
-    Atlas_mask=np.zeros(len(Atlas_Sync),dtype=np.int)
+    Atlas_mask=np.zeros(len(Atlas_Sync),dtype=int)
     #peak_index = np.argmax(Atlas_Sync > 25000)
     peak_indices = np.argwhere(Atlas_Sync > 25000).flatten()
     peak_index=peak_indices[-1]
@@ -216,7 +216,7 @@ def Atlas_sync_mask (Atlas_Sync, start_lim, end_lim,recordingTime=30):
     return mask_array_bool
 
 def py_sync_mask (Sync_line, start_lim, end_lim):
-    py_mask=np.zeros(len(Sync_line),dtype=np.int)
+    py_mask=np.zeros(len(Sync_line),dtype=int)
     py_mask[np.where(Sync_line >15000)[0]]=1
     rising_edge_index = None
     falling_edge_index = None
@@ -235,7 +235,7 @@ def py_sync_mask (Sync_line, start_lim, end_lim):
         if py_mask[i] == 1 and py_mask[i - 1] == 0:
             falling_edge_index = i
             break  # Exit loop once the last falling edge is found
-    py_mask_final=np.zeros(len(Sync_line),dtype=np.int)
+    py_mask_final=np.zeros(len(Sync_line),dtype=int)
     print ('The py_mask 1st index is: ',rising_edge_index)
     py_mask_final[rising_edge_index:falling_edge_index]=1
     mask_array_bool = np.array(py_mask_final, dtype=bool)

@@ -78,61 +78,15 @@ def main():
     '''Set the folder for the Behaviour recording, defualt folder names are usually date and time'''
     '''Set the parent folder your session results, this should be the same parent folder to save optical data'''
     
-    save_parent_folder='E:/2025_ATLAS_SPAD/1844609_WT_Jedi2p/Day4/'
+    save_parent_folder='D:/2025_ATLAS_SPAD/1842515_PV_mNeon_1/Day9/'
     BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
     label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
     
-    save_parent_folder='E:/2025_ATLAS_SPAD/1844609_WT_Jedi2p/Day5/'
+    save_parent_folder='D:/2025_ATLAS_SPAD/Batch1/1836686_PV_mNeon_F/Day10/'
     BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
     label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
-    
-    save_parent_folder='E:/2025_ATLAS_SPAD/1844608_WT_mNeon/Day5/'
-    BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
-    label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
-    
-    save_parent_folder='E:/2025_ATLAS_SPAD/1844608_WT_mNeon/Day6/'
-    BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
-    label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
-    
-    save_parent_folder='E:/2025_ATLAS_SPAD/1836686_PV_mNeon_F/Day6/'
-    BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
-    label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
-    
-    save_parent_folder='E:/2025_ATLAS_SPAD/1836686_PV_mNeon_F/Day7/'
-    BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
-    label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
-    
-    save_parent_folder='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day6/'
-    BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
-    label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
-    
+   
     
     #plot_multiple_behaviour_files_in_folder(BehaviourData_folder_path,tracking_fs=10)
 if __name__ == "__main__":
     main()
-
-
-#%%
-# save_parent_folder='F:/2024MScR_NORtask/1732333_pyPhotometry/20240212_Day1/'
-# BehaviourData_folder_path='F:/2024MScR_NORtask/1732333_pyPhotometry/20240212_Day1/Behaviour/'
-
-# #%%
-# tracking_fs=10
-# csv_file_path='F:/2024MScR_NORtask/1732333_pyPhotometry/20240212_Day1/Behaviour/AnimalTracking_6.csv'
-# '''Read csv file and calculate zscore of the fluorescent signal'''
-# trackingdata = pd.read_csv(csv_file_path, names=['X', 'Y'])
-# trackingdata=trackingdata.fillna(method='ffill')
-# trackingdata=trackingdata/20    
-# trackingdata['speed']=((trackingdata['X'].diff()**2 + trackingdata['Y'].diff()**2)**0.5)*tracking_fs # cm per second
-# trackingdata['speed'][trackingdata['speed'] > 20] = np.nan #If the speed is too fast, maybe the tracking position is wrong, delete it.
-# trackingdata['speed'] = trackingdata['speed'].fillna(method='bfill')
-# OE.plot_animal_tracking (trackingdata)
-# #%%
-# plt.plot(trackingdata['X'][0:100]) 
-# plt.plot(trackingdata['Y'][0:100]) 
-# #%%
-# window_size=5
-# trackingdata['speed'] = trackingdata['speed'].rolling(window=window_size, min_periods=1).median()
-# trackingdata['speed'] = trackingdata['speed'].rolling(window=window_size, min_periods=1).min()
-# #%%
-# plt.plot(trackingdata['speed']) 

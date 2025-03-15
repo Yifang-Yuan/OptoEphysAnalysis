@@ -122,7 +122,7 @@ def plot_aligned_ripple_save (save_path,LFP_channel,recordingName,ripple_trigger
     return -1
 
 '''recordingMode: use py, Atlas, SPAD for different systems'''
-def run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5):
+def run_ripple_plot (dpath,LFP_channel,recordingName,savename,theta_cutoff=0.5):
     save_path = os.path.join(dpath,savename)
     Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,
                                          read_aligned_data_from_file=True,
@@ -131,7 +131,7 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5):
     '''separate the theta and non-theta parts.
     theta_thres: the theta band power should be bigger than 80% to be defined theta period.
     nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-    theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=Low_thres,High_thres=8,save=False,plot_theta=True)
+    theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=theta_cutoff,High_thres=8,save=False,plot_theta=True)
 
     '''RIPPLE DETECTION
     For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
@@ -157,12 +157,12 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5):
 
 def run_ripple_plot_main():
     'This is to process a single or concatenated rial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
-    dpath='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day7/'
-    recordingName='SyncRecording20'
+    dpath='D:/2025_ATLAS_SPAD/1842515_PV_mNeon_1/Day9SleepB/'
+    recordingName='SyncRecording19'
     savename='RippleSave_Sleep'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-    LFP_channel='LFP_4'
-    run_ripple_plot (dpath,LFP_channel,recordingName,savename,Low_thres=0.5)
+    LFP_channel='LFP_3'
+    run_ripple_plot (dpath,LFP_channel,recordingName,savename,theta_cutoff=0.5)
 
 
 def main():    

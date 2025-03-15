@@ -19,24 +19,26 @@ import matplotlib.pyplot as plt
 # dpath='E:/ATLAS_SPAD/1825507_mCherry/Day1/'
 # recordingName='SavedMovingTrials'
 
-dpath='E:/2025_ATLAS_SPAD/1836686_PV_mNeon_F/Day4/'#LFP1
-recordingName='SyncRecording7'
+dpath='D:/2025_ATLAS_SPAD/1842515_PV_mNeon_1/Day9SleepB/'
+recordingName='SyncRecording19'
+
+'''You can try LFP1,2,3,4 and plot theta to find the best channel'''
+LFP_channel='LFP_3'
 
 # dpath='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day3/'  #LFP3
 # recordingName='SyncRecording7'
 
 # dpath='E:/MScR_Roshni/1765508_Jedi2p_Atlas/20240501_Day3/'  #LFP1
 # recordingName='SyncRecording6'
-Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,
+Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=False,
                                      recordingMode='Atlas',indicator='GEVI') 
-#%%
-'''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-LFP_channel='LFP_3'
+
+
 #%%
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined theta period.
 nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.3,High_thres=10,save=False,plot_theta=True)
+Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.5,High_thres=10,save=False,plot_theta=True)
 #%%
 #This is to calculate and plot the trace around theta trough
 Recording1.plot_theta_correlation(LFP_channel)
@@ -89,11 +91,11 @@ for i in range(viewNum):
 #%%
 '''sliced_recording:choose a segment or a part of your recording, this can be defined with start and end time,
 or just by theta_part, non_theta_part'''
-silced_recording=Recording1.slicing_pd_data (Recording1.Ephys_tracking_spad_aligned,start_time=0, end_time=90)
+sliced_recording=Recording1.slicing_pd_data (Recording1.Ephys_tracking_spad_aligned,start_time=0, end_time=90)
 #silced_recording=theta_part
 '''Calculate the cross correlation between two power spectrun over time at a specific frequency'''
-sst_spad,frequency_spad,power_spad,global_ws_spad=OE.Calculate_wavelet(silced_recording['zscore_raw'],lowpassCutoff=500,Fs=10000)
-sst_lfp,frequency_lfp,power_lfp,global_ws_lfp=OE.Calculate_wavelet(silced_recording[LFP_channel],lowpassCutoff=500,Fs=10000)
+sst_spad,frequency_spad,power_spad,global_ws_spad=OE.Calculate_wavelet(sliced_recording['zscore_raw'],lowpassCutoff=500,Fs=10000)
+sst_lfp,frequency_lfp,power_lfp,global_ws_lfp=OE.Calculate_wavelet(sliced_recording[LFP_channel],lowpassCutoff=500,Fs=10000)
 # Calculate the correlation coefficient
 # lags,Corr_mean,Corr_std=Recording1.get_mean_corr_two_traces (power_spad[18],power_lfp[18],corr_window=1)
 # lags,Corr_mean,Corr_std=Recording1.get_mean_corr_two_traces (power_spad[19],power_lfp[19],corr_window=1)
@@ -112,29 +114,38 @@ lfp_low = pd.Series(lfp_lowpass, index=silced_recording[LFP_channel].index)
 lags,Corr_mean,Corr_std=Recording1.get_mean_corr_two_traces (spad_low,lfp_low,corr_window=0.5)
 #%%
 Fs=10000
+# save_path = 'D:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day2/Results'  # Change this to your desired directory
+# os.makedirs(save_path, exist_ok=True)
 
 #theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.5,High_thres=8,save=False,plot_theta=True)
 LFP_theta=Recording1.theta_part[LFP_channel]
 LFP_nontheta=Recording1.non_theta_part[LFP_channel]
 
 fig, ax = plt.subplots(1, 1, figsize=(3, 6))
-
-OpticalAnlaysis.PSD_plot (LFP_nontheta/1000,fs=Fs,method="welch",color='black', xlim=[0,100],linewidth=2,linestyle='--',label='LFP-rest',ax=ax)
-OpticalAnlaysis.PSD_plot (LFP_theta/1000,fs=Fs,method="welch",color='black', xlim=[0,100],linewidth=2,linestyle='-',label='LFP-move',ax=ax)
+#fig.patch.set_alpha(0)
+OpticalAnlaysis.PSD_plot (LFP_nontheta/1000,fs=Fs,method="welch",color='black', xlim=[0,40],linewidth=2,linestyle=':',label='LFP-rest',ax=ax)
+OpticalAnlaysis.PSD_plot (LFP_theta/1000,fs=Fs,method="welch",color='black', xlim=[0,40],linewidth=2,linestyle='-',label='LFP-move',ax=ax)
+#fig.savefig(os.path.join(save_path, "LFP_theta_PSD.png"), dpi=300, bbox_inches='tight', transparent=True)
 
 optical_theta=Recording1.theta_part['zscore_raw']
 optical_nontheta=Recording1.non_theta_part['zscore_raw']
 
 fig, ax = plt.subplots(1, 1, figsize=(3, 6))
-OpticalAnlaysis.PSD_plot (optical_nontheta,fs=Fs,method="welch",color='tab:green', xlim=[0,100],linewidth=2,linestyle='--',label='rest',ax=ax)
-OpticalAnlaysis.PSD_plot (optical_theta,fs=Fs,method="welch",color='tab:green', xlim=[0,100],linewidth=2,linestyle='-',label='move',ax=ax)
-
+#fig.patch.set_alpha(0)
+OpticalAnlaysis.PSD_plot (optical_nontheta,fs=Fs,method="welch",color='tab:green', xlim=[0,40],linewidth=2,linestyle=':',label='optical-rest',ax=ax)
+OpticalAnlaysis.PSD_plot (optical_theta,fs=Fs,method="welch",color='tab:green', xlim=[0,40],linewidth=2,linestyle='-',label='optical-move',ax=ax)
+#fig.savefig(os.path.join(save_path, "optical_theta_PSD.png"), dpi=300, bbox_inches='tight', transparent=True)
+#%%
+sliced_recording=Recording1.slicing_pd_data (Recording1.Ephys_tracking_spad_aligned,start_time=0, end_time=200)
+LFP_sliced=sliced_recording[LFP_channel]
+fig, ax = plt.subplots(1, 1, figsize=(3, 6))
+OpticalAnlaysis.PSD_plot (LFP_sliced/1000,fs=Fs,method="welch",color='black', xlim=[0,40],linewidth=2,linestyle='-',label='LFP',ax=ax)
 #%%
 LFP_channel='LFP_1'
 LFP=Recording1.Ephys_tracking_spad_aligned[LFP_channel]
 
 fig, ax = plt.subplots(1, 1, figsize=(3, 6))
-OpticalAnlaysis.PSD_plot (LFP,fs=Fs,method="welch",color='tab:green', xlim=[0,100],linewidth=2,linestyle='--',label='LFP',ax=ax)
+OpticalAnlaysis.PSD_plot (LFP,fs=Fs,method="welch",color='tab:green', xlim=[0,40],linewidth=2,linestyle='--',label='LFP',ax=ax)
 #OpticalAnlaysis.PSD_plot (optical_theta,fs=Fs,method="welch",color='tab:green', xlim=[0,100],linewidth=2,linestyle='-',label='move',ax=ax)
 
 #%%

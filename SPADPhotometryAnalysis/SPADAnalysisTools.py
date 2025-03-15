@@ -168,7 +168,8 @@ def butter_filter(data, btype='low', cutoff=10, fs=9938.4, order=5):
     return y
 
 '''Use python Scipy to plot PSD'''
-def PSD_plot(data, fs=9938.4, method="welch", color='tab:blue', xlim=[1,100], linewidth=1, linestyle='-',label='PSD',ax=None):
+# Function to compute and plot PSD
+def PSD_plot(data, fs=9938.4, method="welch", color='tab:blue', xlim=[0,100], linewidth=1, linestyle='-',label='PSD',ax=None):
     '''Three methods to plot PSD: welch, periodogram, plotlib based on a given ax'''
     if ax is None:
         fig, ax = plt.subplots()  # Create a new figure and axis if none provided
@@ -176,9 +177,9 @@ def PSD_plot(data, fs=9938.4, method="welch", color='tab:blue', xlim=[1,100], li
         fig = ax.figure  # Reference the figure from the provided ax
     
     if method == "welch":
-        f, Pxx_den = signal.welch(data, fs=fs, nperseg=4096)
+        f, Pxx_den = signal.welch(data, fs=fs, nperseg=8192,noverlap=4096,nfft=8192)
     elif method == "periodogram":
-        f, Pxx_den = signal.periodogram(data, fs=fs)
+        f, Pxx_den = signal.periodogram(data, fs=fs, nfft=8192, window='hann')
     # Convert to dB/Hz
     Pxx_den_dB = 10 * np.log10(Pxx_den)
     
@@ -187,8 +188,8 @@ def PSD_plot(data, fs=9938.4, method="welch", color='tab:blue', xlim=[1,100], li
     f_filtered = f[idx]
     Pxx_den_dB_filtered = Pxx_den_dB[idx]
     # Plot the filtered data on the given ax with specified linestyle
-    #ax.plot(f_filtered, Pxx_den_dB_filtered, color=color, linewidth=linewidth, linestyle=linestyle, label=label)
-    ax.plot(f, Pxx_den_dB, color=color, linewidth=linewidth, linestyle=linestyle, label=label)
+    ax.plot(f_filtered, Pxx_den_dB_filtered, color=color, linewidth=linewidth, linestyle=linestyle, label=label)
+    #ax.plot(f, Pxx_den_dB, color=color, linewidth=linewidth, linestyle=linestyle, label=label)
     ax.set_xlim(xlim)  # Limit x-axis to the specified range
  
     ax.set_ylim([np.min(Pxx_den_dB_filtered) - 1, np.max(Pxx_den_dB_filtered) + 1])
@@ -200,7 +201,7 @@ def PSD_plot(data, fs=9938.4, method="welch", color='tab:blue', xlim=[1,100], li
     legend.get_frame().set_facecolor('none')  # Remove the background color
     legend.get_frame().set_edgecolor('none')  # Remove the border
         
-    return fig, ax,f_filtered,Pxx_den_dB_filtered
+    return fig, ax
 
 
 def combineTraces (dpath,fileNum):

@@ -105,13 +105,13 @@ def read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixe
     # Read the directories in sorted order
     i=0
     for foldername in sorted_atlas_folders:
+        i=i+1
         directory=os.path.join(atlas_parent_folder, foldername)
         print("Folder:", directory)
         Trace_raw,dff=AtlasDecode.get_dff_from_atlas_snr_circle_mask (directory,hotpixel_path,center_x, center_y,radius,
                                                                         fs=840,snr_thresh=2,photoncount_thre=photoncount_thre)
         
         # Trace_raw,dff= AtlasDecode.get_total_photonCount_atlas_continuous_circle_mask (directory,hotpixel_path,center_x, center_y,radius,fs=840,photoncount_thre=photoncount_thre)
-        i=i+1
         folder_name = f'{new_folder_name}{i}'
         save_folder = os.path.join(day_parent_folder, folder_name)
         print ('save_folder is', save_folder)
@@ -135,28 +135,16 @@ def main():
     #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
     hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
     
-    
-    # center_x, center_y,radius=53, 62, 35
-    # day_parent_folder='D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day5/'
-    # atlas_parent_folder=os.path.join(day_parent_folder,'Atlas')
-    # read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=200)
-    #15 not done
-   
-
-    center_x, center_y,radius=48, 64, 25
-    day_parent_folder='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day6/'
-    atlas_parent_folder=os.path.join(day_parent_folder,'Atlas')
-    read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=500)
-    
-    center_x, center_y,radius=48, 64, 25
-    day_parent_folder='E:/2025_ATLAS_SPAD/1836686_PV_mNeon_F/Day6/'
-    atlas_parent_folder=os.path.join(day_parent_folder,'Atlas')
-    read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=350)
+ 
+    center_x, center_y,radius=48, 63, 25
+    day_folder='D:/2025_ATLAS_SPAD/1842515_PV_mNeon_1/Day9/'
+    atlas_folder=os.path.join(day_folder,'Atlas')
+    read_multiple_Atlas_bin_folder(atlas_folder,day_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=300)
     
     center_x, center_y,radius=48, 63, 25
-    day_parent_folder='E:/2025_ATLAS_SPAD/1836686_PV_mNeon_F/Day7/'
-    atlas_parent_folder=os.path.join(day_parent_folder,'Atlas')
-    read_multiple_Atlas_bin_folder(atlas_parent_folder,day_parent_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=350)
+    day_folder='D:/2025_ATLAS_SPAD/Batch1/1836686_PV_mNeon_F/Day10/'
+    atlas_folder=os.path.join(day_folder,'Atlas')
+    read_multiple_Atlas_bin_folder(atlas_folder,day_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=300)
     
 
 if __name__ == "__main__":

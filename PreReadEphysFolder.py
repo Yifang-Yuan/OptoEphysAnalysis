@@ -134,14 +134,13 @@ def main():
     Fs_atlas=841.68
     recordingTime=Frame_num/Fs_atlas
     
-    save_parent_folder='E:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day6/'
+    save_parent_folder='D:/2025_ATLAS_SPAD/1842515_PV_mNeon_1/Day9/'
     read_multiple_Ephys_data_in_folder(save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
     
-    # save_parent_folder='E:/2025_ATLAS_SPAD/1836686_PV_mNeon_F/Day6/'
-    # read_multiple_Ephys_data_in_folder(save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
+    save_parent_folder='D:/2025_ATLAS_SPAD/Batch1/1836686_PV_mNeon_F/Day10/'
+    read_multiple_Ephys_data_in_folder(save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
     
-    # save_parent_folder='E:/2025_ATLAS_SPAD/1836686_PV_mNeon_F/Day7/'
-    # read_multiple_Ephys_data_in_folder(save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
-   
+ 
+
 if __name__ == "__main__":
     main()
