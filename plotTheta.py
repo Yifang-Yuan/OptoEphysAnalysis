@@ -260,7 +260,7 @@ def plot_raster_histogram_theta_phase(lfps, zscores, Fs=10000):
     #  - Top: averaged theta LFP waveform
     #  - Middle: raster plot of zscore firing times
     #  - Bottom: histogram of firing counts by theta phase
-    fig, axs = plt.subplots(3, 1, gridspec_kw={'height_ratios': [1, 2, 1]}, figsize=(8, 12))
+    fig, axs = plt.subplots(3, 1, gridspec_kw={'height_ratios': [1, 2, 1]}, figsize=(8, 10))
     
     # Plot the averaged theta band LFP
     axs[0].plot(time, theta_band_lfps_mean, color='#404040', label='Ripple Band Mean')
@@ -289,10 +289,10 @@ def plot_raster_histogram_theta_phase(lfps, zscores, Fs=10000):
     # Convert firing time (relative to cycle center) to phase:
     # When firing time = 0, phase = 0 (LFP minimum)
     # When firing time = ±(cycle_duration/2), phase = ±180 degrees
-    theta_phase = (zscore_fire_times / (cycle_duration / 2)) * 180 + 180   # in degrees
+    theta_phase = (zscore_fire_times / (cycle_duration / 2)) * 180    # in degrees
     
     # Histogram of firing counts binned by theta phase
-    axs[2].hist(theta_phase, bins=40, color='blue', alpha=0.7)
+    axs[2].hist(theta_phase, bins=80, color='blue', alpha=0.7)
     axs[2].set_xlabel('Theta Phase (degrees)', fontsize=16)
     axs[2].set_ylabel('Firing Count', fontsize=16)
     axs[2].set_title('Histogram of Zscore Firing by Theta Phase', fontsize=18)
@@ -342,26 +342,24 @@ def run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low
     Recording1.pynacollada_label_theta (LFP_channel,Low_thres=theta_low_thres,High_thres=10,save=False,plot_theta=True)
 
     
-    trough_index=Recording1.plot_theta_correlation(LFP_channel)
+    trough_index,peak_index=Recording1.plot_theta_correlation(LFP_channel)
     theta_part=Recording1.theta_part
     #theta_part=Recording1.Ephys_tracking_spad_aligned
-    theta_zscores_np,theta_lfps_np=OE.get_theta_cycle_value(theta_part, LFP_channel, trough_index, half_window=0.5, fs=Recording1.fs)
+    theta_zscores_np,theta_lfps_np=OE.get_theta_cycle_value(theta_part, LFP_channel, peak_index, half_window=0.5, fs=Recording1.fs)
     plot_aligned_theta_phase (save_path,LFP_channel,recordingName,theta_lfps_np,theta_zscores_np,Fs=10000)
     plot_raster_histogram_theta_phase (theta_lfps_np,theta_zscores_np,Fs=10000)
     return -1
 
 def run_theta_plot_main():
     'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
-    dpath='D:/2025_ATLAS_SPAD/1842515_PV_mNeon/Day7/' #sync3
+    dpath='D:/2025_ATLAS_SPAD/1851547_WT_mNeon/Day2/' 
     #dpath='D:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day2/' #sync1
-    recordingName='SyncRecording3'
+    recordingName='SyncRecording4'
     savename='ThetaSave_Move'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
     LFP_channel='LFP_1'
-    run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low_thres=0)
-    #run_theta_plot_selectpeak (dpath,LFP_channel,recordingName,savename,theta_low_thres=-0.3)
-    
-    
+    run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low_thres=0) #-0.3
+
 
 def main():    
     run_theta_plot_main()

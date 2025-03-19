@@ -822,11 +822,13 @@ class SyncOEpyPhotometrySession:
         #print (silced_recording.index)
         silced_recording['theta_angle']=OE.calculate_theta_phase_angle(silced_recording[LFP_channel], theta_low=5, theta_high=12) #range 5 to 9
         OE.plot_trace_in_seconds(silced_recording['theta_angle'],Fs=10000,title='theta angle')
-        trough_index = OE.calculate_theta_trough_index(silced_recording,Fs=10000)
+        trough_index,peak_index = OE.calculate_theta_trough_index(silced_recording,Fs=10000)
         #print (trough_index)
-        OE.plot_theta_cycle (silced_recording, LFP_channel,trough_index,half_window=0.15,fs=10000,plotmode='two')
+        OE.plot_theta_cycle (silced_recording, LFP_channel,peak_index,half_window=0.15,fs=10000,plotmode='two')
         OE.plot_zscore_to_theta_phase (silced_recording['theta_angle'],silced_recording['zscore_raw'])
-        return trough_index
+        OE.plot_zscore_troughs_to_theta_phase (silced_recording['theta_angle'],silced_recording['zscore_raw'])
+        OE.plot_zscore_troughs_to_theta_phase_boxplot(silced_recording['theta_angle'],silced_recording['zscore_raw'])
+        return trough_index,peak_index
     
     def pynappleAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,
                           Low_thres=1,High_thres=10,plot_segment=False,plot_ripple_ep=True,excludeTheta=True,excludeREM=False):

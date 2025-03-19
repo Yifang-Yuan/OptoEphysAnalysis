@@ -906,10 +906,13 @@ def calculate_theta_phase_angle(channel_data, theta_low=5, theta_high=9):
     return angle
 
 def calculate_theta_trough_index(df,Fs=10000):
-    troughs = (df['theta_angle'] < df['theta_angle'].shift(-1)) & (df['theta_angle'] < df['theta_angle'].shift(1)) & (df['theta_angle']<-3.13)
+    troughs = (df['theta_angle'] < df['theta_angle'].shift(-1)) & (df['theta_angle'] < df['theta_angle'].shift(1)) & (df['theta_angle']<-3.12)
+    #troughs = (df['theta_angle'] < df['theta_angle'].shift(-1)) & (df['theta_angle'] < df['theta_angle'].shift(1))
     trough_index = df.index[troughs]
+    peaks = (df['theta_angle']<0.01) & (df['theta_angle']>-0.01)
+    peak_index = df.index[peaks]
     #trough_time=trough_index/Fs
-    return trough_index
+    return trough_index,peak_index
 
 def plot_zscore_to_theta_phase (theta_angle,zscore_data):
     # Create a polar plot of ΔF/F against theta phase
@@ -945,6 +948,110 @@ def plot_zscore_to_theta_phase (theta_angle,zscore_data):
     ax.set_title("ΔF/F vs Theta Phase (Star Plot)", va='bottom')
     plt.show()
 
+def plot_zscore_troughs_to_theta_phase(theta_angle, zscore_data, bins=30):
+    """
+    Finds the minimum z-score in each theta cycle and plots a histogram of their theta phase locations.
+
+    Parameters:
+    - theta_angle: 1D numpy array or Pandas Series of theta phase angles (radians).
+    - zscore_data: 1D numpy array or Pandas Series of z-score values.
+    - bins: Number of phase bins for the histogram.
+    """
+
+    # Identify cycle boundaries (theta crosses from π to -π)
+    cycle_starts = np.where(np.diff(theta_angle) < -np.pi)[0] + 1  # +1 to move to the next cycle start
+
+    # Add first and last indices to ensure full cycles
+    cycle_starts = np.insert(cycle_starts, 0, 0)  # First point
+    cycle_starts = np.append(cycle_starts, len(theta_angle))  # Last point
+
+    # Store minimum z-score phase in each cycle
+    trough_phases = []
+
+    for i in range(len(cycle_starts) - 1):
+        start, end = cycle_starts[i], cycle_starts[i + 1]
+        cycle_zscores = zscore_data[start:end]
+        cycle_thetas = np.array(theta_angle[start:end])  # Convert to NumPy array
+
+        if len(cycle_zscores) > 0:
+            min_idx = np.argmin(cycle_zscores)  # Index of minimum z-score in this cycle
+            trough_phases.append(cycle_thetas[min_idx])  # Store corresponding theta phase
+
+    trough_phases = np.array(trough_phases)  # Convert to numpy array
+
+    # Plot histogram of z-score minima across theta phase
+    plt.figure(figsize=(8, 8))
+    ax = plt.subplot(111, polar=True)
+    ax.hist(trough_phases, bins=bins, color='red', alpha=0.6, edgecolor='black')
+    ax.set_title("Z-Score Troughs vs Theta Phase (Histogram)", va='bottom')
+    plt.show()
+
+from scipy.stats import circmean, circstd
+def plot_zscore_troughs_to_theta_phase_boxplot(theta_angle, zscore_data):
+    """
+    Finds the minimum z-score in each theta cycle, calculates the preferred theta phase,
+    and plots the preferred phase with error bars (95% CI).
+
+    Parameters:
+    - theta_angle: 1D numpy array of theta phase angles (radians).
+    - zscore_data: 1D numpy array of z-score values.
+    """
+
+    # Identify cycle boundaries (theta crosses from π to -π)
+    cycle_starts = np.where(np.diff(theta_angle) < -np.pi)[0] + 1  # +1 to move to the next cycle start
+
+    # Add first and last indices to ensure full cycles
+    cycle_starts = np.insert(cycle_starts, 0, 0)  # First point
+    cycle_starts = np.append(cycle_starts, len(theta_angle))  # Last point
+
+    # Store minimum z-score phase in each cycle
+    trough_phases = []
+
+    for i in range(len(cycle_starts) - 1):
+        start, end = cycle_starts[i], cycle_starts[i + 1]
+        cycle_zscores = zscore_data[start:end]
+        cycle_thetas = np.array(theta_angle[start:end])  # Convert to NumPy array
+
+        if len(cycle_zscores) > 0:
+            min_idx = np.argmin(cycle_zscores)  # Index of minimum z-score in this cycle
+            trough_phases.append(cycle_thetas[min_idx])  # Store corresponding theta phase
+
+    trough_phases = np.array(trough_phases)  # Convert to numpy array
+
+    # Convert to degrees for better interpretation
+    trough_phases_deg = np.degrees(trough_phases)
+
+    # Compute circular mean (preferred phase) in radians & degrees
+    preferred_phase_rad = circmean(trough_phases, high=np.pi, low=-np.pi)
+    preferred_phase_deg = np.degrees(preferred_phase_rad)
+
+    # Compute circular standard deviation
+    circ_std_rad = circstd(trough_phases, high=np.pi, low=-np.pi)
+    circ_std_deg = np.degrees(circ_std_rad)
+
+    # Compute standard error of the mean (SEM)
+    sem_rad = circ_std_rad / np.sqrt(len(trough_phases))
+    sem_deg = np.degrees(sem_rad)
+
+    # Compute 95% confidence interval
+    ci_lower = preferred_phase_deg - 1.96 * sem_deg
+    ci_upper = preferred_phase_deg + 1.96 * sem_deg
+    # Print results
+    print(f"Preferred Theta Phase (Degrees): {preferred_phase_deg:.2f}")
+    print(f"Circular Standard Deviation (Degrees): {circ_std_deg:.2f}")
+    print(f"95% Confidence Interval: [{ci_lower:.2f}, {ci_upper:.2f}]")
+    # Plot preferred phase with error bars
+    plt.figure(figsize=(4, 4))
+    plt.errorbar([0], [preferred_phase_deg], yerr=[[preferred_phase_deg - ci_lower], [ci_upper - preferred_phase_deg]], 
+                 fmt='o', color='red', capsize=5, label=f"Preferred Phase: {preferred_phase_deg:.1f}°")
+    # Formatting
+    plt.axhline(0, color='grey', linestyle='--', alpha=0.7)
+    plt.yticks(np.arange(-180, 181, 45))
+    plt.ylabel("Theta Phase (Degrees)")
+    plt.xticks([])
+    plt.title("Preferred Theta Phase with 95% CI")
+    plt.legend()
+    plt.show()
 
 def get_theta_cycle_value(df, LFP_channel, trough_index, half_window, fs=10000):
     df=df.reset_index(drop=True)
