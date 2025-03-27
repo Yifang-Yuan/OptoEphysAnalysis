@@ -47,6 +47,8 @@ Your raw data should be put in a one-day session folder like this:
 ### Option 2: Run three pre-prpcess file separately.
 Your raw data should be put in a one-day session folder like the above screenshot, but this method will allow you spot issues and missing files step by step.
 #### Step1. Analysing optical data
+##### NOTE: To analyse SPAD-photometry data recording from the SPC imager or the ATLAS imager, follow this document:
+https://github.com/Yifang-Yuan/OptoEphysAnalysis/tree/main/SPADPhotometryAnalysis#readme
 `PreReadpyPhotometryFolder.py` will process all pyPhotometry .csv data files in the same folder with a temporal order, i.e. files that created first will be read first. For each recording trial, a new folder **SyncRecording*** will be created to save .csv results (* start from 1). 
 
 To run `PreReadpyPhotometryFolder.py`, simply change your folder path in the **def main():** function and run the file.
