@@ -40,10 +40,10 @@ def notchfilter (data,f0=100,bw=10,fs=840):
 
 '''Read binary files for single ROI'''
 fs=840
-dpath='E:/ATLAS_SPAD/1825504_SimCre_GCamp8f_taper/Day2/SyncRecording4'
+dpath='F:/2025_ATLAS_SPAD/Batch1/1842515_PV_mNeon/Day7/SyncRecording1'
 # fs=1000
 # dpath='G:/YY/New/1765508_Jedi2p_CompareSystem/Day2_pyPhotometry/SyncRecording4'
-csv_filename='Zscore_traceAll.csv'
+csv_filename='Green_traceAll.csv'
 filepath=Analysis.Set_filename (dpath, csv_filename)
 #filepath='F:/SPADdata/SNR_test_2to16uW/Altas_SNR_20240318/18032024/smallROI_100Hznoise.csv'
 Trace_raw=Analysis.getSignalTrace (filepath, traceType='Constant',HighFreqRemoval=False,getBinTrace=False,bin_window=10)
@@ -66,7 +66,7 @@ trace_smooth=fp.smooth_signal(Trace_raw[8400:16800],4,'flat')
 fig, ax = plt.subplots(figsize=(8,2))
 plot_trace(trace_smooth,ax, fs,label='840Hz')
 
-trace_smooth=fp.smooth_signal(Trace_raw[16800:],4,'flat')
+trace_smooth=fp.smooth_signal(Trace_raw[8400:10000],4,'flat')
 
 #trace_smooth=notchfilter (Trace_raw,f0=100,bw=10,fs=840)
 fig, ax = plt.subplots(figsize=(8,2))

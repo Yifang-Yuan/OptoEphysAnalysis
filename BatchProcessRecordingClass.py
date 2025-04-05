@@ -33,8 +33,8 @@ def ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', IsTrackin
         Recording1=SyncOEpyPhotometrySession(parent_folder,SyncRecordingName,IsTracking=IsTracking,
                                              read_aligned_data_from_file=read_aligned_data_from_file,
                                              recordingMode=recordingMode,indicator=indicator) 
-        for i in range (1):
-            LFP_channel='LFP_'+str(i+4)
+        for i in range (2):
+            LFP_channel='LFP_'+str(i+3)
             #LFP_channel='LFP_4'
             #theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.5,High_thres=10)
     
@@ -48,7 +48,7 @@ def ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', IsTrackin
             savename='ThetaSave'
             '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
     
-            #plotTheta.run_theta_plot_all_cycle (parent_folder,LFP_channel,SyncRecordingName,savename,theta_low_thres=0)
+            plotTheta.run_theta_plot_all_cycle (parent_folder,LFP_channel,SyncRecordingName,savename,theta_low_thres=-0.3)
             
             '''RIPPLE DETECTION
             For a rigid threshold to get larger amplitude ripple events: Low_thres=3'''
@@ -58,7 +58,7 @@ def ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', IsTrackin
             
             'plot ripple heatmap'
             savename='RippleSave'
-            plotRipple.run_ripple_plot (parent_folder,LFP_channel,SyncRecordingName,savename,theta_cutoff=1)
+            plotRipple.run_ripple_plot (parent_folder,LFP_channel,SyncRecordingName,savename,theta_cutoff=0.5)
             
             #Recording1.plot_theta_correlation(LFP_channel)
             'Save Current Recording Class for this LFP channel to pickle'
@@ -74,7 +74,7 @@ def main():
     Put all your parent folders here for batch processing.
     recordingMode: 'py' for pyPhotometry recording, 'SPAD' for SPAD-SPC recording
     '''
-    parent_folder='D:/2025_ATLAS_SPAD/Batch1/1836686_PV_mNeon_F/Day10Sleep/'
+    parent_folder='F:/2025_ATLAS_SPAD/1842516_PV_Jedi2p/Day6/'
     ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', 
                                           IsTracking=True,read_aligned_data_from_file=False,recordingMode='Atlas',indicator='GEVI')
     

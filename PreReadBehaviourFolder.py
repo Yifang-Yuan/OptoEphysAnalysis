@@ -78,11 +78,27 @@ def main():
     '''Set the folder for the Behaviour recording, defualt folder names are usually date and time'''
     '''Set the parent folder your session results, this should be the same parent folder to save optical data'''
     
-    save_parent_folder='D:/2025_ATLAS_SPAD/1842515_PV_mNeon_1/Day9/'
+    save_parent_folder='F:/2025_ATLAS_SPAD/Batch1/1842515_PV_mNeon/Day10/'
     BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
     label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
     
-    save_parent_folder='D:/2025_ATLAS_SPAD/Batch1/1836686_PV_mNeon_F/Day10/'
+    save_parent_folder='F:/2025_ATLAS_SPAD/Batch1/1842515_PV_mNeon/Day11/'
+    BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
+    label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
+    
+    save_parent_folder='F:/2025_ATLAS_SPAD/1844607_PV_mNeon_F/Day6/'
+    BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
+    label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
+    
+    save_parent_folder='F:/2025_ATLAS_SPAD/1844607_PV_mNeon_F/Day7/'
+    BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
+    label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
+    
+    save_parent_folder='F:/2025_ATLAS_SPAD/1842516_PV_Jedi2p/Day5/'
+    BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
+    label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
+    
+    save_parent_folder='F:/2025_ATLAS_SPAD/1842516_PV_Jedi2p/Day6/'
     BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
     label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
    

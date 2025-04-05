@@ -655,9 +655,9 @@ def plot_wavelet(ax,sst,frequency,power,Fs=10000,colorBar=False,logbase=False):
     yax.set_major_formatter(ticker.ScalarFormatter())
     if colorBar: 
         fig = plt.gcf()  # Get the current figure
-        position = fig.add_axes([0.2, 0.01, 0.2, 0.01])
+        position = fig.add_axes([0.2, 0.01, 0.4, 0.01])
         #position = fig.add_axes()
-        cbar=plt.colorbar(CS, cax=position, orientation='horizontal', fraction=0.05, pad=0.5)
+        cbar=plt.colorbar(CS, cax=position, orientation='horizontal', fraction=0.1, pad=0.5)
         cbar.set_label('Power (mV$^2$)', fontsize=12) 
         #plt.subplots_adjust(right=0.7, top=0.9)              
     return -1
@@ -914,43 +914,108 @@ def calculate_theta_trough_index(df,Fs=10000):
     #trough_time=trough_index/Fs
     return trough_index,peak_index
 
-def plot_zscore_to_theta_phase (theta_angle,zscore_data):
-    # Create a polar plot of ΔF/F against theta phase
-    zscore_data=butter_filter(zscore_data, btype='low', cutoff=50, fs=10000, order=5)
-    #zscore_data=smooth_signal(zscore_data, Fs=10000, cutoff=50)
-    bins=30
-    plt.figure(figsize=(8, 8))
-    ax = plt.subplot(111, polar=True)
-    # Create a histogram of theta phases weighted by zscore_data
-    ax.hist(theta_angle, bins=bins, weights=zscore_data, color='blue', alpha=0.6, edgecolor='black')
-    ax.set_title("ΔF/F vs Theta Phase (Histogram)", va='bottom')
-    plt.show()
+# def plot_zscore_to_theta_phase (theta_angle,zscore_data):
+#     # Create a polar plot of ΔF/F against theta phase
+#     zscore_data=butter_filter(zscore_data, btype='low', cutoff=50, fs=10000, order=5)
+#     #zscore_data=smooth_signal(zscore_data, Fs=10000, cutoff=50)
+#     bins=30
+#     plt.figure(figsize=(6, 6))
+#     ax = plt.subplot(111, polar=True)
+#     # Create a histogram of theta phases weighted by zscore_data
+#     ax.hist(theta_angle, bins=bins, weights=zscore_data, color='green', alpha=0.6, edgecolor='black')
+#     ax.set_title("ΔF/F vs Theta Phase (Histogram)", va='bottom')
+#     plt.show()
     
+#     bin_edges = np.linspace(-np.pi, np.pi, bins + 1)
+#     bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+#     zscore_means = []
+
+#     for i in range(len(bin_edges) - 1):
+#         indices = (theta_angle >= bin_edges[i]) & (theta_angle < bin_edges[i + 1])
+#         zscore_means.append(np.mean(zscore_data[indices]))
+
+#     zscore_means = np.array(zscore_means)
+
+#     # Close the circular data
+#     zscore_means = np.append(zscore_means, zscore_means[0])
+#     bin_centers = np.append(bin_centers, bin_centers[0])
+
+#     # Create the polar plot
+#     plt.figure(figsize=(6, 6))
+#     ax = plt.subplot(111, polar=True)
+#     ax.plot(bin_centers, zscore_means, color='green', linewidth=2)
+#     #ax.fill(bin_centers, zscore_means, color='blue', alpha=0.3)
+#     ax.set_title("ΔF/F vs Theta Phase (Star Plot)", va='bottom')
+#     plt.show()
+    
+
+def set_polar_labels_vertical(ax):
+    """ Rotates polar tick labels to be vertical to the radius. """
+    angles = ax.get_xticks()
+    labels = [label.get_text() for label in ax.get_xticklabels()]
+
+    for angle, label in zip(angles, ax.get_xticklabels()):
+        label.set_rotation(np.degrees(angle) + 90)  # Rotate by angle + 90° for vertical
+        label.set_verticalalignment("center")
+        label.set_horizontalalignment("center")
+
+def plot_zscore_to_theta_phase(theta_angle, zscore_data):
+    # Apply a low-pass filter to z-score data
+    zscore_data = butter_filter(zscore_data, btype="low", cutoff=50, fs=10000, order=5)
+    bins = 30
+
+    # --- FIGURE 1: Histogram ---
+    fig1, ax1 = plt.subplots(figsize=(6, 6), subplot_kw={'projection': 'polar'})
+    ax1.hist(theta_angle, bins=bins, weights=zscore_data, color="#1b9e77", alpha=0.7, edgecolor="black")
+    ax1.set_title("ΔF/F vs Theta Phase (Histogram)", va="bottom", fontsize=14, fontweight="bold")
+    ax1.tick_params(axis='both', labelsize=14)
+    ax1.grid(False)
+    set_polar_labels_vertical(ax1)  # Apply label rotation
+
+    # Thicker circular border with alpha=0.5
+    ax1.spines['polar'].set_linewidth(2)
+    ax1.spines['polar'].set_alpha(0.5)
+
+    # Compute binned means
     bin_edges = np.linspace(-np.pi, np.pi, bins + 1)
     bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
-    zscore_means = []
+    zscore_means = [np.mean(zscore_data[(theta_angle >= bin_edges[i]) & (theta_angle < bin_edges[i + 1])]) for i in range(len(bin_edges) - 1)]
 
-    for i in range(len(bin_edges) - 1):
-        indices = (theta_angle >= bin_edges[i]) & (theta_angle < bin_edges[i + 1])
-        zscore_means.append(np.mean(zscore_data[indices]))
-
-    zscore_means = np.array(zscore_means)
-
-    # Close the circular data
+    # Close the circular data for proper plotting
     zscore_means = np.append(zscore_means, zscore_means[0])
     bin_centers = np.append(bin_centers, bin_centers[0])
 
-    # Create the polar plot
-    plt.figure(figsize=(8, 8))
-    ax = plt.subplot(111, polar=True)
-    ax.plot(bin_centers, zscore_means, color='blue', linewidth=2)
-    #ax.fill(bin_centers, zscore_means, color='blue', alpha=0.3)
-    ax.set_title("ΔF/F vs Theta Phase (Star Plot)", va='bottom')
-    plt.show()
+    # --- FIGURE 2: Line plot (Z-score means) ---
+    fig2, ax2 = plt.subplots(figsize=(6, 6), subplot_kw={'projection': 'polar'})
+    ax2.plot(bin_centers, zscore_means, color="#1b9e77", linewidth=3)
+    ax2.tick_params(axis='both', labelsize=16)
+    ax2.set_title("Z-Score vs Theta Phase", va="bottom", fontsize=14, fontweight="bold")
+    ax2.grid(False)
+    set_polar_labels_vertical(ax2)  # Apply label rotation
 
-def plot_zscore_troughs_to_theta_phase(theta_angle, zscore_data, bins=30):
+    # Thicker circular border with alpha=0.5
+    ax2.spines['polar'].set_linewidth(4)
+    ax2.spines['polar'].set_alpha(0.5)
+
+    # --- FIGURE 3: Line plot (-Z-score means) ---
+    fig3, ax3 = plt.subplots(figsize=(6, 6), subplot_kw={'projection': 'polar'})
+    ax3.plot(bin_centers, zscore_means, color="#d73027", linewidth=3)  # Reversed Z-score
+    ax3.set_ylim(ax3.get_ylim()[::-1])  # Flip radial axis
+    ax3.tick_params(axis='both', labelsize=16)
+    ax3.set_title("Reversed Z-Score vs Theta Phase", va="bottom", fontsize=14, fontweight="bold")
+    ax3.grid(False)
+    set_polar_labels_vertical(ax3)  # Apply label rotation
+
+    # Thicker circular border with alpha=0.5
+    ax3.spines['polar'].set_linewidth(4)
+    ax3.spines['polar'].set_alpha(0.5)
+
+    return fig1, fig2, fig3
+
+def plot_zscore_troughs_to_theta_phase(theta_angle, zscore_data, bins=40):
     """
-    Finds the minimum z-score in each theta cycle and plots a histogram of their theta phase locations.
+    Finds the minimum z-score in each theta cycle and plots a histogram of 
+    z-score troughs vs. theta phase with larger tick labels.
 
     Parameters:
     - theta_angle: 1D numpy array or Pandas Series of theta phase angles (radians).
@@ -979,12 +1044,20 @@ def plot_zscore_troughs_to_theta_phase(theta_angle, zscore_data, bins=30):
 
     trough_phases = np.array(trough_phases)  # Convert to numpy array
 
-    # Plot histogram of z-score minima across theta phase
-    plt.figure(figsize=(8, 8))
-    ax = plt.subplot(111, polar=True)
-    ax.hist(trough_phases, bins=bins, color='red', alpha=0.6, edgecolor='black')
-    ax.set_title("Z-Score Troughs vs Theta Phase (Histogram)", va='bottom')
+    # --- Single Polar Plot ---
+    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'projection': 'polar'})
+
+    # Histogram of z-score troughs vs theta phase
+    ax.hist(trough_phases, bins=bins, color="#d73027", alpha=0.7, edgecolor="black")
+    ax.set_title("Z-Score Troughs vs Theta Phase", va="bottom", fontsize=16, fontweight="bold")
+
+    # Increase tick label size
+    ax.tick_params(axis='both', labelsize=14)
+
+    ax.grid(False)
+
     plt.show()
+    return fig
 
 from scipy.stats import circmean, circstd
 def plot_zscore_troughs_to_theta_phase_boxplot(theta_angle, zscore_data):
@@ -1086,7 +1159,7 @@ def get_theta_cycle_value(df, LFP_channel, trough_index, half_window, fs=10000):
     cycle_data_values_lfp_np = np.vstack(cycle_data_values_lfp)
     return cycle_data_values_zscore_np,cycle_data_values_lfp_np
     
-def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmode='one'):
+def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmode='two'):
     half_window = half_window  # second
     # Initialize lists to store cycle data
     cycle_data_values_zscore = []
@@ -1096,6 +1169,7 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
     # Extract A values for each cycle and calculate mean and std
     # zscore_filtered=band_pass_filter(df['zscore_raw'],4,20,fs)
     # df['zscore_raw']=zscore_filtered
+    print ('trough_index[i]',trough_index)
     for i in range(len(trough_index)):
         start = int(trough_index[i] - half_cycle_time*fs)
         end = int(trough_index[i] + half_cycle_time*fs)
@@ -1117,39 +1191,37 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
     mean_lfp,std_lfp, CI_LFP=calculateStatisticNumpy (cycle_data_values_lfp_np)
 
     x = np.linspace(-half_window, half_window, len(mean_zscore))
-    if plotmode=='two':
-        fig, (ax1,ax2) = plt.subplots(2,1,figsize=(6, 6))
-        # Plot mean z-score on the first y-axis
-        ax1.plot(x, mean_zscore, color=sns.color_palette("husl", 8)[3], label='Mean zscore')
-        ax1.fill_between(x, CI_zscore[0], CI_zscore[1], color=sns.color_palette("husl", 8)[3], alpha=0.3,label='0.95 CI')
-        ax1.axvline(x=0, color='k',linestyle='--')
+    if plotmode == 'two':
+        fig, axs = plt.subplots(2, 1, figsize=(6, 5), sharex=True, dpi=300)
+        fig.patch.set_alpha(0)  # Transparent background
+    
+        # Plot z-score
+        axs[0].plot(x, mean_zscore, color=sns.color_palette("husl", 8)[3], linewidth=2)
+        axs[0].fill_between(x, CI_zscore[0], CI_zscore[1], color=sns.color_palette("husl", 8)[3], alpha=0.3)
+        axs[0].axvline(x=0, color='k', linestyle='--', linewidth=1)
+    
+        # Plot LFP
+        axs[1].plot(x, mean_lfp, color=sns.color_palette("husl", 8)[5], linewidth=2)
+        axs[1].fill_between(x, CI_LFP[0], CI_LFP[1], color=sns.color_palette("husl", 8)[5], alpha=0.3)
+        axs[1].axvline(x=0, color='k', linestyle='--', linewidth=1)
+    
+        # Formatting
+        axs[0].set_title('Averaged z-score and LFP during a theta cycle', fontsize=14, fontweight='bold', pad=10)
+        axs[0].set_ylabel('Z-score', fontsize=12)
+        axs[1].set_ylabel('Amplitude (μV)', fontsize=12)
+        axs[1].set_xlabel('Time (s)', fontsize=12)
+    
+        # Axis limits & clean styling
+        for ax in axs:
+            ax.spines[['top', 'right']].set_visible(False)  # Remove top and right spines
+            ax.tick_params(labelsize=10)
+            ax.set_xlim([-0.15, 0.15])  # Focus on main time window
+    
+        axs[0].tick_params(labelbottom=False, bottom=False)  # Hide x-label on top plot
         
-        ax1.set_ylabel('Zscore', color='k',fontsize=12)
-        ax1.set_title('Averaged z-score and LFP during a theta cycles',fontsize=14)
-        ax1.tick_params(labelbottom=False, bottom=False)
-        #ax1.legend(loc='upper right',frameon=False)
-        # Create a second y-axis and plot mean LFP on it
-        ax2.plot(x, mean_lfp, color=sns.color_palette("husl", 8)[5], label='Mean LFP')
-        ax2.fill_between(x, CI_LFP[0], CI_LFP[1], color=sns.color_palette("husl", 8)[5], alpha=0.3,label='0.95 CI')
-        ax2.set_ylabel('Amplitude (μV)', color='k',fontsize=12)
-        ax2.axvline(x=0, color='k',linestyle='--')
-        #ax2.legend(loc='upper right',frameon=False)
-        ax2.set_xlabel('Time (seconds)',fontsize=12)
-        # ax1.legend().set_visible(False)
-        # ax2.legend().set_visible(False)
-        ax1.spines['top'].set_visible(False)
-        ax1.spines['right'].set_visible(False)
-        ax1.spines['bottom'].set_visible(False)
-        #ax1.spines['left'].set_visible(False)
-        ax2.spines['top'].set_visible(False)
-        ax2.spines['right'].set_visible(False)
-        ax1.set_xlim([-0.15,0.15])
-        ax2.set_xlim([-0.15,0.15])
-        #ax2.spines['bottom'].set_visible(False)
-        #ax2.spines['left'].set_visible(False)
-        #plt.tight_layout()
+        plt.tight_layout()
         plt.show()
-    return -1
+    return fig
 
 
 def compute_and_plot_gamma_correlation(zscore, gamma_band, fs):

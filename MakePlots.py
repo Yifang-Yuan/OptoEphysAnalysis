@@ -20,7 +20,7 @@ def plot_oscillation_epoch_traces(ax,x_value,data1_mean,data2_mean,data1_std,dat
         ax.fill_between(x_value, data2_CI[0], data2_CI[1], color='dodgerblue', alpha=0.1, label='0.95 CI')
     
     # Add vertical line
-    ax.axvline(x=0, color='tomato', label=f'{mode} Peak')
+    #ax.axvline(x=0, color='tomato', label=f'{mode} Peak')
     # Set labels and title
     ax.set_xlabel('Time (seconds)')
     ax.set_ylabel('z-score')
@@ -41,7 +41,7 @@ def plot_oscillation_epoch_optical_peaks(ax,x_value,optical_peak_times,optical_p
     elif plotShade == 'CI':
         ax.fill_between(x_value, CI_LFP[0], CI_LFP[1], color='dodgerblue', alpha=0.1, label='0.95 CI')
     # Add vertical line
-    ax.axvline(x=0, color='tomato', label='Ripple Peak')
+    #ax.axvline(x=0, color='tomato', label='Ripple Peak')
     # Set labels and title
     ax.set_xlabel('Peak Time')
     ax.set_ylabel('Normalised signal')

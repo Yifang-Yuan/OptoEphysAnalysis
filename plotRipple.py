@@ -13,7 +13,7 @@ import pickle
 import matplotlib.pyplot as plt
 import seaborn as sns
 import glob
-
+from scipy.stats import sem
 
 
 def align_ripples (lfps,zscores,start_idx,end_idx,midpoint,Fs=10000):
@@ -119,7 +119,79 @@ def plot_aligned_ripple_save (save_path,LFP_channel,recordingName,ripple_trigger
     save_file_path = os.path.join(save_path,'ailgned_ripple_Zscore.pkl')
     with open(save_file_path, "wb") as file:
         pickle.dump(aligned_zscores, file)
-    return -1
+        
+    return aligned_ripple_band_lfps,aligned_zscores
+
+def plot_ripple_zscore(savepath, lfp_ripple, zscore):
+    """
+    Plot ripple band LFP with confidence interval, optical signal troughs as a raster plot, 
+    and a histogram of optical trough counts.
+
+    Parameters:
+        savepath (str): Path to save the figure.
+        lfp_ripple (numpy.ndarray): 2D array (epochs × timepoints) of ripple band LFPs.
+        zscore (numpy.ndarray): 2D array (epochs × timepoints) of optical signal z-scores.
+    """
+    fs = 10000  # Sampling rate in Hz
+    time = np.arange(lfp_ripple.shape[1]) / fs  # Convert indices to seconds
+    
+    # **Find midpoint and crop to -0.1s to 0.1s**
+    midpoint = len(time) // 2  # Find center index
+    time_window = (-0.05, 0.05)  # Define time range
+    idx_range = np.where((time - time[midpoint] >= time_window[0]) & (time - time[midpoint] <= time_window[1]))[0]
+    
+    # Crop time and data
+    time = time[idx_range] - time[midpoint]  # Centered time
+    lfp_ripple = lfp_ripple[:, idx_range]
+    zscore = zscore[:, idx_range]
+    
+    # Compute mean and 95% confidence interval for ripple band
+    mean_ripple = np.mean(lfp_ripple, axis=0)
+    ci_ripple = sem(lfp_ripple, axis=0) * 1.96  # 95% CI using standard error
+
+    # Identify troughs in z-score signal for raster plot
+    troughs = [np.argmin(epoch) for epoch in zscore]  # Find min per epoch
+    trough_times = time[troughs]  # Convert to time
+
+    # Create figure
+    fig, axes = plt.subplots(3, 1, figsize=(6, 8), gridspec_kw={'height_ratios': [1, 2, 1]})
+
+    # Plot ripple band LFPs with confidence interval
+    ax0 = axes[0]
+    ax0.plot(time, mean_ripple, color='black', label='Ripple Band Mean')
+    ax0.fill_between(time, mean_ripple - ci_ripple, mean_ripple + ci_ripple, color='gray', alpha=0.3, label='95% CI')
+    ax0.set_ylabel("Amplitude", fontsize=14)
+    ax0.tick_params(axis='both', labelsize=12)
+    ax0.set_xticklabels([])
+    ax0.legend(frameon=False)
+    ax0.spines['top'].set_visible(False)
+    ax0.spines['right'].set_visible(False)
+    
+    # Raster plot of z-score troughs
+    ax1 = axes[1]
+    for i, t in enumerate(trough_times):
+        ax1.plot([t, t], [i - 0.4, i + 0.4], color='red', lw=2)  # Small vertical lines as raster marks
+    ax1.set_ylabel("Epoch", fontsize=14)
+    ax1.tick_params(axis='both', labelsize=12)
+    ax1.set_xticklabels([])
+    ax1.set_xlim(time[0], time[-1])
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+    
+    # Histogram of trough times
+    ax2 = axes[2]
+    ax2.hist(trough_times, bins=60, color='#377eb8',alpha=0.8)  # Black edges added
+    ax2.set_xlabel("Time (s)",fontsize=14)
+    ax2.set_ylabel("Firing Count", fontsize=14)
+    ax2.spines['top'].set_visible(False)
+    ax2.spines['right'].set_visible(False)
+    ax2.tick_params(axis='both', labelsize=12)
+
+    # Save and show plot
+    plt.tight_layout()
+    plt.savefig(os.path.join(savepath, 'ripple_optical_raster.png'), transparent=True)
+    plt.show()
+
 
 '''recordingMode: use py, Atlas, SPAD for different systems'''
 def run_ripple_plot (dpath,LFP_channel,recordingName,savename,theta_cutoff=0.5):
@@ -137,7 +209,7 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,theta_cutoff=0.5):
     For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
     rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,
                                                 ep_start=0,ep_end=20,
-                                                Low_thres=1.5,High_thres=10,
+                                                Low_thres=1.8,High_thres=10,
                                                 plot_segment=False,plot_ripple_ep=False,excludeTheta=False)
 
     'GEVI has a negative'
@@ -152,18 +224,19 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,theta_cutoff=0.5):
         ripple_triggered_LFP_values=Recording1.ripple_triggered_LFP_values_4
 
     ripple_triggered_zscore_values=Recording1.ripple_triggered_zscore_values
-    plot_aligned_ripple_save (save_path,LFP_channel,recordingName,ripple_triggered_LFP_values,ripple_triggered_zscore_values,Fs=10000)
+    aligned_ripple_band_lfps,aligned_zscores=plot_aligned_ripple_save (save_path,LFP_channel,recordingName,ripple_triggered_LFP_values,ripple_triggered_zscore_values,Fs=10000)
+    plot_ripple_zscore(save_path, aligned_ripple_band_lfps, aligned_zscores)
     return -1
 
 def run_ripple_plot_main():
     'This is to process a single or concatenated rial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
-    dpath='D:/2025_ATLAS_SPAD/1842515_PV_mNeon_1/Day9SleepB/'
-    recordingName='SyncRecording19'
+    dpath='F:/2025_ATLAS_SPAD/1842516_PV_Jedi2p/Day6/'
+    
+    recordingName='Saved4to7Trials'
     savename='RippleSave_Sleep'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-    LFP_channel='LFP_3'
+    LFP_channel='LFP_4'
     run_ripple_plot (dpath,LFP_channel,recordingName,savename,theta_cutoff=0.5)
-
 
 def main():    
     run_ripple_plot_main()

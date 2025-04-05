@@ -445,7 +445,7 @@ class SyncOEpyPhotometrySession:
     def plot_two_traces_lineSpeed (self, spad_data,lfp_data, speed_series, spad_label='spad',lfp_label='LFP',Spectro_ylim=20,AddColorbar=False):
         lfp_data=lfp_data/1000
         
-        fig, ax = plt.subplots(4, 1, figsize=(10, 8))
+        fig, ax = plt.subplots(4, 1, figsize=(20, 16))
         OE.plot_trace_in_seconds_ax (ax[0],spad_data,self.fs,label=spad_label,color=sns.color_palette("husl", 8)[3],
                                ylabel='z-score',xlabel=False)
         OE.plot_trace_in_seconds_ax (ax[1],lfp_data,self.fs,label=lfp_label,color=sns.color_palette("husl", 8)[5],ylabel='uV')
@@ -567,12 +567,12 @@ class SyncOEpyPhotometrySession:
     
     def plot_segment_band_feature (self,LFP_channel,start_time,end_time,SPAD_cutoff,lfp_cutoff):
         silced_recording=self.slicing_pd_data (self.Ephys_tracking_spad_aligned,start_time=start_time, end_time=end_time)
-        #SPAD_smooth= OE.butter_filter(data['zscore_raw'], btype='high', cutoff=0.5, fs=self.fs, order=5)
+       
         SPAD_smooth= OE.smooth_signal(silced_recording['zscore_raw'],Fs=self.fs,cutoff=SPAD_cutoff)
-        #SPAD_smooth= OE.butter_filter(SPAD_smooth, btype='high', cutoff=2, fs=self.fs, order=3)
+        SPAD_smooth= OE.butter_filter(SPAD_smooth, btype='high', cutoff=3, fs=self.fs, order=3)
         
         lfp_lowpass = OE.butter_filter(silced_recording[LFP_channel], btype='low', cutoff=lfp_cutoff, fs=self.fs, order=5)
-        #lfp_lowpass = OE.butter_filter(lfp_lowpass, btype='high', cutoff=2, fs=self.fs, order=3)
+        lfp_lowpass = OE.butter_filter(lfp_lowpass, btype='high', cutoff=2, fs=self.fs, order=3)
         spad_low = pd.Series(SPAD_smooth, index=silced_recording['zscore_raw'].index)
         lfp_low = pd.Series(lfp_lowpass, index=silced_recording[LFP_channel].index)
         
@@ -659,9 +659,10 @@ class SyncOEpyPhotometrySession:
     def plot_lowpass_two_trace (self,data, LFP_channel,SPAD_cutoff,lfp_cutoff, plotSpeed=False):
         #SPAD_smooth= OE.butter_filter(data['zscore_raw'], btype='high', cutoff=0.5, fs=self.fs, order=5)
         SPAD_smooth= OE.smooth_signal(data['zscore_raw'],Fs=self.fs,cutoff=SPAD_cutoff)
-        SPAD_smooth= OE.butter_filter(SPAD_smooth, btype='high', cutoff=1, fs=self.fs, order=5)
-        lfp_lowpass = OE.butter_filter(data[LFP_channel], btype='high', cutoff=1, fs=self.fs, order=5)
-        lfp_lowpass = OE.butter_filter(lfp_lowpass, btype='low', cutoff=lfp_cutoff, fs=self.fs, order=5)
+        SPAD_smooth= OE.butter_filter(SPAD_smooth, btype='high', cutoff=2.5, fs=self.fs, order=3)
+        lfp_lowpass = OE.butter_filter(data[LFP_channel],btype='low', cutoff=lfp_cutoff, fs=self.fs, order=5)
+        #lfp_lowpass = OE.butter_filter(lfp_lowpass, btype='high', cutoff=0.5, fs=self.fs, order=3)
+
         spad_low = pd.Series(SPAD_smooth, index=data['zscore_raw'].index)
         lfp_low = pd.Series(lfp_lowpass, index=data[LFP_channel].index)
         if plotSpeed:
@@ -824,11 +825,11 @@ class SyncOEpyPhotometrySession:
         OE.plot_trace_in_seconds(silced_recording['theta_angle'],Fs=10000,title='theta angle')
         trough_index,peak_index = OE.calculate_theta_trough_index(silced_recording,Fs=10000)
         #print (trough_index)
-        OE.plot_theta_cycle (silced_recording, LFP_channel,peak_index,half_window=0.15,fs=10000,plotmode='two')
-        OE.plot_zscore_to_theta_phase (silced_recording['theta_angle'],silced_recording['zscore_raw'])
-        OE.plot_zscore_troughs_to_theta_phase (silced_recording['theta_angle'],silced_recording['zscore_raw'])
+        fig=OE.plot_theta_cycle (silced_recording, LFP_channel,peak_index,half_window=0.15,fs=10000,plotmode='two')
+        fig1,fig2,fig3=OE.plot_zscore_to_theta_phase (silced_recording['theta_angle'],silced_recording['zscore_raw'])
+        fig4=OE.plot_zscore_troughs_to_theta_phase (silced_recording['theta_angle'],silced_recording['zscore_raw'])
         OE.plot_zscore_troughs_to_theta_phase_boxplot(silced_recording['theta_angle'],silced_recording['zscore_raw'])
-        return trough_index,peak_index
+        return trough_index,peak_index,fig,fig1,fig2,fig3,fig4
     
     def pynappleAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,
                           Low_thres=1,High_thres=10,plot_segment=False,plot_ripple_ep=True,excludeTheta=True,excludeREM=False):
@@ -1528,7 +1529,7 @@ class SyncOEpyPhotometrySession:
 
         silced_recording['theta_angle']=OE.calculate_theta_phase_angle(silced_recording[LFP_channel], theta_low=5, theta_high=9)
         #OE.plot_trace_in_seconds(silced_recording['theta_angle'],Fs=10000,title='theta angle')
-        trough_index = OE.calculate_theta_trough_index(silced_recording,Fs=self.fs)
+        trough_index,peak_index = OE.calculate_theta_trough_index(silced_recording,Fs=self.fs)
         #print (trough_index)
         
         gamma_band=(55, 80)
@@ -1734,7 +1735,7 @@ class SyncOEpyPhotometrySession:
         if mode=='ripple':
             event_peak_times=self.rip_tsd.index.to_numpy()
             savename='_RipplePeak_'
-            cutoff=100
+            cutoff=150
         if mode=='theta':
             event_peak_times=self.theta_tsd.index.to_numpy()
             savename='_ThetaPeak_'
@@ -1851,7 +1852,7 @@ class SyncOEpyPhotometrySession:
         fig.suptitle(f'Mean optical transient triggered by {mode} peak in {lfp_channel}')
         plt.tight_layout()
         figName = self.recordingName + savename + 'OpticalMean_' + lfp_channel + '.png'
-        fig.savefig(os.path.join(self.savepath, figName))
+        fig.savefig(os.path.join(self.savepath, figName), transparent=True)
         plt.show()
         
         peak_values=np.array(peak_values)
@@ -1895,7 +1896,7 @@ class SyncOEpyPhotometrySession:
         fig.suptitle(f'Optical peaks during {mode} Event on {lfp_channel}')
         plt.tight_layout()
         figName=self.recordingName+savename+'peaktime_'+lfp_channel+'.png'
-        fig.savefig(os.path.join(self.savepath,figName))
+        fig.savefig(os.path.join(self.savepath,figName), transparent=True)
         plt.show()
         return -1
     
@@ -1927,18 +1928,20 @@ class SyncOEpyPhotometrySession:
         #event_corr_array=OE.align_numpy_array_to_same_length (cross_corr_values)
         event_corr_array=cross_corr_values
         mean_cross_corr,std_cross_corr, CI_cross_corr=OE.calculateStatisticNumpy (event_corr_array)
+        max_index = np.argmax(np.abs(mean_cross_corr))
+        max_mean = mean_cross_corr[max_index]
+        max_CI = CI_cross_corr[0][max_index],CI_cross_corr[1][max_index]
+        print("Maximum Mean INdex:", max_index)
+        print("Maximum Mean Value:", max_mean)
+        print("Corresponding CI Value:", max_CI)
         if mode=='ripple':
             self.ripple_event_corr_array=event_corr_array
 
         if mode=='theta':
             self.theta_event_corr_array=event_corr_array
             # Assuming mean_cross_corr and CI_cross_corr have already been calculated
-            max_index = np.argmax(np.abs(mean_cross_corr))
-            max_mean = mean_cross_corr[max_index]
-            max_CI = CI_cross_corr[0][max_index],CI_cross_corr[1][max_index]
-            print("Maximum Mean INdex:", max_index)
-            print("Maximum Mean Value:", max_mean)
-            print("Corresponding CI Value:", max_CI)
+            
+
             # # Save mean_cross_corr to a pickle file
             # with open(os.path.join(self.dpath,'mean_cross_corr.pkl'), 'wb') as f:
             #     pickle.dump(mean_cross_corr, f)
@@ -1947,28 +1950,24 @@ class SyncOEpyPhotometrySession:
             #     pickle.dump(CI_cross_corr, f)
             
         x = np.linspace((-len(mean_cross_corr)/2)/self.fs, (len(mean_cross_corr)/2)/self.fs, len(mean_cross_corr))  
-        fig, ax = plt.subplots(figsize=(5, 3))
+        fig, ax = plt.subplots(figsize=(6, 4.5))
         # Plot the mean cross-correlation
         ax.plot(x, mean_cross_corr, color='#404040', label='Mean Cross Correlation')
         # Fill between for the confidence interval
         ax.fill_between(x, CI_cross_corr[0], CI_cross_corr[1], color='#404040', alpha=0.2, label='0.95 CI')
         # Set labels and title
-        ax.set_xlabel('Lags (seconds)')
-        ax.set_ylabel('Cross-Correlation')
+        ax.set_xlabel('Lags (seconds)', fontsize=14)
+        ax.set_ylabel('Cross-Correlation', fontsize=14)
+        ax.tick_params(axis='both', labelsize=12)
         ax.set_title('Mean Cross-Correlation (1-Second Window)')
         
         # Remove spines
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
-        #ax.set_xlim([-0.5,0.5])
-        #ax.spines['bottom'].set_visible(False)
-        #ax.spines['left'].set_visible(False)
-        # Optionally remove ticks and labels
-        #ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
         ax.legend().set_visible(False)
         #plt.grid()
         figName=self.recordingName+savename+'CrossCorrelation_'+lfp_channel+'.png'
-        plt.savefig(os.path.join(self.savepath,figName))
+        plt.savefig(os.path.join(self.savepath,figName), transparent=True)
         plt.show()
         return -1
     
