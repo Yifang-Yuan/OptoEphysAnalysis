@@ -135,7 +135,6 @@ def plot_theta_aligned_by_trough (save_path,LFP_channel,recordingName,theta_trig
     with open(save_file_path, "wb") as file:
         pickle.dump(aligned_zscores, file)
         
-        
     cross_corr_values = []
     for i in range(len(aligned_lfps)):
         # segment_z_score=aligned_zscores[i,start_idx:end_idx]
@@ -391,7 +390,7 @@ def run_theta_plot_main():
     #dpath='E:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day5/' #Pyramidal cell example
     
     dpath='F:/2025_ATLAS_SPAD/Figure4_PV_thata/SameAnimal/ThetaTrials/' 
-    recordingName='SyncRecording9'
+    recordingName='SyncRecording1'
     savename='ThetaSave_Move'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
     LFP_channel='LFP_1'
