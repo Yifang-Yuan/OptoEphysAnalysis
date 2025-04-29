@@ -29,7 +29,7 @@ def plot_GEVI_theta_correlation(SyncRecordingObject):
 #%%
 '''recordingMode: use py, Atlas, SPAD for different systems
 '''
-dpath= 'E:/2025_ATLAS_SPAD/Batch1/1842515_PV_mNeon/Day7/'
+dpath= 'F:/2025_ATLAS_SPAD/PVCre/1842515_PV_mNeon/Day7/'
 #dpath='E:/ATLAS_SPAD/1825507_mCherry/Day1/'
 recordingName='SyncRecording3'
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,
@@ -39,14 +39,15 @@ LFP_channel='LFP_1'
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined theta period.
 nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-#theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.3,High_thres=8,save=False,plot_theta=True)
-plot_GEVI_theta_correlation(Recording1)
+theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.3,High_thres=8,save=False,plot_theta=True)
+#plot_GEVI_theta_correlation(Recording1)
 #%%
 '''Here for the spectrum, I used a 0.5Hz high pass filter to process both signals'''
-timewindow=3 #the duration of the segment, in seconds
-viewNum=10 #the number of segments
+timewindow=1 #the duration of the segment, in seconds
+viewNum=30 #the number of segments
 for i in range(viewNum):
-    Recording1.plot_segment_band_feature (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=200)
+    Recording1.plot_segment_feature (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=500)
+    #Recording1.plot_segment_band_feature (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=200)
     #Recording1.plot_freq_power_coherence (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=200)
 
 #%%
@@ -55,7 +56,7 @@ start_time=23
 end_time=26
 Recording1.plot_segment_band_feature (LFP_channel,start_time,end_time,SPAD_cutoff=20,lfp_cutoff=500)
 coherence=Recording1.plot_freq_power_coherence (LFP_channel,start_time,end_time,SPAD_cutoff=20,lfp_cutoff=500)
-
+Recording1.plot_segment_feature (LFP_channel,start_time,end_time,SPAD_cutoff=50,lfp_cutoff=500)
 
 
 #%%

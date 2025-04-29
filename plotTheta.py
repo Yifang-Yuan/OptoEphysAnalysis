@@ -270,8 +270,8 @@ def plot_raster_histogram_theta_phase(save_path,lfps, zscores, Fs=10000):
     # Time window cropping
     theta_sample_numbers = len(lfps[0])
     midpoint = theta_sample_numbers // 2
-    start_idx = int(midpoint - 0.063 * Fs)  # 0.065 s before midpoint
-    end_idx = int(midpoint + 0.063 * Fs)    # 0.065 s after midpoint
+    start_idx = int(midpoint - 0.065 * Fs)  # 0.065 s before midpoint
+    end_idx = int(midpoint + 0.065 * Fs)    # 0.065 s after midpoint
 
     # Filter LFPs into theta band
     theta_band_lfps_by_phase = np.array([OE.band_pass_filter(lfp, 5, 12, Fs) for lfp in lfps])
@@ -283,7 +283,7 @@ def plot_raster_histogram_theta_phase(save_path,lfps, zscores, Fs=10000):
 
     # Compute average and confidence intervals
     theta_band_lfps_mean, theta_band_lfps_std, theta_band_lfps_CI = OE.calculateStatisticNumpy(theta_band_lfps_by_phase)
-    time = np.linspace(-0.063, 0.063, len(theta_band_lfps_mean))
+    time = np.linspace(-0.065, 0.065, len(theta_band_lfps_mean))
 
     # Create figure with 3 subplots
     fig, axs = plt.subplots(3, 1, figsize=(6, 8), gridspec_kw={'height_ratios': [1, 2, 1]})
@@ -389,12 +389,12 @@ def run_theta_plot_main():
     'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
     #dpath='E:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day5/' #Pyramidal cell example
     
-    dpath='F:/2025_ATLAS_SPAD/Figure4_PV_thata/SameAnimal/ThetaTrials/' 
-    recordingName='SyncRecording1'
+    dpath='F:/2025_ATLAS_SPAD/PVCre/1842515_PV_mNeon/Day7/'
+    recordingName='SyncRecording3'
     savename='ThetaSave_Move'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
     LFP_channel='LFP_1'
-    run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low_thres=0) #-0.3
+    run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low_thres=-0.3) #-0.3
 
 
 def main():    

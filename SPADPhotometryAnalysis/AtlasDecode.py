@@ -21,6 +21,7 @@ def loadPCFrame (readData):
     orig = np.repeat((np.repeat(np.arange(8).reshape((1, 8)), 128, 0)), 16, 0).reshape((128, 128))
     add = np.repeat(np.array(np.repeat(np.arange(16).reshape(1, 16), 128, 0)), 8, 1) * 1024
     add2 = np.repeat(np.array(np.arange(128).reshape(128, 1)), 128, 1) * 8
+
     lut = orig + add + add2
     insertionIndices = np.repeat(np.array(np.arange(1024)), 20, 0)*44
 
@@ -148,32 +149,7 @@ def find_circle_mask(pixel_array,radius=12,threh=0.5):
                 if average_photon_count > max_avg_photon_count:
                     max_avg_photon_count = average_photon_count
                     best_center = (center_x, center_y)
-    best_radius = radius   
-             
-    # for r in radius_range:
-    #     outer_circle_mask = (x - best_center[0]) ** 2 + (y - best_center[1]) ** 2 <= r ** 2
-    #     inner_circle_mask = (x - best_center[0]) ** 2 + (y - best_center[1]) ** 2 <= (r-2) ** 2
-    #     ring_mask = outer_circle_mask & ~inner_circle_mask
-    #     plt.imshow(ring_mask)
-    #     mask_area = np.sum(ring_mask)
-    #     if mask_area > 0:
-    #         total_photon_count = np.sum(pixel_array[ring_mask])
-    #         average_photon_count = total_photon_count / mask_area
-    #         if average_photon_count < max_avg_photon_count*threh:
-    #             best_radius = r
-    #             break
-                
-    # plt.figure(figsize=(4, 4))
-    # plt.imshow(pixel_array, cmap='hot')
-    # plt.colorbar(label='Photon Count')
-    # # Draw the best detected circle
-    # circle = plt.Circle(best_center,best_radius , color='cyan', fill=False, linewidth=2, label='Best Circle')
-    # plt.gca().add_patch(circle)
-    # plt.title('Find ROI')
-    # plt.xlabel('X',fontsize=12)
-    # plt.ylabel('Y',fontsize=12)
-    # plt.legend(loc='upper right')
-    # plt.show()
+    best_radius = radius
     while True: 
         # Plot the image with the best circle overlay
         plt.figure(figsize=(4, 4))
@@ -306,7 +282,7 @@ def get_snr_image(data):
 
 
 def mask_low_snr_pixels(snr_image, thresh):
-    mask = np.ones((128, 128))
+    mask = np.ones(snr_image.shape)
     mask[np.where(snr_image<thresh)] = 0
     return mask
 
@@ -467,6 +443,155 @@ def get_total_photonCount_atlas_continuous_circle_mask (dpath,hotpixel_path,cent
     fig, ax = plt.subplots(figsize=(8, 2))
     plot_trace(dff,ax, fs, label="df/f")
     return Trace_raw,dff
+
+def loadPCFrame_smallFOV (readData):
+    '''loads a sensor bytestream file containing a single Photon Count frame
+        into a bytearray that can be used to perform operations on in python
+    '''
+    orig = np.repeat((np.repeat(np.arange(8).reshape((1, 8)), 128, 0)), 8, 0).reshape((64, 128))
+    add = np.repeat(np.array(np.repeat(np.arange(16).reshape(1, 16), 64, 0)), 8, 1) * 512
+    add2 = np.repeat(np.array(np.arange(64).reshape(64, 1)), 128, 1) * 8
+
+    lut = orig + add + add2
+
+    insertionIndices = np.repeat(np.array(np.arange(512)), 10, 0)*44
+
+    readData = np.insert(readData, insertionIndices, 0, 0)    #insert pads to make stream 32 bit ints BEFORE unpacking and reordering
+    #print("padded array shape: {}".format(readData.shape))      #16384 pixels * 4 bytes = 65536 bytes
+    readData = readData.reshape((-1, 2))            #reshape to match output of ATLAS
+    readData = np.roll(readData, 1, 1)              #get top and bottom half of image correct (swap top and bottom half of image)
+    readData = np.unpackbits(readData, 1)
+    readData = np.split(readData, 512, 0)
+    readData = np.packbits(readData, 1, 'big')
+    readData = np.flip(readData, 1)
+    readData = np.swapaxes(readData, 1, 2)
+    readData = np.ascontiguousarray(readData)
+    readData = readData.view(np.int32)
+    readData = np.swapaxes(readData, 0, 1)
+    readData = readData.reshape((-1, 1))            #reshape to match output of ATLAS
+    readData = readData[lut]
+    return readData
+
+def decode_atlas_folder_smallFOV (folderpath,hotpixel_path,photoncount_thre=2000):
+    'Not using the hotpixel mask for small FOV and it works fine'
+    files = os.listdir(folderpath)
+    # Filter out the CSV files that match the pattern 'AnimalTracking_*.csv'
+    frame_files = [file for file in files if file.startswith('frame_') and file.endswith('.mat')]
+    # Sort the CSV files based on the numerical digits in their filenames
+    sorted_mat_files = sorted(frame_files, key=lambda x: int(x.split('_')[-1].split('.')[0]))
+    #print (sorted_mat_files)
+    pixel_arrays = []
+    hotpixel_indices= np.loadtxt(hotpixel_path, delimiter=',', dtype=int)
+    i=0
+    for file in sorted_mat_files:
+        #print ('framefile name', file)
+        single_frame_data_path = os.path.join(folderpath, file)
+        matdata = loadmat(single_frame_data_path)
+        real_data=matdata['realData']
+        readData=loadPCFrame_smallFOV(real_data) #decode data to single pixel frame
+        
+        readData=remove_hotpixel(readData,photoncount_thre) #REMOVE hotpixel by a threshold
+        single_pixel_array=readData[:,:,0]
+        #single_pixel_array[hotpixel_indices[:, 0], hotpixel_indices[:, 1]] = 0 #REMOVE HOTPIXEL FROM MASK
+        i=i+1
+        if i>0:
+            pixel_arrays.append(single_pixel_array)
+    pixel_array_all_frames = np.stack(pixel_arrays, axis=2)
+    sum_pixel_array = np.sum(pixel_array_all_frames, axis=2)
+    avg_pixel_array =np.mean(pixel_array_all_frames, axis=2)
+    
+    return pixel_array_all_frames,sum_pixel_array,avg_pixel_array
+
+def get_dff_from_atlas_snr_circle_mask_smallFOV (dpath,hotpixel_path,center_x, center_y,radius,fs=840,snr_thresh=2,photoncount_thre=2000):
+    pixel_array_all_frames,_,avg_pixel_array=decode_atlas_folder_smallFOV (dpath,hotpixel_path,photoncount_thre=photoncount_thre)
+        
+    mean_image, std_image, snr_image = get_snr_image(pixel_array_all_frames)
+    pixel_mask = mask_low_snr_pixels(snr_image, snr_thresh)
+
+    shape = pixel_array_all_frames.shape[0:2] 
+    y, x = np.ogrid[:shape[0], :shape[1]]
+    roi_mask = (x - center_x) ** 2 + (y - center_y) ** 2 <= radius ** 2
+    
+    fig, ax = plt.subplots(figsize=(5, 5))
+    pos = ax.imshow(snr_image, cmap='viridis')  # Adjust colormap if desired
+    ax.set_title('SNR')
+    fig.colorbar(pos, ax=ax)
+    circle = plt.Circle((center_x,center_y), radius, color='cyan', fill=False, linewidth=2, label='Best Circle')
+    plt.gca().add_patch(circle)
+    plt.tight_layout()
+    plt.show()
+    
+    fig, ax = plt.subplots(figsize=(5, 5))
+    pos = ax.imshow(avg_pixel_array, cmap='viridis')  # Adjust colormap if desired
+    ax.set_title('Averaged')
+    fig.colorbar(pos, ax=ax)
+    circle = plt.Circle((center_x,center_y), radius, color='cyan', fill=False, linewidth=2, label='Best Circle')
+    plt.gca().add_patch(circle)
+    plt.tight_layout()
+    plt.show()
+    #extract the trace based on the roi_mask and hot_pixel_mask
+    trace = extract_trace(pixel_array_all_frames, roi_mask, pixel_mask, activity = 'mean')
+    #print('original lenth: ', len(mean_values_over_time))
+    Trace_raw=trace[1:]
+    #print('trace_raw lenth 1: ', len(Trace_raw))
+    Trace_raw = np.append(Trace_raw, Trace_raw[-1])
+
+    fig, ax = plt.subplots(figsize=(8, 2))
+    plot_trace(Trace_raw,ax, fs, label="raw_data")
+    lambd = 10e3 # Adjust lambda to get the best fit
+    porder = 1
+    itermax = 15
+    sig_base=fp.airPLS(Trace_raw,lambda_=lambd,porder=porder,itermax=itermax) 
+    signal = (Trace_raw - sig_base)  
+    dff=100*signal / sig_base
+    
+    fig, ax = plt.subplots(figsize=(8, 2))
+    plot_trace(dff,ax, fs, label="df/f")
+    plt.show()
+    return Trace_raw,dff
+
+def get_dff_from_pixel_array_smallFOV (pixel_array_all_frames,avg_pixel_array,hotpixel_path,center_x, center_y,radius,fs=840,snr_thresh=2): 
+        
+    mean_image, std_image, snr_image = get_snr_image(pixel_array_all_frames)
+    pixel_mask = mask_low_snr_pixels(snr_image, snr_thresh)
+
+    shape = pixel_array_all_frames.shape[0:2] 
+    y, x = np.ogrid[:shape[0], :shape[1]]
+    roi_mask = (x - center_x) ** 2 + (y - center_y) ** 2 <= radius ** 2
+    
+    print (pixel_mask.shape)
+    print (roi_mask.shape)
+    
+    fig, ax = plt.subplots(figsize=(5, 5))
+    pos = ax.imshow(snr_image, cmap='viridis')  # Adjust colormap if desired
+    ax.set_title('SNR')
+    fig.colorbar(pos, ax=ax)
+    circle = plt.Circle((center_x,center_y), radius, color='cyan', fill=False, linewidth=2, label='Best Circle')
+    plt.gca().add_patch(circle)
+    plt.tight_layout()
+    plt.show()
+    
+    fig, ax = plt.subplots(figsize=(5, 5))
+    pos = ax.imshow(avg_pixel_array, cmap='viridis')  # Adjust colormap if desired
+    ax.set_title('Averaged')
+    fig.colorbar(pos, ax=ax)
+    circle = plt.Circle((center_x,center_y), radius, color='cyan', fill=False, linewidth=2, label='Best Circle')
+    plt.gca().add_patch(circle)
+    plt.tight_layout()
+    plt.show()
+    #extract the trace based on the roi_mask and hot_pixel_mask
+    trace = extract_trace(pixel_array_all_frames, roi_mask, pixel_mask, activity = 'mean')
+    #print('original lenth: ', len(mean_values_over_time))
+    Trace_raw=trace[1:]
+    #print('trace_raw lenth 1: ', len(Trace_raw))
+    Trace_raw = np.append(Trace_raw, Trace_raw[-1])
+
+    fig, ax = plt.subplots(figsize=(8, 2))
+    plot_trace(Trace_raw,ax, fs, label="raw_data")
+
+    plt.show()
+    return Trace_raw
+
 # def get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange= [25, 85],yyrange= [30, 90],fs=840,photoncount_thre=2000):
 #     pixel_array_all_frames,sum_pixel_array,_=decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=photoncount_thre)
 #     _,mean_values_over_time,_=get_trace_from_3d_pixel_array(pixel_array_all_frames,sum_pixel_array,xxrange,yyrange)

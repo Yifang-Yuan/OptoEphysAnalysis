@@ -13,7 +13,7 @@ from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 #%% Workable code, above is testin
 #ppath='D:/ATLAS_SPAD/1825505_SimCre/Day2/Atlas/'
 
-dpath='F:/2025_ATLAS_SPAD/1842516_PV_Jedi2p/Day6/Test/'
+dpath='F:/2025_ATLAS_SPAD/PVCre/1842516_PV_Jedi2p/Day6/Test/'
 #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
 hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
 
@@ -24,7 +24,7 @@ AtlasDecode.show_image_with_pixel_array(avg_pixel_array,showPixel_label=True)
 center_x, center_y,best_radius=AtlasDecode.find_circle_mask(avg_pixel_array,radius=14,threh=0.2)
 #%%
 #center_x, center_y,best_radius=53, 46, 15
-Trace_raw=AtlasDecode.get_dff_from_pixel_array (pixel_array_all_frames,avg_pixel_array,hotpixel_path,center_x, center_y,best_radius,fs=840,snr_thresh=0)
+Trace_raw=AtlasDecode.get_dff_from_pixel_array (pixel_array_all_frames,avg_pixel_array,hotpixel_path,center_x, center_y,best_radius,fs=840,snr_thresh=2)
 'GET TOTAL PHOTON COUNT'
 #Trace_raw,dff=AtlasDecode.get_total_photonCount_atlas_continuous_circle_mask (dpath,hotpixel_path,center_x, center_y,best_radius,fs=840,photoncount_thre=2000)
 
