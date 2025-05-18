@@ -32,7 +32,7 @@ def align_ripples (lfps,zscores,start_idx,end_idx,midpoint,Fs=10000):
     for i in range(lfps.shape[0]):
         lfp_i=lfps[i]
         zscore_i=zscores[i]
-        LFP_ripple_band_i=OE.band_pass_filter(lfps[i], 130, 250, Fs)
+        LFP_ripple_band_i=OE.band_pass_filter(lfps[i], 30, 60, Fs)
         # Find the index of the maximum value in the segment [1000:3000]
         local_max_idx = np.argmax(LFP_ripple_band_i[start_idx:end_idx]) + start_idx
         # Calculate the shift needed to align the max value to the midpoint
@@ -102,28 +102,28 @@ def plot_aligned_ripple_save (save_path,LFP_channel,recordingName,ripple_trigger
     ripple_sample_numbers=len(ripple_triggered_lfps[0])
     midpoint=ripple_sample_numbers//2
     'align ripple in a 200ms window '
-    start_idx=int(midpoint-0.1*Fs)
-    end_idx=int(midpoint+0.1*Fs)
+    start_idx=int(midpoint-0.08*Fs)
+    end_idx=int(midpoint+0.08*Fs)
     print (midpoint,start_idx,end_idx)
     aligned_ripple_band_lfps,aligned_lfps,aligned_zscores=align_ripples (ripple_triggered_lfps,
                                                                          ripple_triggered_zscores,start_idx,end_idx,midpoint,Fs)
     fig=plot_ripple_heatmap(aligned_ripple_band_lfps,aligned_lfps,aligned_zscores,Fs)
-    fig_path = os.path.join(save_path, recordingName+LFP_channel+'Ripple_aligned_heatmap_400ms.png')
+    fig_path = os.path.join(save_path, recordingName+LFP_channel+'Gamma_aligned_heatmap_400ms.png')
     fig.savefig(fig_path, transparent=True)
     
     fig=plot_ripple_heatmap(aligned_ripple_band_lfps[:,start_idx:end_idx],
                             aligned_lfps[:,start_idx:end_idx],aligned_zscores[:,start_idx:end_idx],Fs)
-    fig_path = os.path.join(save_path, recordingName+LFP_channel+'Ripple_aligned_heatmap_200ms.png')
+    fig_path = os.path.join(save_path, recordingName+LFP_channel+'Gamma_aligned_heatmap_160ms.png')
     fig.savefig(fig_path, transparent=True)
 
     
-    save_file_path = os.path.join(save_path,'ailgned_ripple_LFP.pkl')
+    save_file_path = os.path.join(save_path,'ailgned_gamma_LFP.pkl')
     with open(save_file_path, "wb") as file:
         pickle.dump(aligned_lfps, file)
-    save_file_path = os.path.join(save_path,'ailgned_ripple_bandpass_LFP.pkl')
+    save_file_path = os.path.join(save_path,'ailgned_gamma_bandpass_LFP.pkl')
     with open(save_file_path, "wb") as file:
         pickle.dump(aligned_ripple_band_lfps, file)
-    save_file_path = os.path.join(save_path,'ailgned_ripple_Zscore.pkl')
+    save_file_path = os.path.join(save_path,'ailgned_gamma_Zscore.pkl')
     with open(save_file_path, "wb") as file:
         pickle.dump(aligned_zscores, file)
         
@@ -144,7 +144,7 @@ def plot_ripple_zscore(savepath, lfp_ripple, zscore):
     
     # **Find midpoint and crop to -0.1s to 0.1s**
     midpoint = len(time) // 2  # Find center index
-    time_window = (-0.05, 0.05)  # Define time range
+    time_window = (-0.04, 0.04)  # Define time range
     idx_range = np.where((time - time[midpoint] >= time_window[0]) & (time - time[midpoint] <= time_window[1]))[0]
     
     # Crop time and data
@@ -158,7 +158,7 @@ def plot_ripple_zscore(savepath, lfp_ripple, zscore):
 
     # Identify troughs in z-score signal for raster plot
     peaks = [np.argmax(epoch) for epoch in zscore]  # Find min per epoch
-    trough_times = time[peaks]  # Convert to time
+    peak_times = time[peaks]  # Convert to time
 
     # Create figure
     fig, axes = plt.subplots(3, 1, figsize=(6, 8), gridspec_kw={'height_ratios': [1, 2, 1]})
@@ -176,7 +176,7 @@ def plot_ripple_zscore(savepath, lfp_ripple, zscore):
     
     # Raster plot of z-score troughs
     ax1 = axes[1]
-    for i, t in enumerate(trough_times):
+    for i, t in enumerate(peak_times):
         ax1.plot([t, t], [i - 0.4, i + 0.4], color='red', lw=2)  # Small vertical lines as raster marks
     ax1.set_ylabel("Epoch", fontsize=14)
     ax1.tick_params(axis='both', labelsize=12)
@@ -187,7 +187,7 @@ def plot_ripple_zscore(savepath, lfp_ripple, zscore):
     
     # Histogram of trough times
     ax2 = axes[2]
-    ax2.hist(trough_times, bins=60, color='#377eb8',alpha=0.8)  # Black edges added
+    ax2.hist(peak_times, bins=60, color='#377eb8',alpha=0.8)  # Black edges added
     ax2.set_xlabel("Time (s)",fontsize=14)
     ax2.set_ylabel("Firing Count", fontsize=14)
     ax2.spines['top'].set_visible(False)
@@ -218,8 +218,8 @@ def run_Gamma_plot (dpath,LFP_channel,recordingName,savename,theta_thre=0):
     '''RIPPLE DETECTION
     For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
     rip_ep,rip_tsd=Recording1.pynappleGammaAnalysis (lfp_channel=LFP_channel,
-                                                     ep_start=16,ep_end=18,
-                                                     Low_thres=0.2,High_thres=8,
+                                                     ep_start=10,ep_end=18,
+                                                     Low_thres=0.5,High_thres=8,
                                                      plot_segment=False,plot_ripple_ep=False,
                                                      excludeTheta=False,excludeNonTheta=False)
 
@@ -241,10 +241,10 @@ def run_Gamma_plot (dpath,LFP_channel,recordingName,savename,theta_thre=0):
 
 def run_ripple_plot_main():
     'This is to process a single or concatenated rial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
-    dpath='F:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day3/'
+    dpath='F:/2025_ATLAS_SPAD/PVCre/1842515_PV_mNeon/Day2/'
     
-    recordingName='SyncRecording3'
-    savename='GammaSave_Sleep'
+    recordingName='SyncRecording12'
+    savename='GammaSave'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
     LFP_channel='LFP_1'
     run_Gamma_plot (dpath,LFP_channel,recordingName,savename,theta_thre=-0.5)

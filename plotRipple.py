@@ -230,12 +230,12 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,theta_cutoff=0.5):
 
 def run_ripple_plot_main():
     'This is to process a single or concatenated rial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
-    dpath='F:/2025_ATLAS_SPAD/Figure3_Pyr_ripple/RippleTrials2/' 
+    dpath='F:/2025_ATLAS_SPAD/1881365_Jedi2p_mCherry/Day4/'
     
-    recordingName='Day4SyncRecording8'
+    recordingName='SyncRecording8'
     savename='RippleSave_Sleep'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-    LFP_channel='LFP_1'
+    LFP_channel='LFP_3'
     run_ripple_plot (dpath,LFP_channel,recordingName,savename,theta_cutoff=0.5)
 
 def main():    

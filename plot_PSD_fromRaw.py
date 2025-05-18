@@ -1,4 +1,4 @@
-h# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Created on Tue Feb 18 12:06:13 2025
 @author: yifan
@@ -51,63 +51,64 @@ def PSD_plot(data, fs, method="welch", color='tab:blue', xlim=[0,100], linewidth
 # dpath = "D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day1/"
 #dpath = "D:/2025_ATLAS_SPAD/1844609_WT_Jedi2p/Day4/"
 #dpath = "D:/2025_ATLAS_SPAD/1844608_WT_mNeon/Day5/"
-dpath = 'D:/2025_ATLAS_SPAD/1851547_WT_mNeon/Day3/'
-dpath = "D:/2025_ATLAS_SPAD/1842516_PV_Jedi2p/Day1/"
-
+#dpath = 'D:/2025_ATLAS_SPAD/1851547_WT_mNeon/Day3/'
+#dpath = "F:/2024_ATLAS_OEC/1825507_mCherry/Day1/"
+dpath = 'F:/2025_ATLAS_SPAD/1881363_Jedi2p_mCherry/Day2/'
+'choose the sampling rate with ATLAS'
+fs=841.68
+fs=1682.92
 
 recordingNum=7
-LFP_channel='LFP_3'
+LFP_channel='LFP_1'
 sync_recording_str = f"SyncRecording{recordingNum}"
 
-
+'Read green and red traces'
 recording_path=file_path_optical=os.path.join(dpath,sync_recording_str)
 file_path_optical=os.path.join(dpath,sync_recording_str, "Green_traceAll.csv")
-data = pd.read_csv(file_path_optical, header=None)  # Adjust if there's a header
-fs=841.68
+sig_data = pd.read_csv(file_path_optical, header=None)  # Adjust if there's a header
+file_path_optical=os.path.join(dpath,sync_recording_str, "Red_traceAll.csv")
+ref_data = pd.read_csv(file_path_optical, header=None)  # Adjust if there's a header
+
 # Convert to NumPy array (assume signal is in the first column)
-optical_data = data.iloc[:, 0].values
-
+sig_green = sig_data.iloc[:, 0].values
+ref_red=ref_data.iloc[:, 0].values
 'To read the ephys data from pkl'
-# file_path_ephys=os.path.join(recording_path, "open_ephys_read_pd.pkl")
-# EphysData = pd.read_pickle(file_path_ephys)
-'To decode the ephys data from binary data'
-
-ephys_folder = os.path.join(dpath, "Ephys")
-subfolders = [f for f in os.listdir(ephys_folder) if os.path.isdir(os.path.join(ephys_folder, f))]
-if len(subfolders) == 1:
-    Ephys_folder_path = os.path.join(ephys_folder, subfolders[0])
-    print("Full path:", Ephys_folder_path)
-    
-#DEFINE RecordingNum and LFP channel here.
-EphysData=OE.readEphysChannel (Ephys_folder_path,recordingNum=recordingNum-1,Fs=30000) 
-
+file_path_ephys=os.path.join(recording_path, "open_ephys_read_pd.pkl")
+EphysData = pd.read_pickle(file_path_ephys)
 LFP_data = EphysData[LFP_channel].values
 fs_ephys=30000
 
+'To decode the ephys data from binary data'
+# ephys_folder = os.path.join(dpath, "Ephys")
+# subfolders = [f for f in os.listdir(ephys_folder) if os.path.isdir(os.path.join(ephys_folder, f))]
+# if len(subfolders) == 1:
+#     Ephys_folder_path = os.path.join(ephys_folder, subfolders[0])
+#     print("Full path:", Ephys_folder_path)
+# EphysData=OE.readEphysChannel (Ephys_folder_path,recordingNum=recordingNum-1,Fs=30000) 
 
-
+# LFP_data = EphysData[LFP_channel].values
+# fs_ephys=30000
 
 fig, ax1 = plt.subplots(1, 1, figsize=(4, 6))
 
 # Plot optical PSD on the left y-axis
-PSD_plot(optical_data, fs, method="welch", color='green', xlim=[0, 50], linewidth=2, linestyle='-', label='GEVI', ax=ax1, resolution=2048)
+PSD_plot(sig_green, fs, method="welch", color='green', xlim=[0.5, 49], linewidth=2, linestyle='-', label='GEVI', ax=ax1, resolution=4096)
+PSD_plot(ref_red, fs, method="welch", color='red', xlim=[0.5, 49],linewidth=2, linestyle='-', label='Ref', ax=ax1, resolution=4096)
 ax1.set_ylabel('Optical PSD [dB/Hz]', color='green')
 ax1.tick_params(axis='y', labelcolor='green')
-
+#ax1.set_ylim(-27,-6)
 # Create a second y-axis for LFP
 ax2 = ax1.twinx()
-
 # Plot LFP PSD on the right y-axis
-PSD_plot(LFP_data, fs_ephys, method="welch", color='black', xlim=[0, 50], linewidth=2, linestyle='-', label='LFP  ', ax=ax2, resolution=65536)
+PSD_plot(LFP_data, fs_ephys, method="welch", color='black', xlim=[0.5, 49], linewidth=2, linestyle='-', label='LFP  ', ax=ax2, resolution=65536)
 ax2.set_ylabel('LFP PSD [dB/Hz]', color='black')
 ax2.tick_params(axis='y', labelcolor='black')
-
 # Common x-axis and title
 ax1.set_xlabel('Frequency [Hz]')
 plt.title('Optical and LFP PSD')
 
 legend1 = ax1.legend(loc='upper right', frameon=False)
-legend2 = ax2.legend(loc='upper right', frameon=False, bbox_to_anchor=(1, 0.95))
+legend2 = ax2.legend(loc='upper right', frameon=False, bbox_to_anchor=(1, 0.92))
 
 plt.tight_layout()
 plt.show()

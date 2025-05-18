@@ -130,30 +130,16 @@ def main():
     '''Set the parent folder your session results, this should be the same parent folder to save optical data'''
     Ephys_fs=30000 #Ephys sampling rate
     '''IF ATLAS'''
-    Frame_num=25200
-    Fs_atlas=841.68
+    #Frame_num=25200
+    #Fs_atlas=841.68
+    
+    Frame_num=51510
+    Fs_atlas=1682.92
     recordingTime=Frame_num/Fs_atlas
     
-    save_parent_folder='F:/2025_ATLAS_SPAD/Batch1/1842515_PV_mNeon/Day10/'
+    save_parent_folder='F:/2025_ATLAS_SPAD/1881363_Jedi2p_mCherry/Day4Sleep/'
     read_multiple_Ephys_data_in_folder(save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
     
-    save_parent_folder='F:/2025_ATLAS_SPAD/Batch1/1842515_PV_mNeon/Day11/'
-    read_multiple_Ephys_data_in_folder(save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
-    
-    save_parent_folder='F:/2025_ATLAS_SPAD/1844607_PV_mNeon_F/Day6/'
-    read_multiple_Ephys_data_in_folder(save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
-    
-    save_parent_folder='F:/2025_ATLAS_SPAD/1844607_PV_mNeon_F/Day7/'
-    read_multiple_Ephys_data_in_folder(save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
-    
-
-    
-    save_parent_folder='F:/2025_ATLAS_SPAD/1842516_PV_Jedi2p/Day5/'
-    read_multiple_Ephys_data_in_folder(save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
-    
-    save_parent_folder='F:/2025_ATLAS_SPAD/1842516_PV_Jedi2p/Day6/'
-    read_multiple_Ephys_data_in_folder(save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
- 
 
 if __name__ == "__main__":
     main()

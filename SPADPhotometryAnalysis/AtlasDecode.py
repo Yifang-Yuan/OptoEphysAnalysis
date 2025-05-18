@@ -592,64 +592,147 @@ def get_dff_from_pixel_array_smallFOV (pixel_array_all_frames,avg_pixel_array,ho
     plt.show()
     return Trace_raw
 
-# def get_zscore_from_atlas_continuous (dpath,hotpixel_path,xxrange= [25, 85],yyrange= [30, 90],fs=840,photoncount_thre=2000):
-#     pixel_array_all_frames,sum_pixel_array,_=decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=photoncount_thre)
-#     _,mean_values_over_time,_=get_trace_from_3d_pixel_array(pixel_array_all_frames,sum_pixel_array,xxrange,yyrange)
-#     #print('original lenth: ', len(mean_values_over_time))
-#     Trace_raw=mean_values_over_time[1:]
-#     #print('trace_raw lenth 1: ', len(Trace_raw))
-#     Trace_raw = np.append(Trace_raw, Trace_raw[-1])
-#     #print('trace_raw lenth 2: ', len(Trace_raw))
-#     fig, ax = plt.subplots(figsize=(8, 2))
-#     plot_trace(Trace_raw,ax, fs, label="raw_data")
-    
-#     lambd = 10e3 # Adjust lambda to get the best fit
-#     porder = 1
-#     itermax = 15
-#     sig_base=fp.airPLS(Trace_raw,lambda_=lambd,porder=porder,itermax=itermax) 
-#     signal = (Trace_raw - sig_base)  
-#     dff=100*signal / sig_base
-#     fig, ax = plt.subplots(figsize=(8, 2))
-#     plot_trace(dff,ax, fs, label="df/f")
-#     return Trace_raw,dff
 
-# def get_zscore_from_atlas_snr_mask (dpath,hotpixel_path,xxrange= [25, 85],yyrange= [30, 90],fs=840,snr_thresh=2,photoncount_thre=2000):
-#     pixel_array_all_frames,_,_=decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=photoncount_thre)
+def get_trace_atlas_two_ROI (dpath,hotpixel_path,center_x_sig,center_y_sig,radius_sig,center_x_ref,center_y_ref,radius_ref,fs=840,snr_thresh=2,photoncount_thre=2000):
+    
+    pixel_array_all_frames,_,avg_pixel_array=decode_atlas_folder (dpath,hotpixel_path,photoncount_thre=photoncount_thre)
         
-#     mean_image, std_image, snr_image = get_snr_image(pixel_array_all_frames)
-#     fig, ax = plt.subplots(figsize=(5, 5))
-#     # Plot only the SNR image
-#     pos = ax.imshow(snr_image, cmap='viridis')  # Adjust colormap if desired
-#     ax.set_title('SNR')
-#     fig.colorbar(pos, ax=ax)
-#     rect = patches.Rectangle((xxrange[0], yyrange[0]), xxrange[1]-xxrange[0], yyrange[1]-yyrange[0], 
-#                              linewidth=2, edgecolor='r', facecolor='none')
-#     plt.gca().add_patch(rect)
-#     plt.show()
-#     plt.tight_layout()
-#     plt.show()
-#     # look at the snr_image with colorbar and set this (pixel value below thresh will be 0 in the mask) 
-#     pixel_mask = mask_low_snr_pixels(snr_image, snr_thresh)
-#     #construct roi_mask
-#     roi_mask,_ = construct_roi_mask(xx_1 = xxrange[0], xx_2 = xxrange[1], yy_1 = yyrange[0] , yy_2 = yyrange[1])
+    mean_image, std_image, snr_image = get_snr_image(pixel_array_all_frames)
+    pixel_mask = mask_low_snr_pixels(snr_image, snr_thresh)
+    shape = pixel_array_all_frames.shape[0:2] 
+    y, x = np.ogrid[:shape[0], :shape[1]]
+    'Get signal trace'
+    roi_mask = (x - center_x_sig) ** 2 + (y - center_y_sig) ** 2 <= radius_sig ** 2
     
-#     #extract the trace based on the roi_mask and hot_pixel_mask
-#     trace = extract_trace(pixel_array_all_frames, roi_mask, pixel_mask, activity = 'mean')
-#     #print('original lenth: ', len(mean_values_over_time))
-#     Trace_raw=trace[1:]
-#     #print('trace_raw lenth 1: ', len(Trace_raw))
-#     Trace_raw = np.append(Trace_raw, Trace_raw[-1])
+    fig, ax = plt.subplots(figsize=(5, 5))
+    pos = ax.imshow(snr_image, cmap='viridis')  # Adjust colormap if desired
+    ax.set_title('SNR')
+    fig.colorbar(pos, ax=ax)
+    circle = plt.Circle((center_x_sig,center_y_sig), radius_sig, color='cyan', fill=False, linewidth=2, label='Best Circle')
+    plt.gca().add_patch(circle)
+    plt.tight_layout()
+    plt.show()
+    
+    fig, ax = plt.subplots(figsize=(5, 5))
+    pos = ax.imshow(avg_pixel_array, cmap='viridis')  # Adjust colormap if desired
+    ax.set_title('Averaged')
+    fig.colorbar(pos, ax=ax)
+    circle = plt.Circle((center_x_sig,center_y_sig), radius_sig, color='cyan', fill=False, linewidth=2, label='Best Circle')
+    plt.gca().add_patch(circle)
+    plt.tight_layout()
+    plt.show()
+    #extract the trace based on the roi_mask and hot_pixel_mask
+    trace = extract_trace(pixel_array_all_frames, roi_mask, pixel_mask, activity = 'mean')
 
-#     fig, ax = plt.subplots(figsize=(8, 2))
-#     plot_trace(Trace_raw,ax, fs, label="raw_data")
-#     lambd = 10e3 # Adjust lambda to get the best fit
-#     porder = 1
-#     itermax = 15
-#     sig_base=fp.airPLS(Trace_raw,lambda_=lambd,porder=porder,itermax=itermax) 
-#     signal = (Trace_raw - sig_base)  
-#     dff=100*signal / sig_base
+    Trace_sig=trace[1:]    #print('trace_raw lenth 1: ', len(Trace_raw))
+    Trace_sig = np.append(Trace_sig, Trace_sig[-1])
+
+    fig, ax = plt.subplots(figsize=(8, 2))
+    plot_trace(Trace_sig, ax,fs, label="raw_data")
+    'Get reference trace'
+    roi_mask = (x - center_x_ref) ** 2 + (y - center_y_ref) ** 2 <= radius_ref ** 2
     
-#     fig, ax = plt.subplots(figsize=(8, 2))
-#     plot_trace(dff,ax, fs, label="df/f")
-#     plt.show()
-#     return Trace_raw,dff
+    fig, ax = plt.subplots(figsize=(5, 5))
+    pos = ax.imshow(snr_image, cmap='viridis')  # Adjust colormap if desired
+    ax.set_title('SNR')
+    fig.colorbar(pos, ax=ax)
+    circle = plt.Circle((center_x_ref,center_y_ref), radius_ref, color='cyan', fill=False, linewidth=2, label='Best Circle')
+    plt.gca().add_patch(circle)
+    plt.tight_layout()
+    plt.show()
+    
+    fig, ax = plt.subplots(figsize=(5, 5))
+    pos = ax.imshow(avg_pixel_array, cmap='viridis')  # Adjust colormap if desired
+    ax.set_title('Averaged')
+    fig.colorbar(pos, ax=ax)
+    circle = plt.Circle((center_x_ref,center_y_ref), radius_ref, color='cyan', fill=False, linewidth=2, label='Best Circle')
+    plt.gca().add_patch(circle)
+    plt.tight_layout()
+    plt.show()
+    #extract the trace based on the roi_mask and hot_pixel_mask
+    trace = extract_trace(pixel_array_all_frames, roi_mask, pixel_mask, activity = 'mean')
+
+    Trace_ref=trace[1:]    #print('trace_raw lenth 1: ', len(Trace_raw))
+    Trace_ref = np.append(Trace_ref, Trace_ref[-1])
+
+    fig, ax = plt.subplots(figsize=(8, 2))
+    plot_trace(Trace_ref, ax,fs, label="raw_data")
+    zdFF = fp.get_zdFF(Trace_ref,Trace_sig,smooth_win=2,remove=0,lambd=5e4,porder=1,itermax=50)
+    
+    fig, ax = plt.subplots(figsize=(8, 2))
+    plot_trace(zdFF,ax, fs, label="df/f")
+    plt.show()
+    return Trace_sig,Trace_ref,zdFF
+
+def get_trace_atlas_two_ROI_small (dpath,hotpixel_path,center_x_sig,center_y_sig,radius_sig,center_x_ref,center_y_ref,radius_ref,fs=840,snr_thresh=2,photoncount_thre=2000):
+    
+    pixel_array_all_frames,_,avg_pixel_array=decode_atlas_folder_smallFOV (dpath,hotpixel_path,photoncount_thre=photoncount_thre)
+        
+    mean_image, std_image, snr_image = get_snr_image(pixel_array_all_frames)
+    pixel_mask = mask_low_snr_pixels(snr_image, snr_thresh)
+    shape = pixel_array_all_frames.shape[0:2] 
+    y, x = np.ogrid[:shape[0], :shape[1]]
+    'Get signal trace'
+    roi_mask = (x - center_x_sig) ** 2 + (y - center_y_sig) ** 2 <= radius_sig ** 2
+    
+    fig, ax = plt.subplots(figsize=(5, 5))
+    pos = ax.imshow(snr_image, cmap='viridis')  # Adjust colormap if desired
+    ax.set_title('SNR')
+    fig.colorbar(pos, ax=ax)
+    circle = plt.Circle((center_x_sig,center_y_sig), radius_sig, color='cyan', fill=False, linewidth=2, label='Best Circle')
+    plt.gca().add_patch(circle)
+    plt.tight_layout()
+    plt.show()
+    
+    fig, ax = plt.subplots(figsize=(5, 5))
+    pos = ax.imshow(avg_pixel_array, cmap='viridis')  # Adjust colormap if desired
+    ax.set_title('Averaged')
+    fig.colorbar(pos, ax=ax)
+    circle = plt.Circle((center_x_sig,center_y_sig), radius_sig, color='cyan', fill=False, linewidth=2, label='Best Circle')
+    plt.gca().add_patch(circle)
+    plt.tight_layout()
+    plt.show()
+    #extract the trace based on the roi_mask and hot_pixel_mask
+    trace = extract_trace(pixel_array_all_frames, roi_mask, pixel_mask, activity = 'mean')
+
+    Trace_sig=trace[1:]    #print('trace_raw lenth 1: ', len(Trace_raw))
+    Trace_sig = np.append(Trace_sig, Trace_sig[-1])
+
+    fig, ax = plt.subplots(figsize=(8, 2))
+    plot_trace(Trace_sig, ax,fs, label="raw_data")
+    'Get reference trace'
+    roi_mask = (x - center_x_ref) ** 2 + (y - center_y_ref) ** 2 <= radius_ref ** 2
+    
+    fig, ax = plt.subplots(figsize=(5, 5))
+    pos = ax.imshow(snr_image, cmap='viridis')  # Adjust colormap if desired
+    ax.set_title('SNR')
+    fig.colorbar(pos, ax=ax)
+    circle = plt.Circle((center_x_ref,center_y_ref), radius_ref, color='cyan', fill=False, linewidth=2, label='Best Circle')
+    plt.gca().add_patch(circle)
+    plt.tight_layout()
+    plt.show()
+    
+    fig, ax = plt.subplots(figsize=(5, 5))
+    pos = ax.imshow(avg_pixel_array, cmap='viridis')  # Adjust colormap if desired
+    ax.set_title('Averaged')
+    fig.colorbar(pos, ax=ax)
+    circle = plt.Circle((center_x_ref,center_y_ref), radius_ref, color='cyan', fill=False, linewidth=2, label='Best Circle')
+    plt.gca().add_patch(circle)
+    plt.tight_layout()
+    plt.show()
+    #extract the trace based on the roi_mask and hot_pixel_mask
+    trace = extract_trace(pixel_array_all_frames, roi_mask, pixel_mask, activity = 'mean')
+
+    Trace_ref=trace[1:]    #print('trace_raw lenth 1: ', len(Trace_raw))
+    Trace_ref = np.append(Trace_ref, Trace_ref[-1])
+
+    fig, ax = plt.subplots(figsize=(8, 2))
+    plot_trace(Trace_ref, ax,fs, label="raw_data")
+    zdFF = fp.get_zdFF(Trace_ref,Trace_sig,smooth_win=2,remove=0,lambd=5e4,porder=1,itermax=50)
+    
+    fig, ax = plt.subplots(figsize=(8, 2))
+    plot_trace(zdFF,ax, fs, label="df/f")
+    plt.show()
+    
+    return Trace_sig,Trace_ref,zdFF
+

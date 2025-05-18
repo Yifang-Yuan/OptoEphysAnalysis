@@ -202,9 +202,9 @@ def photometry_smooth_plot (raw_reference,raw_signal,sampling_rate=500, smooth_w
     smooth_reference = smooth_signal(raw_reference, smooth_win)
     smooth_Signal = smooth_signal(raw_signal, smooth_win)
     
-    lambd = 10e4 # Adjust lambda to get the best fit
+    lambd = 5e4 # Adjust lambda to get the best fit
     porder = 1
-    itermax = 15
+    itermax = 5
     
     r_base=airPLS(smooth_reference.T,lambda_=lambd,porder=porder,itermax=itermax)
     s_base=airPLS(smooth_Signal,lambda_=lambd,porder=porder,itermax=itermax)

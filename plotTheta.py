@@ -298,13 +298,13 @@ def plot_raster_histogram_theta_phase(save_path,lfps, zscores, Fs=10000):
     axs[0].legend(frameon=False)
     
     # --- Raster Plot of Firing Events ---
-    zscore_fire_times = np.argmin(zscores, axis=1) / Fs - 0.065  # Convert to seconds relative to midpoint
+    zscore_fire_times = np.argmax(zscores, axis=1) / Fs - 0.065  # Convert to seconds relative to midpoint
     epoch_numbers = np.arange(len(zscore_fire_times))
     
     axs[1].scatter(zscore_fire_times, epoch_numbers, color='#c40030', marker='|', s=100)
     axs[1].set_xlim(time[0], time[-1])
     axs[1].set_ylabel("Epoch", fontsize=16)
-    axs[1].set_title("Z-Score trough Timings (Raster)", fontsize=18, fontweight="bold")
+    axs[1].set_title("Event Timings (Raster)", fontsize=18, fontweight="bold")
     axs[1].spines["top"].set_visible(False)
     axs[1].spines["right"].set_visible(False)
 
@@ -315,7 +315,7 @@ def plot_raster_histogram_theta_phase(save_path,lfps, zscores, Fs=10000):
     sns.histplot(theta_phase, bins=80, kde=True, color='#1f78b4', edgecolor="black", alpha=0.8, ax=axs[2])
     axs[2].set_xlabel("Theta Phase (°)", fontsize=16)
     axs[2].set_ylabel("Count", fontsize=16)
-    axs[2].set_title("Z-Score Troughs by Theta Phase", fontsize=18, fontweight="bold")
+    axs[2].set_title("Event numbers by Theta Phase", fontsize=18, fontweight="bold")
     axs[2].spines["top"].set_visible(False)
     axs[2].spines["right"].set_visible(False)
 
@@ -366,36 +366,35 @@ def run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low
     trough_index,peak_index,fig,fig1,fig2,fig3,fig4 =Recording1.plot_theta_correlation(LFP_channel)
     theta_part=Recording1.theta_part
     #theta_part=Recording1.Ephys_tracking_spad_aligned
-    theta_zscores_np,theta_lfps_np=OE.get_theta_cycle_value(theta_part, LFP_channel, peak_index, half_window=0.5, fs=Recording1.fs)
+    theta_zscores_np,theta_lfps_np=OE.get_theta_cycle_value(theta_part, LFP_channel, trough_index, half_window=0.5, fs=Recording1.fs)
     
     plot_aligned_theta_phase (save_path,LFP_channel,recordingName,theta_lfps_np,theta_zscores_np,Fs=10000)
     plot_raster_histogram_theta_phase (save_path,theta_lfps_np,theta_zscores_np,Fs=10000)
     
     
-    # fig_path = os.path.join(dpath,savename,'LFP_GEVI_average.png')
-    # fig.savefig(fig_path, transparent=True)
+    fig_path = os.path.join(dpath,savename,'LFP_GEVI_average.png')
+    fig.savefig(fig_path, transparent=True)
     
-    # fig_path = os.path.join(dpath,savename,'zscore_theta_phase.png')
-    # fig2.savefig(fig_path, transparent=True)
+    fig_path = os.path.join(dpath,savename,'zscore_theta_phase.png')
+    fig2.savefig(fig_path, transparent=True)
     
-    # fig_path = os.path.join(dpath,savename,'zscore_theta_phase_reverse.png')
-    # fig3.savefig(fig_path, transparent=True)
+    fig_path = os.path.join(dpath,savename,'zscore_theta_phase_reverse.png')
+    fig3.savefig(fig_path, transparent=True)
     
-    # fig_path = os.path.join(dpath,savename,'z_troughs_theta_phase.png')
-    # fig4.savefig(fig_path, transparent=True)
+    fig_path = os.path.join(dpath,savename,'Events_on_theta_phase.png')
+    fig4.savefig(fig_path, transparent=True)
     return -1
 
 def run_theta_plot_main():
     'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
     #dpath='E:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day5/' #Pyramidal cell example
     
-    dpath='F:/2025_ATLAS_SPAD/PVCre/1842515_PV_mNeon/Day7/'
+    dpath='F:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day3/'
     recordingName='SyncRecording3'
     savename='ThetaSave_Move'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
     LFP_channel='LFP_1'
     run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low_thres=-0.3) #-0.3
-
 
 def main():    
     run_theta_plot_main()

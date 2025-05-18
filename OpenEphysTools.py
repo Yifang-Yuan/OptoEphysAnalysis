@@ -151,10 +151,10 @@ def readEphysChannel_withSessionInput (session,recordingNum,Fs=30000):
     LFP_clean2= butter_filter(LFP2, btype='low', cutoff=2000, fs=Fs, order=5)
     LFP_clean3= butter_filter(LFP3, btype='low', cutoff=2000, fs=Fs, order=5)
     LFP_clean4= butter_filter(LFP4, btype='low', cutoff=2000, fs=Fs, order=5)
-    # LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
-    # LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
-    # LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
-    # LFP_clean4= notchfilter (LFP_clean4,f0=50,bw=5)
+    LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
+    LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
+    LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
+    LFP_clean4= notchfilter (LFP_clean4,f0=50,bw=5)
     
     EphysData = pd.DataFrame({
         'timestamps': timestamps,
@@ -1208,7 +1208,7 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
         axs[1].axvline(x=0, color='k', linestyle='--', linewidth=1)
     
         # Formatting
-        axs[0].set_title('Averaged z-score and LFP during a theta cycle', fontsize=14, fontweight='bold', pad=10)
+        axs[0].set_title('Mean -zscore and LFP in theta cycles', fontsize=14, fontweight='bold', pad=10)
         axs[0].set_ylabel('Z-score', fontsize=12)
         axs[1].set_ylabel('Amplitude (μV)', fontsize=12)
         axs[1].set_xlabel('Time (s)', fontsize=12)

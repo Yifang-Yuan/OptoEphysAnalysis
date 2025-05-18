@@ -13,7 +13,7 @@ from SPADPhotometryAnalysis import AtlasDecode
 from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 
 
-center_x, center_y,best_radius=50,30,22
+center_x, center_y,best_radius=52,27,20
 #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
 hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
 
@@ -46,22 +46,26 @@ def calculate_frame_rate(signal,threshold,square_wave_fs,frame_num):
 #%%
 
 dpath='F:/2025_ATLAS_SPAD/FrameRate_newFOV/Burst-RS-17170frames-1717Hz_100HzSquareWave/'
-pixel_array_all_frames,_,avg_pixel_array=AtlasDecode.decode_atlas_folder_smallFOV (dpath,hotpixel_path,photoncount_thre=50000)
+pixel_array_all_frames,_,avg_pixel_array=AtlasDecode.decode_atlas_folder_smallFOV (dpath,hotpixel_path,photoncount_thre=200000)
 Trace_raw=AtlasDecode.get_dff_from_pixel_array_smallFOV (pixel_array_all_frames,avg_pixel_array,hotpixel_path,center_x, center_y,best_radius,fs=840,snr_thresh=0)
 calculate_frame_rate(Trace_raw,10000,100,17170)
 #%%
 dpath='F:/2025_ATLAS_SPAD/FrameRate_newFOV/Burst-RS-17170frames-1717Hz_200HzSquareWave/'
-pixel_array_all_frames,_,avg_pixel_array=AtlasDecode.decode_atlas_folder_smallFOV (dpath,hotpixel_path,photoncount_thre=100000)
+pixel_array_all_frames,_,avg_pixel_array=AtlasDecode.decode_atlas_folder_smallFOV (dpath,hotpixel_path,photoncount_thre=200000)
 Trace_raw=AtlasDecode.get_dff_from_pixel_array_smallFOV (pixel_array_all_frames,avg_pixel_array,hotpixel_path,center_x, center_y,best_radius,fs=840,snr_thresh=0)
 calculate_frame_rate(Trace_raw,4000,200,17170)
 #%%
-dpath='F:/2025_ATLAS_SPAD/FrameRate_newFOV/Burst-RS-17170frames-1717Hz_400HzSquareWave/'
-pixel_array_all_frames,_,avg_pixel_array=AtlasDecode.decode_atlas_folder_smallFOV (dpath,hotpixel_path,photoncount_thre=100000)
+dpath='F:/2025_ATLAS_SPAD/FrameRate_newFOV/Burst-RS-51510frames-870Hz_2025-04-29_17-43_400Hz/'
+pixel_array_all_frames,_,avg_pixel_array=AtlasDecode.decode_atlas_folder_smallFOV (dpath,hotpixel_path,photoncount_thre=200000)
 Trace_raw=AtlasDecode.get_dff_from_pixel_array_smallFOV (pixel_array_all_frames,avg_pixel_array,hotpixel_path,center_x, center_y,best_radius,fs=840,snr_thresh=0)
-calculate_frame_rate(Trace_raw,4000,400,17170)
+calculate_frame_rate(Trace_raw,40000,400,51510)
 
-dpath='F:/2025_ATLAS_SPAD/FrameRate_newFOV/Burst-RS-17170frames-1717Hz_500HzSquareWave/'
-pixel_array_all_frames,_,avg_pixel_array=AtlasDecode.decode_atlas_folder_smallFOV (dpath,hotpixel_path,photoncount_thre=100000)
+dpath='F:/2025_ATLAS_SPAD/FrameRate_newFOV/Burst-RS-51510frames-870Hz_2025-04-29_17-49_400Hz/'
+pixel_array_all_frames,_,avg_pixel_array=AtlasDecode.decode_atlas_folder_smallFOV (dpath,hotpixel_path,photoncount_thre=200000)
 Trace_raw=AtlasDecode.get_dff_from_pixel_array_smallFOV (pixel_array_all_frames,avg_pixel_array,hotpixel_path,center_x, center_y,best_radius,fs=840,snr_thresh=0)
-calculate_frame_rate(Trace_raw,4000,500,17170)
+calculate_frame_rate(Trace_raw,40000,400,51510)
 
+dpath='F:/2025_ATLAS_SPAD/FrameRate_newFOV/Burst-RS-51510frames-870Hz_2025-04-29_17-52_400Hz/'
+pixel_array_all_frames,_,avg_pixel_array=AtlasDecode.decode_atlas_folder_smallFOV (dpath,hotpixel_path,photoncount_thre=200000)
+Trace_raw=AtlasDecode.get_dff_from_pixel_array_smallFOV (pixel_array_all_frames,avg_pixel_array,hotpixel_path,center_x, center_y,best_radius,fs=840,snr_thresh=0)
+calculate_frame_rate(Trace_raw,40000,400,51510)
