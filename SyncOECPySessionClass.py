@@ -134,7 +134,7 @@ class SyncOEpyPhotometrySession:
                 
         while True: #remove noise by cutting part of the synchronised the data
             OE.plot_two_traces_in_seconds (self.Ephys_tracking_spad_aligned['zscore_raw'],self.fs, 
-                                       self.Ephys_tracking_spad_aligned['LFP_1'], self.fs, label1='zscore_raw',label2='LFP_1')
+                                       self.Ephys_tracking_spad_aligned['LFP_4'], self.fs, label1='zscore_raw',label2='LFP_4')
             start_time = input("Enter the start time to move noise (or 'q' to quit): ")
             if start_time.lower() == 'q':
                 break
@@ -175,7 +175,7 @@ class SyncOEpyPhotometrySession:
         self.Ephys_tracking_spad_aligned.reset_index(drop=True, inplace=True)  
         
         OE.plot_two_traces_in_seconds (self.Ephys_tracking_spad_aligned['zscore_raw'],self.fs, 
-                                       self.Ephys_tracking_spad_aligned['LFP_1'], self.fs, label1='zscore_raw',label2='LFP_1')
+                                       self.Ephys_tracking_spad_aligned['LFP_4'], self.fs, label1='zscore_raw',label2='LFP_4')
         
         while True: #remove noise by cutting part of the synchronised the data
             start_time = input("Enter the start time to move noise (or 'q' to quit): ")
@@ -188,7 +188,7 @@ class SyncOEpyPhotometrySession:
             self.remove_noise(start_time=int(start_time),end_time=int(end_time))
         
             OE.plot_two_traces_in_seconds (self.Ephys_tracking_spad_aligned['zscore_raw'],self.fs, 
-                                       self.Ephys_tracking_spad_aligned['LFP_1'], self.fs, label1='zscore_raw',label2='LFP_1')
+                                       self.Ephys_tracking_spad_aligned['LFP_4'], self.fs, label1='zscore_raw',label2='LFP_4')
         return -1
     
     def read_open_ephys_data (self):
@@ -657,7 +657,6 @@ class SyncOEpyPhotometrySession:
     def plot_segment_band_feature_twoROIs (self,LFP_channel,start_time,end_time,SPAD_cutoff,lfp_cutoff):
         silced_recording=self.slicing_pd_data (self.Ephys_tracking_spad_aligned,start_time=start_time, end_time=end_time)
         
-        #%%
         '''
         You can get zdFF directly by calling the function fp.get_zdFF()
         TO CHECK THE SIGNAL STEP BY STEP:
@@ -669,51 +668,26 @@ class SyncOEpyPhotometrySession:
         smooth_win = 2
         smooth_reference,smooth_signal,r_base,s_base = fp.photometry_smooth_plot (
             silced_recording['ref_raw'],silced_recording['sig_raw'],sampling_rate=self.fs, smooth_win = smooth_win)
-        print(len(silced_recording['ref_raw']))
-        print(len(smooth_reference))
         
         reference = (smooth_reference- r_base)
         signal = (smooth_signal - s_base) 
-        #%%
-        '''Step 3, plot normalised traces'''
-        z_reference = (reference - np.median(reference)) / np.std(reference)
-        z_signal = (signal - np.median(signal)) / np.std(signal)
-
-        fig = plt.figure(figsize=(16, 10))
-        ax1 = fig.add_subplot(211)
-        ax1 = fp.plotSingleTrace (ax1, z_signal, SamplingRate=self.fs,color='blue',Label='normalised_signal')
-        ax2 = fig.add_subplot(212)
-        ax2 = fp.plotSingleTrace (ax2, z_reference, SamplingRate=self.fs,color='purple',Label='normalised_reference')
-
-        #%%
-        '''Step 4, plot fitted reference trace and signal'''
-        from sklearn.linear_model import Lasso
-        lin = Lasso(alpha=0.0001,precompute=True,max_iter=1000,
-                    positive=True, random_state=9999, selection='random')
-        n = len(z_reference)
-        '''Need to change to numpy if previous smooth window is 1'''
-        z_signal=z_signal.to_numpy()
-        z_reference=z_reference.to_numpy()
-        lin.fit(z_reference.reshape(n,1), z_signal.reshape(n,1))
-
-        z_reference_fitted = lin.predict(z_reference.reshape(n,1)).reshape(n,)
-
-        fig = plt.figure(figsize=(16, 5))
-        ax1 = fig.add_subplot(111)
-        ax1 = fp.plotSingleTrace (ax1, z_signal, SamplingRate=self.fs,color='blue',Label='normalised_signal')
-        ax1 = fp.plotSingleTrace (ax1, z_reference_fitted, SamplingRate=self.fs,color='purple',Label='fitted_reference')
-        #%%
-        '''Step 5, plot zscore'''
-        zdFF = (z_signal - z_reference_fitted)
-        fig = plt.figure(figsize=(12, 6))
-        ax1 = fig.add_subplot(211)
-        ax1 = fp.plotSingleTrace (ax1, zdFF, SamplingRate=self.fs,color='black',Label='zscore_signal')
+        '''Step 3, plot df/f traces'''
+        dff_ref = reference / r_base
+        dff_sig = signal / s_base
         
-        sig_smooth= OE.smooth_signal(silced_recording['sig_raw'],Fs=self.fs,cutoff=SPAD_cutoff)
+        # z_reference = pd.Series(z_reference)
+        # z_signal = pd.Series(z_signal)
+        # zdff=z_signal-z_reference
+        
+        'change here to change what to plot'
+        sig_smooth= OE.smooth_signal(dff_sig,Fs=self.fs,cutoff=SPAD_cutoff)
         sig_smooth= OE.butter_filter(sig_smooth, btype='high', cutoff=2, fs=self.fs, order=3)
 
-        ref_smooth= OE.smooth_signal(silced_recording['ref_raw'],Fs=self.fs,cutoff=SPAD_cutoff)
+        ref_smooth= OE.smooth_signal(dff_ref,Fs=self.fs,cutoff=SPAD_cutoff)
         ref_smooth= OE.butter_filter(ref_smooth, btype='high', cutoff=2, fs=self.fs, order=3)
+        
+        print (np.max(ref_smooth))
+        print (np.max(sig_smooth))
         
         lfp_lowpass = OE.butter_filter(silced_recording[LFP_channel], btype='low', cutoff=lfp_cutoff, fs=self.fs, order=5)
         lfp_lowpass = OE.butter_filter(lfp_lowpass, btype='high', cutoff=2, fs=self.fs, order=3)
@@ -721,6 +695,17 @@ class SyncOEpyPhotometrySession:
         sig_low = pd.Series(sig_smooth, index=silced_recording['sig_raw'].index)
         ref_low = pd.Series(ref_smooth, index=silced_recording['ref_raw'].index)
         lfp_low = pd.Series(lfp_lowpass, index=silced_recording[LFP_channel].index)
+        
+        sig_theta= OE.butter_filter(sig_low, btype='high', cutoff=4, fs=self.fs, order=5)
+        sig_theta= OE.butter_filter(sig_theta, btype='low', cutoff=10, fs=self.fs, order=5)
+        ref_theta= OE.butter_filter(ref_low, btype='high', cutoff=4, fs=self.fs, order=5)
+        ref_theta= OE.butter_filter(ref_theta, btype='low', cutoff=10, fs=self.fs, order=5)
+        lfp_theta = OE.butter_filter(lfp_low, btype='high', cutoff=4, fs=self.fs, order=5)
+        lfp_theta = OE.butter_filter(lfp_theta, btype='low', cutoff=10, fs=self.fs, order=5)
+        
+        sig_theta = pd.Series(sig_theta, index=silced_recording['sig_raw'].index)
+        ref_theta = pd.Series(ref_theta, index=silced_recording['ref_raw'].index)
+        lfp_theta = pd.Series(lfp_theta, index=silced_recording[LFP_channel].index)
         
         fig, ax = plt.subplots(8, 1, figsize=(24, 20))
         OE.plot_trace_in_seconds_ax (ax[0],sig_low,self.fs,label='GEVI',color=sns.color_palette("husl", 8)[3],
@@ -740,9 +725,12 @@ class SyncOEpyPhotometrySession:
         sst,frequency,power,global_ws=OE.Calculate_wavelet(lfp_low,lowpassCutoff=500,Fs=self.fs,scale=20)
         OE.plot_wavelet(ax[5],sst,frequency,power,Fs=self.fs,colorBar=False,logbase=False)
         
-        ax[1].set_ylim(0,20)
-        ax[3].set_ylim(0,20)
-        ax[5].set_ylim(0,20)
+        ax[1].set_ylim(0,15)
+        ax[3].set_ylim(0,15)
+        ax[5].set_ylim(0,15)
+        # ax[0].set_ylim(-37,37)
+        # ax[2].set_ylim(-37,37)
+
         ax[5].set_xlabel('Time (seconds)')
         ax[0].legend().set_visible(False)
         ax[2].legend().set_visible(False)
@@ -770,16 +758,7 @@ class SyncOEpyPhotometrySession:
         ax[3].set_xlabel([])
         ax[3].set_xlabel('')  # Hide x-axis label
         
-        sig_theta= OE.butter_filter(silced_recording['sig_raw'], btype='high', cutoff=4, fs=self.fs, order=5)
-        sig_theta= OE.butter_filter(sig_theta, btype='low', cutoff=10, fs=self.fs, order=5)
-        ref_theta= OE.butter_filter(silced_recording['ref_raw'], btype='high', cutoff=4, fs=self.fs, order=5)
-        ref_theta= OE.butter_filter(ref_theta, btype='low', cutoff=10, fs=self.fs, order=5)
-        lfp_theta = OE.butter_filter(silced_recording[LFP_channel], btype='high', cutoff=4, fs=self.fs, order=5)
-        lfp_theta = OE.butter_filter(lfp_theta, btype='low', cutoff=10, fs=self.fs, order=5)
         
-        sig_theta = pd.Series(sig_theta, index=silced_recording['sig_raw'].index)
-        ref_theta = pd.Series(ref_theta, index=silced_recording['ref_raw'].index)
-        lfp_theta = pd.Series(lfp_theta, index=silced_recording[LFP_channel].index)
         OE.plot_trace_in_seconds_ax (ax[6],sig_theta,self.fs,label='GEVI',color=sns.color_palette("husl", 8)[3],
                                ylabel='GEVI',xlabel=False)
         OE.plot_trace_in_seconds_ax (ax[6],ref_theta,self.fs,label='Ref',color=sns.color_palette("husl", 8)[0],
@@ -799,7 +778,7 @@ class SyncOEpyPhotometrySession:
         output_path=os.path.join(makefigure_path,'example_theta_trace.png')
         fig.savefig(output_path, bbox_inches='tight', pad_inches=0, transparent=True)
         plt.show()
-        return -1
+        return sig_smooth,ref_smooth,silced_recording['sig_raw']
     
     
     def plot_segment_feature (self,LFP_channel,start_time,end_time,SPAD_cutoff,lfp_cutoff):
@@ -944,8 +923,14 @@ class SyncOEpyPhotometrySession:
         
         #plt.subplots_adjust(hspace=0.5)
         #plt.tight_layout()
+ 
+        makefigure_path = os.path.join(self.savepath, 'makefigure')
+        if not os.path.exists(makefigure_path):
+            os.makedirs(makefigure_path)
+            
+        output_path=os.path.join(makefigure_path,'example_trace_powerspectral.png')
+        fig.savefig(output_path, bbox_inches='tight', pad_inches=0, transparent=True)
         plt.show()
-        
         return -1
     
     def Label_REM_sleep (self,LFP_channel):
@@ -1046,6 +1031,21 @@ class SyncOEpyPhotometrySession:
         fig1,fig2,fig3=OE.plot_zscore_to_theta_phase (silced_recording['theta_angle'],silced_recording['zscore_raw'])
         fig4=OE.plot_voltage_peaks_to_theta_phase (silced_recording['theta_angle'],silced_recording['zscore_raw'])
         OE.plot_voltage_peaks_to_theta_phase_boxplot(silced_recording['theta_angle'],silced_recording['zscore_raw'])
+        return trough_index,peak_index,fig,fig1,fig2,fig3,fig4
+    
+    def plot_gamma_correlation(self,LFP_channel):
+        silced_recording=self.theta_part
+        #silced_recording=self.Ephys_tracking_spad_aligned
+        silced_recording=silced_recording.reset_index(drop=True)
+        #print (silced_recording.index)
+        silced_recording['gamma_angle']=OE.calculate_theta_phase_angle(silced_recording[LFP_channel], theta_low=30, theta_high=60) #range 5 to 9
+        OE.plot_trace_in_seconds(silced_recording['gamma_angle'],Fs=10000,title='gamma angle')
+        trough_index,peak_index = OE.calculate_gamma_trough_index(silced_recording,Fs=10000)
+        #print (trough_index)
+        fig=OE.plot_theta_cycle (silced_recording, LFP_channel,peak_index,half_window=0.15,fs=10000,plotmode='two')
+        fig1,fig2,fig3=OE.plot_zscore_to_theta_phase (silced_recording['gamma_angle'],silced_recording['zscore_raw'])
+        fig4=OE.plot_voltage_peaks_to_theta_phase (silced_recording['gamma_angle'],silced_recording['zscore_raw'])
+        OE.plot_voltage_peaks_to_theta_phase_boxplot(silced_recording['gamma_angle'],silced_recording['zscore_raw'])
         return trough_index,peak_index,fig,fig1,fig2,fig3,fig4
     
     def pynappleAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,
@@ -1500,7 +1500,7 @@ class SyncOEpyPhotometrySession:
             OE.plot_ripple_event (ax[2], rip_ep, rip_tsd, ex_ep, nSS, nSS3, Low_thres=Low_thres) 
             OE.plot_trace_nap (ax[3], SPAD_smooth,ex_ep,color='green',title='calcium recording (z-score)')
             #LFP_rippleband=OE.band_pass_filter(LFP.restrict(ex_ep),150,250,Fs=self.fs)     
-            sst,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered.restrict(ex_ep),lowpassCutoff=500,Fs=self.fs,scale=40)
+            sst,frequency,power,global_ws=OE.Calculate_wavelet(ripple_band_filtered.restrict(ex_ep),lowpassCutoff=200,Fs=self.fs,scale=40)
             OE.plot_wavelet(ax[4],sst,frequency,power,Fs=self.fs,colorBar=False)
             #OE.plot_ripple_spectrum (ax[4], LFP, ex_ep,y_lim=30,Fs=self.fs,vmax_percentile=100)
             plt.subplots_adjust(hspace=0.5)
@@ -1751,7 +1751,7 @@ class SyncOEpyPhotometrySession:
         trough_index,peak_index = OE.calculate_theta_trough_index(silced_recording,Fs=self.fs)
         #print (trough_index)
         
-        gamma_band=(20, 60)
+        gamma_band=(30, 60)
         #OE.plot_gamma_amplitude_on_theta(self.fs,silced_recording,LFP_channel,peak_index,half_window=0.15,gamma_band=gamma_band)
         #OE.analyse_theta_nested_gamma(self.fs,silced_recording,LFP_channel,peak_index,half_window=0.15,gamma_band=gamma_band)
         OE.plot_gamma_power_on_theta(self.fs,silced_recording,LFP_channel,peak_index,half_window=0.15,gamma_band=gamma_band)
@@ -2153,9 +2153,9 @@ class SyncOEpyPhotometrySession:
         max_index = np.argmax(np.abs(mean_cross_corr))
         max_mean = mean_cross_corr[max_index]
         max_CI = CI_cross_corr[0][max_index],CI_cross_corr[1][max_index]
-        print("Maximum Mean INdex:", max_index)
-        print("Maximum Mean Value:", max_mean)
-        print("Corresponding CI Value:", max_CI)
+        # print("Maximum Mean Index:", max_index)
+        # print("Maximum Mean Value:", max_mean)
+        # print("Corresponding CI Value:", max_CI)
         if mode=='ripple':
             self.ripple_event_corr_array=event_corr_array
 

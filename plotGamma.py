@@ -102,8 +102,8 @@ def plot_aligned_ripple_save (save_path,LFP_channel,recordingName,ripple_trigger
     ripple_sample_numbers=len(ripple_triggered_lfps[0])
     midpoint=ripple_sample_numbers//2
     'align ripple in a 200ms window '
-    start_idx=int(midpoint-0.08*Fs)
-    end_idx=int(midpoint+0.08*Fs)
+    start_idx=int(midpoint-0.05*Fs)
+    end_idx=int(midpoint+0.05*Fs)
     print (midpoint,start_idx,end_idx)
     aligned_ripple_band_lfps,aligned_lfps,aligned_zscores=align_ripples (ripple_triggered_lfps,
                                                                          ripple_triggered_zscores,start_idx,end_idx,midpoint,Fs)
@@ -219,11 +219,10 @@ def run_Gamma_plot (dpath,LFP_channel,recordingName,savename,theta_thre=0):
     For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
     rip_ep,rip_tsd=Recording1.pynappleGammaAnalysis (lfp_channel=LFP_channel,
                                                      ep_start=10,ep_end=18,
-                                                     Low_thres=0.5,High_thres=8,
+                                                     Low_thres=0.3,High_thres=8,
                                                      plot_segment=False,plot_ripple_ep=False,
                                                      excludeTheta=False,excludeNonTheta=False)
-
-    'GEVI has a negative'
+    
     index = LFP_channel.split('_')[-1] 
     if index=='1':
         ripple_triggered_LFP_values=Recording1.ripple_triggered_LFP_values_1
@@ -233,21 +232,37 @@ def run_Gamma_plot (dpath,LFP_channel,recordingName,savename,theta_thre=0):
         ripple_triggered_LFP_values=Recording1.ripple_triggered_LFP_values_3
     else:
         ripple_triggered_LFP_values=Recording1.ripple_triggered_LFP_values_4
-
+    
     ripple_triggered_zscore_values=Recording1.ripple_triggered_zscore_values
     aligned_ripple_band_lfps,aligned_zscores=plot_aligned_ripple_save (save_path,LFP_channel,recordingName,ripple_triggered_LFP_values,ripple_triggered_zscore_values,Fs=10000)
     plot_ripple_zscore(save_path, aligned_ripple_band_lfps, aligned_zscores)
+
+
+    trough_index,peak_index,fig,fig1,fig2,fig3,fig4 =Recording1.plot_gamma_correlation(LFP_channel)
+    
+    fig_path = os.path.join(dpath,savename,'LFP_GEVI_average_gamma.png')
+    fig.savefig(fig_path, transparent=True)
+    
+    fig_path = os.path.join(dpath,savename,'zscore_gamma_phase.png')
+    fig2.savefig(fig_path, transparent=True)
+    
+    fig_path = os.path.join(dpath,savename,'zscore_gamma_phase_reverse.png')
+    fig3.savefig(fig_path, transparent=True)
+    
+    fig_path = os.path.join(dpath,savename,'Events_on_gamma_phase.png')
+    fig4.savefig(fig_path, transparent=True)
     return -1
 
 def run_ripple_plot_main():
     'This is to process a single or concatenated rial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
-    dpath='F:/2025_ATLAS_SPAD/PVCre/1842515_PV_mNeon/Day2/'
+    #dpath='F:/2025_ATLAS_SPAD/1887930_PV_mNeon_mCherry/Day3/'
+    dpath='F:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day3/' 
     
-    recordingName='SyncRecording12'
+    recordingName='SyncRecording3'
     savename='GammaSave'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
     LFP_channel='LFP_1'
-    run_Gamma_plot (dpath,LFP_channel,recordingName,savename,theta_thre=-0.5)
+    run_Gamma_plot (dpath,LFP_channel,recordingName,savename,theta_thre=-0.3)
 
 def main():    
     run_ripple_plot_main()

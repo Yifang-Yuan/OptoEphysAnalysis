@@ -95,8 +95,8 @@ def plot_aligned_ripple_save (save_path,LFP_channel,recordingName,ripple_trigger
     ripple_sample_numbers=len(ripple_triggered_lfps[0])
     midpoint=ripple_sample_numbers//2
     'align ripple in a 200ms window '
-    start_idx=int(midpoint-0.1*Fs)
-    end_idx=int(midpoint+0.1*Fs)
+    start_idx=int(midpoint-0.08*Fs)
+    end_idx=int(midpoint+0.09*Fs)
     print (midpoint,start_idx,end_idx)
     aligned_ripple_band_lfps,aligned_lfps,aligned_zscores=align_ripples (ripple_triggered_lfps,
                                                                          ripple_triggered_zscores,start_idx,end_idx,midpoint,Fs)
@@ -137,7 +137,7 @@ def plot_ripple_zscore(savepath, lfp_ripple, zscore):
     
     # **Find midpoint and crop to -0.1s to 0.1s**
     midpoint = len(time) // 2  # Find center index
-    time_window = (-0.05, 0.05)  # Define time range
+    time_window = (-0.03, 0.03)  # Define time range
     idx_range = np.where((time - time[midpoint] >= time_window[0]) & (time - time[midpoint] <= time_window[1]))[0]
     
     # Crop time and data
@@ -150,8 +150,8 @@ def plot_ripple_zscore(savepath, lfp_ripple, zscore):
     ci_ripple = sem(lfp_ripple, axis=0) * 1.96  # 95% CI using standard error
 
     # Identify troughs in z-score signal for raster plot
-    troughs = [np.argmin(epoch) for epoch in zscore]  # Find min per epoch
-    trough_times = time[troughs]  # Convert to time
+    peaks = [np.argmax(epoch) for epoch in zscore]  # Find min per epoch
+    peak_times = time[peaks]  # Convert to time
 
     # Create figure
     fig, axes = plt.subplots(3, 1, figsize=(6, 8), gridspec_kw={'height_ratios': [1, 2, 1]})
@@ -169,7 +169,7 @@ def plot_ripple_zscore(savepath, lfp_ripple, zscore):
     
     # Raster plot of z-score troughs
     ax1 = axes[1]
-    for i, t in enumerate(trough_times):
+    for i, t in enumerate(peak_times):
         ax1.plot([t, t], [i - 0.4, i + 0.4], color='red', lw=2)  # Small vertical lines as raster marks
     ax1.set_ylabel("Epoch", fontsize=14)
     ax1.tick_params(axis='both', labelsize=12)
@@ -180,7 +180,7 @@ def plot_ripple_zscore(savepath, lfp_ripple, zscore):
     
     # Histogram of trough times
     ax2 = axes[2]
-    ax2.hist(trough_times, bins=60, color='#377eb8',alpha=0.8)  # Black edges added
+    ax2.hist(peak_times, bins=60, color='#377eb8',alpha=0.8)  # Black edges added
     ax2.set_xlabel("Time (s)",fontsize=14)
     ax2.set_ylabel("Firing Count", fontsize=14)
     ax2.spines['top'].set_visible(False)
@@ -230,12 +230,12 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,theta_cutoff=0.5):
 
 def run_ripple_plot_main():
     'This is to process a single or concatenated rial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
-    dpath='F:/2025_ATLAS_SPAD/1881365_Jedi2p_mCherry/Day4/'
+    dpath='F:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day2/'
     
-    recordingName='SyncRecording8'
+    recordingName='SyncRecording18'
     savename='RippleSave_Sleep'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-    LFP_channel='LFP_3'
+    LFP_channel='LFP_1'
     run_ripple_plot (dpath,LFP_channel,recordingName,savename,theta_cutoff=0.5)
 
 def main():    

@@ -901,17 +901,53 @@ def plot_theta_nested_gamma_overlay(ax, LFP_ep, SPAD_ep, frequency, power, time,
         ax.plot(time, normalized_sst_filtered, 'k', linewidth=2)
     return ax
 
+'Using this, phase 0 is set at theta peaks'
+# def calculate_theta_phase_angle(channel_data, theta_low=5, theta_high=9):
+#     filtered_data = band_pass_filter(channel_data, low_freq=theta_low, high_freq=theta_high,Fs=10000)  # filtered in theta range
+#     analytic_signal = signal.hilbert(filtered_data)  # hilbert transform https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.hilbert.html
+#     angle = np.angle(analytic_signal)  # this is the theta angle (radians)
+#     return angle
+
+'Using this, phase 0 is set at theta troughs'
 def calculate_theta_phase_angle(channel_data, theta_low=5, theta_high=9):
-    filtered_data = band_pass_filter(channel_data, low_freq=theta_low, high_freq=theta_high,Fs=10000)  # filtered in theta range
-    analytic_signal = signal.hilbert(filtered_data)  # hilbert transform https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.hilbert.html
-    angle = np.angle(analytic_signal)  # this is the theta angle (radians)
+    filtered_data = band_pass_filter(channel_data, low_freq=theta_low, high_freq=theta_high, Fs=10000)  # Filter in theta range
+    analytic_signal = signal.hilbert(filtered_data)  # Hilbert transform
+    angle_default = np.angle(analytic_signal)  # Default: 0 at peak
+    angle = (angle_default + np.pi) % (2 * np.pi)  # Shift so that 0 = trough
     return angle
 
-def calculate_theta_trough_index(df,Fs=10000):
-    troughs = (df['theta_angle'] < df['theta_angle'].shift(-1)) & (df['theta_angle'] < df['theta_angle'].shift(1)) & (df['theta_angle']<-3.12)
-    #troughs = (df['theta_angle'] < df['theta_angle'].shift(-1)) & (df['theta_angle'] < df['theta_angle'].shift(1))
+
+# def calculate_theta_trough_index(df,Fs=10000):
+#     troughs = (df['theta_angle'] < df['theta_angle'].shift(-1)) & (df['theta_angle'] < df['theta_angle'].shift(1)) & (df['theta_angle']<-3.12)
+#     #troughs = (df['theta_angle'] < df['theta_angle'].shift(-1)) & (df['theta_angle'] < df['theta_angle'].shift(1))
+#     trough_index = df.index[troughs]
+#     peaks = (df['theta_angle']<0.01) & (df['theta_angle']>-0.01)
+#     peak_index = df.index[peaks]
+#     #trough_time=trough_index/Fs
+#     return trough_index,peak_index
+
+def calculate_theta_trough_index(df, Fs=10000):
+    # Detect local minima in theta phase: trough = 0 rad
+    troughs = (
+        (df['theta_angle'] < df['theta_angle'].shift(-1)) &
+        (df['theta_angle'] < df['theta_angle'].shift(1)) &
+        ((df['theta_angle'] < 0.2) | (df['theta_angle'] > (2 * np.pi - 0.2)))  # Around 0
+    )
     trough_index = df.index[troughs]
-    peaks = (df['theta_angle']<0.01) & (df['theta_angle']>-0.01)
+
+    # Detect peaks: now at π radians (≈3.14)
+    peaks = (
+        (df['theta_angle'] > (np.pi - 0.1)) &
+        (df['theta_angle'] < (np.pi + 0.1))
+    )
+    peak_index = df.index[peaks]
+
+    return trough_index, peak_index
+
+def calculate_gamma_trough_index(df,Fs=10000):
+    troughs = (df['gamma_angle'] < df['gamma_angle'].shift(-1)) & (df['gamma_angle'] < df['gamma_angle'].shift(1)) & (df['gamma_angle']<-3.12)
+    trough_index = df.index[troughs]
+    peaks = (df['gamma_angle']<0.01) & (df['gamma_angle']>-0.01)
     peak_index = df.index[peaks]
     #trough_time=trough_index/Fs
     return trough_index,peak_index
@@ -961,6 +997,20 @@ def set_polar_labels_vertical(ax):
         label.set_verticalalignment("center")
         label.set_horizontalalignment("center")
 
+def set_sparse_polar_labels(ax, angular_ticks=[0, 180], angular_labels=["0", "π"],
+                            radial_ticks=[0.5, 1.0], fontsize=14):
+    """
+    Set sparse angular (theta) and radial (r) tick labels on a polar axis.
+    """
+    # Set angular (theta) tick locations and labels
+    ax.set_thetagrids(angular_ticks, labels=angular_labels)
+    
+    # Set radial (r) gridline positions
+    ax.set_rgrids(radial_ticks, angle=0, fontsize=fontsize)
+
+    # Set general tick label font size
+    ax.tick_params(labelsize=fontsize)
+    
 def plot_zscore_to_theta_phase(theta_angle, zscore_data):
     # Apply a low-pass filter to z-score data
     zscore_data = butter_filter(zscore_data, btype="low", cutoff=50, fs=10000, order=5)
@@ -969,7 +1019,7 @@ def plot_zscore_to_theta_phase(theta_angle, zscore_data):
     # --- FIGURE 1: Histogram ---
     fig1, ax1 = plt.subplots(figsize=(6, 6), subplot_kw={'projection': 'polar'})
     ax1.hist(theta_angle, bins=bins, weights=-zscore_data, color="#1b9e77", alpha=0.7, edgecolor="black")
-    ax1.set_title("ΔF/F vs Theta Phase (Histogram)", va="bottom", fontsize=14, fontweight="bold")
+    ax1.set_title("ΔF/F vs Phase (Histogram)", va="bottom", fontsize=14, fontweight="bold")
     ax1.tick_params(axis='both', labelsize=14)
     ax1.grid(False)
     set_polar_labels_vertical(ax1)  # Apply label rotation
@@ -978,8 +1028,8 @@ def plot_zscore_to_theta_phase(theta_angle, zscore_data):
     ax1.spines['polar'].set_linewidth(2)
     ax1.spines['polar'].set_alpha(0.5)
 
-    # Compute binned means
-    bin_edges = np.linspace(-np.pi, np.pi, bins + 1)
+    # Compute binned means — now using [0, 2π] range
+    bin_edges = np.linspace(0, 2 * np.pi, bins + 1)
     bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
     zscore_means = [np.mean(zscore_data[(theta_angle >= bin_edges[i]) & (theta_angle < bin_edges[i + 1])]) for i in range(len(bin_edges) - 1)]
 
@@ -990,27 +1040,29 @@ def plot_zscore_to_theta_phase(theta_angle, zscore_data):
     # --- FIGURE 2: Line plot (Z-score means) ---
     fig2, ax2 = plt.subplots(figsize=(6, 6), subplot_kw={'projection': 'polar'})
     ax2.plot(bin_centers, zscore_means, color="#1b9e77", linewidth=3)
-    ax2.tick_params(axis='both', labelsize=16)
-    ax2.set_title("-zScore vs Theta Phase", va="bottom", fontsize=14, fontweight="bold")
+    ax2.tick_params(axis='both', labelsize=18)
+    ax2.set_title("-ZScore vs Phase", va="bottom", fontsize=14, fontweight="bold")
     ax2.grid(False)
+    ax2.set_yticklabels([])
     set_polar_labels_vertical(ax2)  # Apply label rotation
 
     # Thicker circular border with alpha=0.5
     ax2.spines['polar'].set_linewidth(4)
     ax2.spines['polar'].set_alpha(0.5)
-
+    
     # --- FIGURE 3: Line plot (-Z-score means) ---
     fig3, ax3 = plt.subplots(figsize=(6, 6), subplot_kw={'projection': 'polar'})
     ax3.plot(bin_centers, zscore_means, color="#d73027", linewidth=3)  # Reversed Z-score
     ax3.set_ylim(ax3.get_ylim()[::-1])  # Flip radial axis
     ax3.tick_params(axis='both', labelsize=16)
-    ax3.set_title("Z-Score vs Theta Phase", va="bottom", fontsize=14, fontweight="bold")
+    ax3.set_title("Z-Score vs Phase", va="bottom", fontsize=14, fontweight="bold")
     ax3.grid(False)
     set_polar_labels_vertical(ax3)  # Apply label rotation
 
     # Thicker circular border with alpha=0.5
     ax3.spines['polar'].set_linewidth(4)
     ax3.spines['polar'].set_alpha(0.5)
+
 
     return fig1, fig2, fig3
 
@@ -1050,13 +1102,15 @@ def plot_voltage_peaks_to_theta_phase(theta_angle, zscore_data, bins=40):
     fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'projection': 'polar'})
 
     # Histogram of z-score troughs vs theta phase
-    ax.hist(peak_phases, bins=bins, color="#d73027", alpha=0.7, edgecolor="black")
-    ax.set_title("Z-Score Troughs vs Theta Phase", va="bottom", fontsize=16, fontweight="bold")
+    ax.hist(peak_phases, bins=bins, color="#1b9e77", alpha=0.7, edgecolor="black")
+    ax.set_title("Events vs Theta Phase", va="bottom", fontsize=16, fontweight="bold")
 
     # Increase tick label size
     ax.tick_params(axis='both', labelsize=14)
 
     ax.grid(False)
+    ax.spines['polar'].set_linewidth(4)
+    ax.spines['polar'].set_alpha(0.5)
 
     plt.show()
     return fig
@@ -1088,13 +1142,11 @@ def plot_voltage_peaks_to_theta_phase_boxplot(theta_angle, zscore_data):
         cycle_thetas = np.array(theta_angle[start:end])  # Convert to NumPy array
 
         if len(cycle_zscores) > 0:
-            max_idx = np.argmin(cycle_zscores)  # Index of minimum z-score in this cycle
+            max_idx = np.argmax(cycle_zscores)  # Index of minimum z-score in this cycle
             peak_phases.append(cycle_thetas[max_idx])  # Store corresponding theta phase
 
     peak_phases = np.array(peak_phases)  # Convert to numpy array
 
-    # Convert to degrees for better interpretation
-    trough_phases_deg = np.degrees(peak_phases)
 
     # Compute circular mean (preferred phase) in radians & degrees
     preferred_phase_rad = circmean(peak_phases, high=np.pi, low=-np.pi)
@@ -1112,7 +1164,7 @@ def plot_voltage_peaks_to_theta_phase_boxplot(theta_angle, zscore_data):
     ci_lower = preferred_phase_deg - 1.96 * sem_deg
     ci_upper = preferred_phase_deg + 1.96 * sem_deg
     # Print results
-    print(f"Preferred Theta Phase (Degrees): {preferred_phase_deg:.2f}")
+    print(f"Preferred Phase (Degrees): {preferred_phase_deg:.2f}")
     print(f"Circular Standard Deviation (Degrees): {circ_std_deg:.2f}")
     print(f"95% Confidence Interval: [{ci_lower:.2f}, {ci_upper:.2f}]")
     # Plot preferred phase with error bars

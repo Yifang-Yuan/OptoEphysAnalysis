@@ -364,6 +364,7 @@ def run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low
 
     
     trough_index,peak_index,fig,fig1,fig2,fig3,fig4 =Recording1.plot_theta_correlation(LFP_channel)
+    
     theta_part=Recording1.theta_part
     #theta_part=Recording1.Ephys_tracking_spad_aligned
     theta_zscores_np,theta_lfps_np=OE.get_theta_cycle_value(theta_part, LFP_channel, trough_index, half_window=0.5, fs=Recording1.fs)
@@ -387,14 +388,13 @@ def run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low
 
 def run_theta_plot_main():
     'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
-    #dpath='E:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day5/' #Pyramidal cell example
-    
-    dpath='F:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day3/'
+   
+    dpath='F:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day3/' 
     recordingName='SyncRecording3'
     savename='ThetaSave_Move'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
     LFP_channel='LFP_1'
-    run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low_thres=-0.3) #-0.3
+    run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low_thres=-0.1) #-0.3
 
 def main():    
     run_theta_plot_main()

@@ -202,7 +202,7 @@ def photometry_smooth_plot (raw_reference,raw_signal,sampling_rate=500, smooth_w
     smooth_reference = smooth_signal(raw_reference, smooth_win)
     smooth_Signal = smooth_signal(raw_signal, smooth_win)
     
-    lambd = 5e4 # Adjust lambda to get the best fit
+    lambd = 5e5 # Adjust lambda to get the best fit,original 5e4
     porder = 1
     itermax = 5
     
