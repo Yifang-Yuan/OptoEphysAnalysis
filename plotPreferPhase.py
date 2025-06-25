@@ -10,135 +10,147 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-# === 1. Load from Excel ===
-dpath = "F:/2025_ATLAS_SPAD/Figure2_Pyr_theta/ThetaPhaseExampleAnimal/"  
-file_name= 'Prefered_theta_phase.xlsx' #Update this to your actual file path
-file_path=os.path.join(dpath,file_name)
-df = pd.read_excel(file_path)
+import os
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 
-# === 2. Extract data columns ===
-preferred_phases = df["prefered phase"].values % 360
-days = df["Day"].values
+def shift_phase_deg(deg_array):
+    return (deg_array + 180) % 360  # shift peak→trough, wrap to [0–360)
 
-# Parse the CI string into two numbers
 def parse_ci(ci_string):
-    ci_string = ci_string.strip("[]")
-    lower_str, upper_str = ci_string.split(",")
+    lower_str, upper_str = ci_string.strip("[]").split(",")
     return float(lower_str), float(upper_str)
 
-ci_bounds = df["CI"].apply(parse_ci)
-ci_lower = np.array([b[0] for b in ci_bounds]) % 360
-ci_upper = np.array([b[1] for b in ci_bounds]) % 360
+def plot_polar_phases(file_path, colour_map, group_col, title, save_path):
+    df = pd.read_excel(file_path)
 
-# === 3. Convert degrees to radians ===
-preferred_phases_rad = np.radians(preferred_phases)
-ci_lower_rad = np.radians(ci_lower)
-ci_upper_rad = np.radians(ci_upper)
+    # --- Parse phase and CI ---
+    def parse_ci(ci_string):
+        lower_str, upper_str = ci_string.strip("[]").split(",")
+        return float(lower_str), float(upper_str)
 
-# === 4. Group indices by day ===
-groups = {}
-for i, day in enumerate(days):
-    groups.setdefault(f"Day {day}", []).append(i)
+    preferred_raw = df["prefered phase"].values
+    ci_bounds = df["CI"].apply(parse_ci)
+    ci_lower_raw = np.array([b[0] for b in ci_bounds])
+    ci_upper_raw = np.array([b[1] for b in ci_bounds])
 
-# === 5. Colour map for days ===
-nature_colors = ["#303030", "#FC8D62", "#A6D854", "#E78AC3", "#8DA0CB"]
-day_colors = {day: nature_colors[i] for i, day in enumerate(sorted(groups.keys()))}
+    # === 1. Shift all angles (theta peak → trough = +180°), without mod 360
+    preferred_shifted = preferred_raw + 180
+    ci_lower_shifted = ci_lower_raw + 180
+    ci_upper_shifted = ci_upper_raw + 180
 
-# === 6. Plot ===
-fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'projection': 'polar'})
+    # === 2. Convert all to radians
+    preferred_rad = np.radians(preferred_shifted % 360)
+    ci_lower_rad = np.radians(ci_lower_shifted)
+    ci_upper_rad = np.radians(ci_upper_shifted)
 
-for day, indices in groups.items():
-    for i in indices:
-        # Plot confidence interval (CI) as fan (optional)
-        # theta_range = np.linspace(ci_lower_rad[i], ci_upper_rad[i], 50)
-        # r = np.ones_like(theta_range)
-        # ax.fill_between(theta_range, 0, r, color=day_colors[day], alpha=0.1)
+    # === 3. Group by group_col (e.g. Day or Animal)
+    groups = {}
+    for i, val in enumerate(df[group_col].values):
+        key = f"{group_col} {val}"
+        groups.setdefault(key, []).append(i)
 
-        # Plot preferred phase line
-        ax.plot([preferred_phases_rad[i], preferred_phases_rad[i]], [0, 1], 
-                color=day_colors[day], linewidth=3, label=day if i == indices[0] else "")
+    # === 4. Define colours
+    
+    group_colours = {g: colour_map[i % len(colour_map)] for i, g in enumerate(sorted(groups.keys()))}
 
-# === 7. Format polar plot ===
-ax.set_theta_zero_location("E")
-ax.set_theta_direction(1)
-ax.set_xticks(np.linspace(0, 2 * np.pi, 9))
-ax.set_xticklabels(["0°", "45°", "90°", "135°", "180°", "225°", "270°", "315°", "0°"], fontsize=18)
-ax.spines['polar'].set_linewidth(4)
-ax.spines['polar'].set_alpha(0.5)
-ax.grid(False)
-ax.legend(loc="upper right", bbox_to_anchor=(1.3, 1), frameon=False, title="Days")
-ax.set_yticklabels([])  # remove radial labels
-ax.set_title("Preferred Phase by Day", fontsize=14, fontweight="bold")
+    # === 5. Plot
+    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'projection': 'polar'})
 
-plt.show()
+    for group, indices in groups.items():
+        for i in indices:
+            # --- Handle circular CI range properly ---
+            lower = ci_lower_rad[i]
+            upper = ci_upper_rad[i]
 
-fig_path = os.path.join(dpath,'prefered_phase_multi_Animal.png')
-fig.savefig(fig_path, transparent=True)
+            # Handle CI that wraps around 2π
+            if upper < lower:
+                theta_range1 = np.linspace(lower, 2 * np.pi, 25)
+                theta_range2 = np.linspace(0, upper, 25)
+                theta_range = np.concatenate([theta_range1, theta_range2])
+            else:
+                theta_range = np.linspace(lower, upper, 50)
 
-#%%
+            r = np.ones_like(theta_range)
+            ax.fill_between(theta_range, 0, r, color=group_colours[group], alpha=0.1)
+
+            # --- Preferred phase line ---
+            ax.plot([preferred_rad[i], preferred_rad[i]], [0, 1],
+                    color=group_colours[group], linewidth=3,
+                    label=group if i == indices[0] else "")
+
+    # === 6. Format polar plot
+    ax.set_theta_zero_location("E")
+    ax.set_theta_direction(1)
+    ax.set_xticks(np.linspace(0, 2 * np.pi, 9))
+    ax.set_xticklabels(["0°", "45°", "90°", "135°", "180°", "225°", "270°", "315°", "0°"], fontsize=14)
+    ax.set_yticklabels([])
+    ax.spines['polar'].set_linewidth(4)
+    ax.spines['polar'].set_alpha(0.5)
+    ax.grid(False)
+    ax.set_title(title, fontsize=14, fontweight="bold")
+    ax.legend(loc="upper right", bbox_to_anchor=(1.3, 1), frameon=False, title=group_col)
+
+    plt.tight_layout()
+    plt.show()
+    fig.savefig(save_path, transparent=True)
+
+    return -1
+
+colour_map_A = [
+    
+    "#ffd92f",  # Yellow
+    "#66c2a5",  # Teal
+    "#8da0cb",  # Blue-violet
+    "#e78ac3",  # Pink
+    "#a6d854",  # Lime green
+    "#e5c494",  # Tan
+    "#b3b3b3",   # Light grey
+    "#fc8d62",  # Orange
+]
+
+colour_map_B = [
+    "#1f78b4",  # Deep Blue
+    "#33a02c",  # Green
+    "#e31a1c",  # Red
+    "#ff7f00",  # Orange
+    "#6a3d9a",  # Purple
+    "#a6cee3",  # Light Blue
+    "#fb9a99",   # Salmon pink
+    "#b15928",  # Brown
+]
+    
+
+#=== Run on both datasets ===
+
+# file_path="F:/2025_ATLAS_SPAD/Figure2_Pyr_theta/ThetaPhaseExampleAnimal/Prefered_theta_phase_5day.xlsx"
+# group_col="Day"
+# title="Preferred Phase by Day"
+# save_path="F:/2025_ATLAS_SPAD/Figure2_Pyr_theta/ThetaPhaseExampleAnimal/prefered_phase_single_Animal.png"
+# colour_map=colour_map_A
+# plot_polar_phases(file_path, colour_map, group_col, title, save_path)
 
 
-# === 1. Load from Excel ===
-dpath = "F:/2025_ATLAS_SPAD/Figure3_Pyr_gamma/GammaPhaseMultipleAnimals/"  
-file_name= 'Prefered_gamma_phase.xlsx' #Update this to your actual file path
-file_path=os.path.join(dpath,file_name)
-df = pd.read_excel(file_path)
+file_path="F:/2025_ATLAS_SPAD/Figure2_Pyr_theta/ThetaPhaseMultipleAnimals/Prefered_theta_phase.xlsx"
+group_col="Animal"
+title="Preferred Phase by Animal"
+save_path="F:/2025_ATLAS_SPAD/Figure2_Pyr_theta/ThetaPhaseMultipleAnimals/prefered_phase_multi_Animal.png"
+colour_map=colour_map_B
+plot_polar_phases(file_path, colour_map, group_col, title, save_path)
 
-# === 2. Extract data columns ===
-preferred_phases = df["prefered phase"].values % 360
-days = df["Animal"].values
 
-# Parse the CI string into two numbers
-def parse_ci(ci_string):
-    ci_string = ci_string.strip("[]")
-    lower_str, upper_str = ci_string.split(",")
-    return float(lower_str), float(upper_str)
+# file_path="F:/2025_ATLAS_SPAD/Figure3_Pyr_gamma/GammaPhaseExampleAnimal/Prefered_gamma_phase_5days.xlsx"
+# group_col="Day"
+# title="Preferred Phase by Day"
+# save_path="F:/2025_ATLAS_SPAD/Figure3_Pyr_gamma/GammaPhaseExampleAnimal/prefered_phase_single_Animal.png"
+# colour_map=colour_map_A
+# plot_polar_phases(file_path, colour_map, group_col, title, save_path)
 
-ci_bounds = df["CI"].apply(parse_ci)
-ci_lower = np.array([b[0] for b in ci_bounds]) % 360
-ci_upper = np.array([b[1] for b in ci_bounds]) % 360
 
-# === 3. Convert degrees to radians ===
-preferred_phases_rad = np.radians(preferred_phases)
-ci_lower_rad = np.radians(ci_lower)
-ci_upper_rad = np.radians(ci_upper)
-
-# === 4. Group indices by day ===
-groups = {}
-for i, day in enumerate(days):
-    groups.setdefault(f"Animal {day}", []).append(i)
-
-# === 5. Colour map for days ===
-nature_colors = ["#303030", "#FC8D62", "#A6D854", "#E78AC3", "#8DA0CB"]
-day_colors = {day: nature_colors[i] for i, day in enumerate(sorted(groups.keys()))}
-
-# === 6. Plot ===
-fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'projection': 'polar'})
-
-for day, indices in groups.items():
-    for i in indices:
-        # Plot confidence interval (CI) as fan (optional)
-        theta_range = np.linspace(ci_lower_rad[i], ci_upper_rad[i], 50)
-        r = np.ones_like(theta_range)
-        ax.fill_between(theta_range, 0, r, color=day_colors[day], alpha=0.1)
-
-        # Plot preferred phase line
-        ax.plot([preferred_phases_rad[i], preferred_phases_rad[i]], [0, 1], 
-                color=day_colors[day], linewidth=3, label=day if i == indices[0] else "")
-
-# === 7. Format polar plot ===
-ax.set_theta_zero_location("E")
-ax.set_theta_direction(1)
-ax.set_xticks(np.linspace(0, 2 * np.pi, 9))
-ax.set_xticklabels(["0°", "45°", "90°", "135°", "180°", "225°", "270°", "315°", "0°"], fontsize=18)
-ax.spines['polar'].set_linewidth(4)
-ax.spines['polar'].set_alpha(0.5)
-ax.grid(False)
-ax.legend(loc="upper right", bbox_to_anchor=(1.3, 1), frameon=False, title="Days")
-ax.set_yticklabels([])  # remove radial labels
-ax.set_title("Preferred Phase by Animal", fontsize=14, fontweight="bold")
-
-plt.show()
-
-fig_path = os.path.join(dpath,'prefered_phase_multi_Animal.png')
-fig.savefig(fig_path, transparent=True)
+file_path="F:/2025_ATLAS_SPAD/Figure3_Pyr_gamma/GammaPhaseMultipleAnimals/Prefered_gamma_phase.xlsx"
+group_col="Animal"
+title="Preferred Phase by Animal"
+save_path="F:/2025_ATLAS_SPAD/Figure3_Pyr_gamma/GammaPhaseMultipleAnimals/prefered_phase_multi_Animal.png"
+colour_map=colour_map_B
+plot_polar_phases(file_path, colour_map, group_col, title, save_path)

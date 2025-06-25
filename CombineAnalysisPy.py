@@ -19,20 +19,21 @@ import matplotlib.pyplot as plt
 # dpath='E:/ATLAS_SPAD/1825507_mCherry/Day1/'
 # recordingName='SavedMovingTrials'
 
-dpath='F:/2025_ATLAS_SPAD/Figure2_Pyr_theta/ThetaPhaseMultipleAnimals/'
+dpath='F:/2025_ATLAS_SPAD/PyramidalWT/1881363_Jedi2p_mCherry/ThetaTrials/Day6/'
 
-recordingName='1851545_WT_Jedi2p_dis_Day1_SyncRecording5'
+recordingName='SyncRecording4'
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
 LFP_channel='LFP_1'
-Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=False,
+Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,
+                                     read_aligned_data_from_file=False,
                                      recordingMode='Atlas',indicator='GEVI') 
 #%%
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined theta period.
 nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.5,High_thres=10,save=False,plot_theta=True)
-#%%
-#This is to calculate and plot the trace around theta trough
+Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.3,High_thres=10,save=False,plot_theta=True)
+#%%  
+'This is to calculate and plot the trace around theta trough'
 Recording1.plot_theta_correlation(LFP_channel)
 #%%
 'plot feature can be LFP or SPAD to show the power spectrum of LFP or SPAD'
@@ -48,7 +49,7 @@ data_segment,timestamps=Recording1.pynappleThetaAnalysis (lfp_channel=LFP_channe
 '''RIPPLE DETECTION
 For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
 rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,ep_start=10,ep_end=30,
-                                                                          Low_thres=1.2,High_thres=10,plot_segment=True,
+                                                                          Low_thres=1.5,High_thres=10,plot_segment=True,
                                                                           plot_ripple_ep=True,excludeTheta=True)
 #%% Detect ripple event
 '''GAMMA DETECTION

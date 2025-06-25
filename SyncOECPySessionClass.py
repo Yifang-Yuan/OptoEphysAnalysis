@@ -17,6 +17,7 @@ import OpenEphysTools as OE
 import pynapple as nap
 import MakePlots
 import pynacollada as pyna
+import pickle
 
 from SPADPhotometryAnalysis import photometry_functions as fp
 
@@ -41,8 +42,8 @@ class SyncOEpyPhotometrySession:
         if self.recordingMode=='SPAD':
             self.Spad_fs = 9938.4
         if self.recordingMode=='Atlas':
-            self.Spad_fs = 841.68
-            #self.Spad_fs = 1682.92
+            #self.Spad_fs = 841.68
+            self.Spad_fs = 1682.92
             
         self.ephys_fs = 30000
         self.tracking_fs = 10
@@ -1018,7 +1019,7 @@ class SyncOEpyPhotometrySession:
             #self.plot_lowpass_two_trace (self.non_theta_part, LFP_channel,SPAD_cutoff=20,lfp_cutoff=20)
         return self.theta_part,self.non_theta_part
     
-    def plot_theta_correlation(self,LFP_channel):
+    def plot_theta_correlation(self,LFP_channel,save_path=None):
         silced_recording=self.theta_part
         #silced_recording=self.Ephys_tracking_spad_aligned
         silced_recording=silced_recording.reset_index(drop=True)
@@ -1027,13 +1028,37 @@ class SyncOEpyPhotometrySession:
         OE.plot_trace_in_seconds(silced_recording['theta_angle'],Fs=10000,title='theta angle')
         trough_index,peak_index = OE.calculate_theta_trough_index(silced_recording,Fs=10000)
         #print (trough_index)
-        fig=OE.plot_theta_cycle (silced_recording, LFP_channel,peak_index,half_window=0.15,fs=10000,plotmode='two')
+        fig=OE.plot_theta_cycle (silced_recording, LFP_channel,trough_index,half_window=0.15,fs=10000,plotmode='two')
         fig1,fig2,fig3=OE.plot_zscore_to_theta_phase (silced_recording['theta_angle'],silced_recording['zscore_raw'])
-        fig4=OE.plot_voltage_peaks_to_theta_phase (silced_recording['theta_angle'],silced_recording['zscore_raw'])
-        OE.plot_voltage_peaks_to_theta_phase_boxplot(silced_recording['theta_angle'],silced_recording['zscore_raw'])
-        return trough_index,peak_index,fig,fig1,fig2,fig3,fig4
+        #fig4=OE.plot_voltage_peaks_to_theta_phase (silced_recording['theta_angle'],silced_recording['zscore_raw'])
+        OE.calculate_perferred_phase(silced_recording['theta_angle'],silced_recording['zscore_raw'])
+        fig4,MI, bin_centers, norm_amp=OE.compute_phase_modulation_index(silced_recording['theta_angle'], silced_recording['zscore_raw'], bins=30, plot=True)
+        
+        if save_path:
+            fig_path = os.path.join(save_path,'LFP_GEVI_average.png')
+            fig.savefig(fig_path, transparent=True)
+            
+            fig_path = os.path.join(save_path,'zscore_theta_phase.png')
+            fig2.savefig(fig_path, transparent=True)
+            
+            fig_path = os.path.join(save_path,'zscore_theta_phase_reverse.png')
+            fig3.savefig(fig_path, transparent=True)
+            
+            fig_path = os.path.join(save_path,'Phase modulation depth.png')
+            fig4.savefig(fig_path, transparent=True)
+            
+            
+            pkl_path = os.path.join(save_path,'phase_MI.pkl')
+            with open(pkl_path, 'wb') as f:
+                pickle.dump({
+                    'MI': MI,
+                    'bin_centers': bin_centers,
+                    'norm_amp': norm_amp
+                }, f)
+        
+        return trough_index,peak_index
     
-    def plot_gamma_correlation(self,LFP_channel):
+    def plot_gamma_correlation(self,LFP_channel,save_path):
         silced_recording=self.theta_part
         #silced_recording=self.Ephys_tracking_spad_aligned
         silced_recording=silced_recording.reset_index(drop=True)
@@ -1044,9 +1069,31 @@ class SyncOEpyPhotometrySession:
         #print (trough_index)
         fig=OE.plot_theta_cycle (silced_recording, LFP_channel,peak_index,half_window=0.15,fs=10000,plotmode='two')
         fig1,fig2,fig3=OE.plot_zscore_to_theta_phase (silced_recording['gamma_angle'],silced_recording['zscore_raw'])
-        fig4=OE.plot_voltage_peaks_to_theta_phase (silced_recording['gamma_angle'],silced_recording['zscore_raw'])
-        OE.plot_voltage_peaks_to_theta_phase_boxplot(silced_recording['gamma_angle'],silced_recording['zscore_raw'])
-        return trough_index,peak_index,fig,fig1,fig2,fig3,fig4
+        fig4,MI, bin_centers, norm_amp=OE.compute_phase_modulation_index(silced_recording['gamma_angle'], silced_recording['zscore_raw'], bins=30, plot=True)
+        #fig4=OE.plot_voltage_peaks_to_theta_phase (silced_recording['gamma_angle'],silced_recording['zscore_raw'])
+        OE.calculate_perferred_phase(silced_recording['gamma_angle'],silced_recording['zscore_raw'])
+        
+        fig_path = os.path.join(save_path,'LFP_GEVI_gamma_average.png')
+        fig.savefig(fig_path, transparent=True)
+        
+        fig_path = os.path.join(save_path,'zscore_gamma_phase.png')
+        fig2.savefig(fig_path, transparent=True)
+        
+        fig_path = os.path.join(save_path,'zscore_gamma_phase_reverse.png')
+        fig3.savefig(fig_path, transparent=True)
+        
+        fig_path = os.path.join(save_path,'Gamma Phase modulation depth.png')
+        fig4.savefig(fig_path, transparent=True)
+        
+        if save_path:
+            pkl_path = os.path.join(save_path,'gamma_phase_MI.pkl')
+            with open(pkl_path, 'wb') as f:
+                pickle.dump({
+                    'MI': MI,
+                    'bin_centers': bin_centers,
+                    'norm_amp': norm_amp
+                }, f)
+        return trough_index,peak_index
     
     def pynappleAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,
                           Low_thres=1,High_thres=10,plot_segment=False,plot_ripple_ep=True,excludeTheta=True,excludeREM=False):
@@ -1187,7 +1234,7 @@ class SyncOEpyPhotometrySession:
                     ax[2].axvline(0, color='white',linewidth=2) 
                     plt.tight_layout() 
                     figName=self.recordingName+'_Ripple'+str(i)+'.png'
-                    fig.savefig(os.path.join(save_ripple_path,figName))
+                    fig.savefig(os.path.join(save_ripple_path,figName),transparent=True)
                     self.ripple_optic_power_values.append(power_spad)
                     self.ripple_LFP_power_values.append(power_LFP)
 
@@ -1750,19 +1797,19 @@ class SyncOEpyPhotometrySession:
         #OE.plot_trace_in_seconds(silced_recording['theta_angle'],Fs=10000,title='theta angle')
         trough_index,peak_index = OE.calculate_theta_trough_index(silced_recording,Fs=self.fs)
         #print (trough_index)
-        
         gamma_band=(30, 60)
-        #OE.plot_gamma_amplitude_on_theta(self.fs,silced_recording,LFP_channel,peak_index,half_window=0.15,gamma_band=gamma_band)
-        #OE.analyse_theta_nested_gamma(self.fs,silced_recording,LFP_channel,peak_index,half_window=0.15,gamma_band=gamma_band)
-        OE.plot_gamma_power_on_theta(self.fs,silced_recording,LFP_channel,peak_index,half_window=0.15,gamma_band=gamma_band)
+    
+        mi_lfp, mi_spad,fig=OE.plot_gamma_power_on_theta(self.fs,silced_recording,LFP_channel,peak_index,half_window=0.15,gamma_band=gamma_band)
         #OE.plot_gamma_power_heatmap_on_theta(self.fs,silced_recording,LFP_channel,peak_index,half_window=0.15,gamma_band=gamma_band)
-        '''plot correlation using hilbert '''
-        # zscore=OE.smooth_signal(silced_recording['zscore_raw'], self.fs,200,window='flat')
-        # OE.compute_and_plot_gamma_power_correlation(zscore, silced_recording[LFP_channel],gamma_band, self.fs)
-        # OE.compute_and_plot_gamma_power_crosscorr(zscore, silced_recording[LFP_channel],gamma_band, self.fs)
-        # OE.plot_gamma_amplitude_on_theta_phase(silced_recording[LFP_channel], silced_recording['zscore_raw'], 
-        #                                     self.fs, theta_band=(5, 12), gamma_band=gamma_band, bins=30)
-        
+        # '''plot correlation using hilbert '''
+        #zscore=OE.smooth_signal(silced_recording['zscore_raw'], self.fs,200,window='flat')
+        #OE.compute_and_plot_gamma_power_correlation(zscore, silced_recording[LFP_channel],gamma_band, self.fs)
+        #OE.compute_and_plot_gamma_power_crosscorr(zscore, silced_recording[LFP_channel],gamma_band, self.fs)
+        OE.plot_gamma_amplitude_on_theta_phase(silced_recording[LFP_channel], silced_recording['zscore_raw'], 
+                                             self.fs, theta_band=(5, 12), gamma_band=gamma_band, bins=30)
+        # Save the figure with a transparent background
+        fig_path = os.path.join(self.savepath, 'Gamma Power on Theta Phase.png')
+        fig.savefig(fig_path, transparent=True, bbox_inches='tight')
         return -1
 
     def get_mean_corr_two_traces (self, spad_data,lfp_data,corr_window):

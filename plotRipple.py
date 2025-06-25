@@ -164,6 +164,7 @@ def plot_ripple_zscore(savepath, lfp_ripple, zscore):
     ax0.tick_params(axis='both', labelsize=12)
     ax0.set_xticklabels([])
     ax0.legend(frameon=False)
+    ax0.legend().set_visible(False)
     ax0.spines['top'].set_visible(False)
     ax0.spines['right'].set_visible(False)
     
@@ -180,7 +181,7 @@ def plot_ripple_zscore(savepath, lfp_ripple, zscore):
     
     # Histogram of trough times
     ax2 = axes[2]
-    ax2.hist(peak_times, bins=60, color='#377eb8',alpha=0.8)  # Black edges added
+    ax2.hist(peak_times, bins=40, color='#377eb8',alpha=0.8)  # Black edges added
     ax2.set_xlabel("Time (s)",fontsize=14)
     ax2.set_ylabel("Firing Count", fontsize=14)
     ax2.spines['top'].set_visible(False)
@@ -209,7 +210,7 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,theta_cutoff=0.5):
     For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
     rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,
                                                 ep_start=0,ep_end=20,
-                                                Low_thres=1.5,High_thres=10,
+                                                Low_thres=0.9,High_thres=10,
                                                 plot_segment=False,plot_ripple_ep=False,excludeTheta=False)
 
     'GEVI has a negative'
@@ -232,7 +233,7 @@ def run_ripple_plot_main():
     'This is to process a single or concatenated rial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
     dpath='F:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day2/'
     
-    recordingName='SyncRecording18'
+    recordingName='SavedSleepTrials'
     savename='RippleSave_Sleep'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
     LFP_channel='LFP_1'

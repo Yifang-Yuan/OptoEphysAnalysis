@@ -170,7 +170,7 @@ def plot_ripple_zscore(savepath, lfp_ripple, zscore):
     ax0.set_ylabel("Amplitude", fontsize=14)
     ax0.tick_params(axis='both', labelsize=12)
     ax0.set_xticklabels([])
-    ax0.legend(frameon=False)
+    ax0.legend().set_visible(False)
     ax0.spines['top'].set_visible(False)
     ax0.spines['right'].set_visible(False)
     
@@ -238,27 +238,16 @@ def run_Gamma_plot (dpath,LFP_channel,recordingName,savename,theta_thre=0):
     plot_ripple_zscore(save_path, aligned_ripple_band_lfps, aligned_zscores)
 
 
-    trough_index,peak_index,fig,fig1,fig2,fig3,fig4 =Recording1.plot_gamma_correlation(LFP_channel)
+    trough_index,peak_index =Recording1.plot_gamma_correlation(LFP_channel,save_path)
     
-    fig_path = os.path.join(dpath,savename,'LFP_GEVI_average_gamma.png')
-    fig.savefig(fig_path, transparent=True)
-    
-    fig_path = os.path.join(dpath,savename,'zscore_gamma_phase.png')
-    fig2.savefig(fig_path, transparent=True)
-    
-    fig_path = os.path.join(dpath,savename,'zscore_gamma_phase_reverse.png')
-    fig3.savefig(fig_path, transparent=True)
-    
-    fig_path = os.path.join(dpath,savename,'Events_on_gamma_phase.png')
-    fig4.savefig(fig_path, transparent=True)
     return -1
 
 def run_ripple_plot_main():
     'This is to process a single or concatenated rial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
     #dpath='F:/2025_ATLAS_SPAD/1887930_PV_mNeon_mCherry/Day3/'
-    dpath='F:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day3/' 
+    dpath='F:/2025_ATLAS_SPAD/PyramidalWT/1844609_WT_Jedi2p/ThetaTrials/Day5_best/'
     
-    recordingName='SyncRecording3'
+    recordingName='SyncRecording1'
     savename='GammaSave'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
     LFP_channel='LFP_1'

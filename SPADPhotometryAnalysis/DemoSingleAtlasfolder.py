@@ -13,7 +13,7 @@ from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 #%% Workable code, above is testin
 #ppath='D:/ATLAS_SPAD/1825505_SimCre/Day2/Atlas/'
 
-dpath='F:/2025_ATLAS_SPAD/1881363_Jedi2p_mCherry/Day5Sleep/Test/'
+dpath='F:/2025_ATLAS_SPAD/1887933_Jedi2P_Multi/Day1/Test/'
 #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
 hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
 

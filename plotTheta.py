@@ -295,7 +295,7 @@ def plot_raster_histogram_theta_phase(save_path,lfps, zscores, Fs=10000):
     #axs[0].set_title("Averaged LFP Theta Band", fontsize=18, fontweight="bold")
     axs[0].spines["top"].set_visible(False)
     axs[0].spines["right"].set_visible(False)
-    axs[0].legend(frameon=False)
+    axs[0].legend().set_visible(False)
     
     # --- Raster Plot of Firing Events ---
     zscore_fire_times = np.argmax(zscores, axis=1) / Fs - 0.065  # Convert to seconds relative to midpoint
@@ -356,6 +356,7 @@ def run_theta_plot_selectpeak (dpath,LFP_channel,recordingName,savename,theta_lo
 '''recordingMode: use py, Atlas, SPAD for different systems'''
 def run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low_thres=0.5):
     save_path = os.path.join(dpath,savename)
+    os.makedirs(save_path, exist_ok=True)
     Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,
                                          read_aligned_data_from_file=True,
                                          recordingMode='Atlas',indicator='GECI') 
@@ -363,7 +364,7 @@ def run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low
     Recording1.pynacollada_label_theta (LFP_channel,Low_thres=theta_low_thres,High_thres=10,save=False,plot_theta=True)
 
     
-    trough_index,peak_index,fig,fig1,fig2,fig3,fig4 =Recording1.plot_theta_correlation(LFP_channel)
+    trough_index,peak_index =Recording1.plot_theta_correlation(LFP_channel,save_path)
     
     theta_part=Recording1.theta_part
     #theta_part=Recording1.Ephys_tracking_spad_aligned
@@ -372,29 +373,17 @@ def run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low
     plot_aligned_theta_phase (save_path,LFP_channel,recordingName,theta_lfps_np,theta_zscores_np,Fs=10000)
     plot_raster_histogram_theta_phase (save_path,theta_lfps_np,theta_zscores_np,Fs=10000)
     
-    
-    fig_path = os.path.join(dpath,savename,'LFP_GEVI_average.png')
-    fig.savefig(fig_path, transparent=True)
-    
-    fig_path = os.path.join(dpath,savename,'zscore_theta_phase.png')
-    fig2.savefig(fig_path, transparent=True)
-    
-    fig_path = os.path.join(dpath,savename,'zscore_theta_phase_reverse.png')
-    fig3.savefig(fig_path, transparent=True)
-    
-    fig_path = os.path.join(dpath,savename,'Events_on_theta_phase.png')
-    fig4.savefig(fig_path, transparent=True)
     return -1
 
 def run_theta_plot_main():
     'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
    
-    dpath='F:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day3/' 
-    recordingName='SyncRecording3'
+    dpath='F:/2025_ATLAS_SPAD/PyramidalWT/1881363_Jedi2p_mCherry/ThetaTrials/Day6/'
+    recordingName='SyncRecording4'
     savename='ThetaSave_Move'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
     LFP_channel='LFP_1'
-    run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low_thres=-0.1) #-0.3
+    run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low_thres=-0.3) #-0.3
 
 def main():    
     run_theta_plot_main()

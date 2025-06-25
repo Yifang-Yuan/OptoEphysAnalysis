@@ -26,9 +26,9 @@ def plot_GEVI_theta_correlation(SyncRecordingObject):
 #%%
 '''recordingMode: use py, Atlas, SPAD for different systems
 '''
-dpath= 'F:/2025_ATLAS_SPAD/1881363_Jedi2p_mCherry/Day2/'
+dpath= 'F:/2025_ATLAS_SPAD/PyramidalWT/1881363_Jedi2p_mCherry/ThetaTrials/Day6/'
 #dpath='E:/ATLAS_SPAD/1825507_mCherry/Day1/'
-recordingName='SyncRecording2'
+recordingName='SyncRecording4'
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,
                                      recordingMode='Atlas',indicator='GEVI') 
 LFP_channel='LFP_1'
@@ -36,7 +36,7 @@ LFP_channel='LFP_1'
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined theta period.
 nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.3,High_thres=8,save=False,plot_theta=True)
+theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.5,High_thres=8,save=False,plot_theta=True)
 #plot_GEVI_theta_correlation(Recording1)
 #%%
 '''Here for the spectrum, I used a 0.5Hz high pass filter to process both signals'''
@@ -46,21 +46,21 @@ for i in range(viewNum):
     #Recording1.plot_segment_feature (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=100,lfp_cutoff=500)
     'This is to plot two optical traces from two ROIs, i.e. one signal and one reference'
     #Recording1.plot_segment_feature_multiROI (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=500)
-    Recording1.plot_segment_band_feature_twoROIs (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=500)
-    #Recording1.plot_segment_band_feature (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=200)
+    #Recording1.plot_segment_band_feature_twoROIs (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=500)
+    Recording1.plot_segment_band_feature (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=100)
     #Recording1.plot_freq_power_coherence (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=200)
 
 #%%
 '''To plot the feature of a part of the signal'''
-start_time=24
-end_time=27
+start_time=3
+end_time=6
 
-sig_smooth,ref_smooth,sig_raw=Recording1.plot_segment_band_feature_twoROIs (LFP_channel,start_time,end_time,SPAD_cutoff=50,lfp_cutoff=500)
+#sig_smooth,ref_smooth,sig_raw=Recording1.plot_segment_band_feature_twoROIs (LFP_channel,start_time,end_time,SPAD_cutoff=50,lfp_cutoff=500)
 #Recording1.plot_segment_feature_multiROI (LFP_channel,start_time=start_time,end_time=end_time,SPAD_cutoff=50,lfp_cutoff=500)
 
-# Recording1.plot_segment_band_feature (LFP_channel,start_time,end_time,SPAD_cutoff=50,lfp_cutoff=500)
+#Recording1.plot_segment_band_feature (LFP_channel,start_time,end_time,SPAD_cutoff=50,lfp_cutoff=500)
 # coherence=Recording1.plot_freq_power_coherence (LFP_channel,start_time,end_time,SPAD_cutoff=50,lfp_cutoff=500)
-# Recording1.plot_segment_feature (LFP_channel,start_time,end_time,SPAD_cutoff=50,lfp_cutoff=500)
+Recording1.plot_segment_feature (LFP_channel,start_time,end_time,SPAD_cutoff=50,lfp_cutoff=100)
 
 #%%
 '''To plot the spectrum coherence for LFP and optical signal'''

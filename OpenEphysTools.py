@@ -1063,8 +1063,79 @@ def plot_zscore_to_theta_phase(theta_angle, zscore_data):
     ax3.spines['polar'].set_linewidth(4)
     ax3.spines['polar'].set_alpha(0.5)
 
-
     return fig1, fig2, fig3
+
+def compute_phase_modulation_index(theta_phase, raw_data, Fs=None, bins=30, plot=True):
+    """
+    Compute modulation index (MI) of a raw signal as a function of theta phase, optionally plotting the result.
+
+    Parameters:
+        theta_phase (array-like): Precomputed theta phase values (e.g., with 0 rad at theta trough), in radians [0, 2pi].
+        raw_data (array-like): Raw optical or neural signal.
+        Fs (float, optional): Sampling rate (Hz), not used unless filtering is added.
+        bins (int): Number of phase bins.
+        plot (bool): Whether to display a polar plot.
+
+    Returns:
+        MI (float): Modulation Index (KL divergence from uniform).
+        bin_centers (np.ndarray): Center of each phase bin.
+        norm_amp (np.ndarray): Normalised amplitude (probability distribution).
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.signal import hilbert
+    from scipy.stats import zscore
+
+    # Compute envelope and z-score it
+    analytic_signal = hilbert(raw_data)
+    amplitude_envelope = np.abs(analytic_signal)
+    zscore_data = zscore(amplitude_envelope)
+
+    # Bin theta phases and compute average z-score in each bin
+    bin_edges = np.linspace(0, 2 * np.pi, bins + 1)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+    amp_binned = np.zeros(bins)
+
+    for i in range(bins):
+        mask = (theta_phase >= bin_edges[i]) & (theta_phase < bin_edges[i + 1])
+        if np.any(mask):
+            amp_binned[i] = np.mean(zscore_data[mask])
+        else:
+            amp_binned[i] = 0
+
+    # Shift by pi to align with user-defined phase convention
+    bin_centers = (bin_centers + np.pi) % (2 * np.pi)
+
+    # Ensure all amplitudes are non-negative
+    amp_binned = np.clip(amp_binned, a_min=0, a_max=None)
+
+    # Normalise to get a probability distribution over phase
+    norm_amp = amp_binned / np.sum(amp_binned + 1e-10)  # avoid divide-by-zero
+
+    # Compute Modulation Index (MI) using KL divergence
+    uniform_dist = np.ones(bins) / bins
+    kl_divergence = np.sum(norm_amp * np.log((norm_amp + 1e-10) / uniform_dist))
+    MI = kl_divergence / np.log(bins)
+
+    if plot:
+        fig = plt.figure(figsize=(6, 6))
+        ax = fig.add_subplot(111, polar=True)
+        ax.plot(np.append(bin_centers, bin_centers[0]),
+                np.append(norm_amp, norm_amp[0]),
+                linewidth=3, color="#1b9e77")
+        ax.fill(np.append(bin_centers, bin_centers[0]),
+                np.append(norm_amp, norm_amp[0]),
+                alpha=0.3, color="#1b9e77")
+        ax.set_title(f"Phase Modulation (MI = {MI:.3f})", va='bottom', fontsize=14, fontweight="bold")
+        ax.tick_params(axis='both', labelsize=18)
+        ax.grid(False)
+        ax.set_yticklabels([])
+        ax.spines['polar'].set_linewidth(4)
+        ax.spines['polar'].set_alpha(0.5)
+        plt.tight_layout()
+        plt.show()
+
+    return fig, MI, bin_centers, norm_amp
 
 def plot_voltage_peaks_to_theta_phase(theta_angle, zscore_data, bins=40):
     """
@@ -1116,7 +1187,7 @@ def plot_voltage_peaks_to_theta_phase(theta_angle, zscore_data, bins=40):
     return fig
 
 from scipy.stats import circmean, circstd
-def plot_voltage_peaks_to_theta_phase_boxplot(theta_angle, zscore_data):
+def calculate_perferred_phase(theta_angle, zscore_data):
     """
     Finds the minimum z-score in each theta cycle, calculates the preferred theta phase,
     and plots the preferred phase with error bars (95% CI).
@@ -1179,6 +1250,7 @@ def plot_voltage_peaks_to_theta_phase_boxplot(theta_angle, zscore_data):
     plt.title("Preferred Theta Phase with 95% CI")
     plt.legend()
     plt.show()
+    return preferred_phase_deg,circ_std_deg,ci_lower,ci_upper
 
 def get_theta_cycle_value(df, LFP_channel, trough_index, half_window, fs=10000):
     df=df.reset_index(drop=True)
@@ -1223,7 +1295,7 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
     # Extract A values for each cycle and calculate mean and std
     # zscore_filtered=band_pass_filter(df['zscore_raw'],4,20,fs)
     # df['zscore_raw']=zscore_filtered
-    print ('trough_index[i]',trough_index)
+    #print ('trough_index[i]',trough_index)
     for i in range(len(trough_index)):
         start = int(trough_index[i] - half_cycle_time*fs)
         end = int(trough_index[i] + half_cycle_time*fs)
@@ -1450,205 +1522,132 @@ def plot_gamma_amplitude_on_theta_phase(LFP, zscore, fs, theta_band=(4, 12), gam
     ax.set_ylim(np.min(gamma_amplitude_avg_zscore), np.max(gamma_amplitude_avg_zscore))  # Dynamic range
     ax.set_title("ΔF/F Gamma Amplitude on Theta Phase", va='bottom')
     ax.legend(loc='upper right')
+    plt.show()
+
+def compute_gamma_MI_on_theta_phase(LFP, zscore, theta_phase, fs, theta_band=(4, 12), gamma_band=(30, 80), bins=30):
+    """
+    Compute and plot gamma amplitude modulation by theta phase for LFP and optical signals.
+    Returns modulation indices (MI) for each.
+
+    Parameters:
+        LFP: Raw LFP signal.
+        zscore: Raw ΔF/F signal (not the gamma envelope).
+        fs: Sampling rate in Hz.
+        theta_band: Tuple defining the theta frequency range.
+        gamma_band: Tuple defining the gamma frequency range.
+        bins: Number of bins for theta phase.
+
+    Returns:
+        MI_LFP, MI_DFF: Modulation indices for LFP and ΔF/F signals.
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.signal import hilbert, butter, filtfilt
+
+    def band_pass_filter(data, lowcut, highcut, fs, order=4):
+        nyq = 0.5 * fs
+        low = lowcut / nyq
+        high = highcut / nyq
+        b, a = butter(order, [low, high], btype='band')
+        return filtfilt(b, a, data)
+
+    def compute_MI(theta_phase, amplitude_envelope, bins=30):
+        bin_edges = np.linspace(0, 2 * np.pi, bins + 1)
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+        amp_binned = np.zeros(bins)
+
+        for i in range(bins):
+            mask = (theta_phase >= bin_edges[i]) & (theta_phase < bin_edges[i + 1])
+            if np.any(mask):
+                amp_binned[i] = np.mean(amplitude_envelope[mask])
+            else:
+                amp_binned[i] = 0
+
+        amp_binned = np.clip(amp_binned, a_min=0, a_max=None)
+        norm_amp = amp_binned / np.sum(amp_binned + 1e-10)
+
+        # Compute Modulation Index (KL divergence from uniform)
+        uniform_dist = np.ones(bins) / bins
+        kl_divergence = np.sum(norm_amp * np.log((norm_amp + 1e-10) / uniform_dist))
+        MI = kl_divergence / np.log(bins)
+        return MI, bin_centers, norm_amp
+
+    # === Step 1: Extract phase and envelope signals ===
+    gamma_filtered_LFP = band_pass_filter(LFP, gamma_band[0], gamma_band[1], fs)
+    gamma_filtered_DFF = band_pass_filter(zscore, gamma_band[0], gamma_band[1], fs)
+
+    gamma_envelope_LFP = np.abs(hilbert(gamma_filtered_LFP))
+    gamma_envelope_DFF = np.abs(hilbert(gamma_filtered_DFF))
+
+    # === Step 2: Compute MI ===
+    MI_LFP, bin_centers, norm_amp_LFP = compute_MI(theta_phase, gamma_envelope_LFP, bins)
+    MI_DFF, _, norm_amp_DFF = compute_MI(theta_phase, gamma_envelope_DFF, bins)
+
+    # === Step 3: Plot LFP polar plot ===
+    fig1 = plt.figure(figsize=(6, 6))
+    ax1 = fig1.add_subplot(111, polar=True)
+    ax1.plot(np.append(bin_centers, bin_centers[0]),
+             np.append(norm_amp_LFP, norm_amp_LFP[0]),
+             linewidth=3, color="#1b9e77")
+    ax1.fill(np.append(bin_centers, bin_centers[0]),
+             np.append(norm_amp_LFP, norm_amp_LFP[0]),
+             alpha=0.3, color="#1b9e77")
+    ax1.set_title(f"LFP Gamma Modulation\nMI = {MI_LFP:.3f}", fontsize=14, fontweight="bold", va='bottom')
+    ax1.set_yticklabels([])
+    ax1.tick_params(labelsize=14)
+    ax1.spines['polar'].set_linewidth(4)
+    ax1.spines['polar'].set_alpha(0.5)
+
+    # === Step 4: Plot ΔF/F polar plot ===
+    fig2 = plt.figure(figsize=(6, 6))
+    ax2 = fig2.add_subplot(111, polar=True)
+    ax2.plot(np.append(bin_centers, bin_centers[0]),
+             np.append(norm_amp_DFF, norm_amp_DFF[0]),
+             linewidth=3, color="#7570b3")
+    ax2.fill(np.append(bin_centers, bin_centers[0]),
+             np.append(norm_amp_DFF, norm_amp_DFF[0]),
+             alpha=0.3, color="#7570b3")
+    ax2.set_title(f"ΔF/F Gamma Modulation\nMI = {MI_DFF:.3f}", fontsize=14, fontweight="bold", va='bottom')
+    ax2.set_yticklabels([])
+    ax2.tick_params(labelsize=14)
+    ax2.spines['polar'].set_linewidth(4)
+    ax2.spines['polar'].set_alpha(0.5)
 
     plt.show()
 
-def plot_gamma_amplitude_on_theta(Fs, df, LFP_channel, peak_index, half_window, gamma_band=(30, 80), theta_band=(4,12)):
+    return MI_LFP, MI_DFF
 
-    time = np.linspace(-half_window, half_window, int(half_window * 2 * Fs))
-
-    # --- Gamma filtering and envelope (full trace) ---
-    gamma_band_filtered_lfp = band_pass_filter(df[LFP_channel].to_numpy(), low_freq=gamma_band[0], high_freq=gamma_band[1], Fs=Fs)
-    gamma_envelope_lfp = np.abs(hilbert(gamma_band_filtered_lfp))
-
-    gamma_band_filtered_spad = band_pass_filter(df['zscore_raw'].to_numpy(), low_freq=gamma_band[0], high_freq=gamma_band[1], Fs=Fs)
-    gamma_envelope_spad = np.abs(hilbert(gamma_band_filtered_spad))
-
-    # --- Theta filtering (full trace) ---
-    theta_band_filtered_lfp = band_pass_filter(df[LFP_channel].to_numpy(), low_freq=theta_band[0], high_freq=theta_band[1], Fs=Fs)
-
-    # --- Collect epochs around each theta peak ---
-    gamma_lfp_epochs, gamma_spad_epochs, theta_lfp_epochs = [], [], []
-
-    for peak in peak_index:
-        start = int(peak - half_window * Fs)
-        end = int(peak + half_window * Fs)
-        if start >= 0 and end <= len(df):
-            gamma_lfp_epochs.append(gamma_envelope_lfp[start:end])
-            gamma_spad_epochs.append(gamma_envelope_spad[start:end])
-            theta_lfp_epochs.append(theta_band_filtered_lfp[start:end])
-
-    # Convert to numpy arrays
-    gamma_lfp_epochs_np = np.vstack(gamma_lfp_epochs)
-    gamma_spad_epochs_np = np.vstack(gamma_spad_epochs)
-    theta_lfp_epochs_np = np.vstack(theta_lfp_epochs)
-
-    # Calculate mean, std, and 95% CI
-    mean_gamma_lfp, std_gamma_lfp, CI_gamma_lfp = calculateStatisticNumpy(gamma_lfp_epochs_np)
-    mean_gamma_spad, std_gamma_spad, CI_gamma_spad = calculateStatisticNumpy(gamma_spad_epochs_np)
-    mean_theta_lfp, std_theta_lfp, CI_theta_lfp = calculateStatisticNumpy(theta_lfp_epochs_np)
-
-    # --- Plotting ---
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 8))
-
-    # --- LFP gamma envelope + theta overlay ---
-    color_gamma = sns.color_palette("husl", 8)[5]
-    color_theta = 'black'
-
-    ax1.plot(time, mean_gamma_lfp, color=color_gamma, label='Mean LFP gamma envelope')
-    ax1.fill_between(time, CI_gamma_lfp[0], CI_gamma_lfp[1], color=color_gamma, alpha=0.3, label='0.95 CI')
-    ax1.set_ylabel('Gamma Amplitude (μV)', fontsize=14, color=color_gamma)
-    ax1.axvline(x=0, color='k', linestyle='--')
-    ax1.spines['top'].set_visible(False)
-    ax1.spines['right'].set_visible(False)
-
-    # Second y-axis for theta
-    ax1b = ax1.twinx()
-    ax1b.plot(time, mean_theta_lfp, color=color_theta, linewidth=2, label='Mean theta LFP')
-    ax1b.set_ylabel('Theta-filtered LFP (μV)', fontsize=14, color=color_theta)
-    ax1b.spines['top'].set_visible(False)
-    ax1b.spines['right'].set_visible(False)
-
-    ax1.set_title('Mean Gamma Envelope (LFP) with Theta LFP Overlay')
-    ax1.legend(loc='upper left', frameon=False)
-    ax1b.legend(loc='upper right', frameon=False)
-
-    # --- Optical gamma envelope + theta overlay ---
-    color_gamma_spad = sns.color_palette("husl", 8)[3]
-
-    ax2.plot(time, mean_gamma_spad, color=color_gamma_spad, label='Mean optical gamma envelope')
-    ax2.fill_between(time, CI_gamma_spad[0], CI_gamma_spad[1], color=color_gamma_spad, alpha=0.3, label='0.95 CI')
-    ax2.set_ylabel('Gamma Amplitude (a.u.)', fontsize=14, color=color_gamma_spad)
-    ax2.axvline(x=0, color='k', linestyle='--')
-    ax2.spines['top'].set_visible(False)
-    ax2.spines['right'].set_visible(False)
-
-    # Second y-axis for theta
-    ax2b = ax2.twinx()
-    ax2b.plot(time, mean_theta_lfp, color=color_theta, linewidth=2, label='Mean theta LFP')
-    ax2b.set_ylabel('Theta-filtered LFP (μV)', fontsize=14, color=color_theta)
-    ax2b.spines['top'].set_visible(False)
-    ax2b.spines['right'].set_visible(False)
-
-    ax2.set_xlabel('Time (seconds)', fontsize=14)
-    ax2.set_title('Mean Gamma Envelope (SPAD) with Theta LFP Overlay')
-    ax2.legend(loc='upper left', frameon=False)
-    ax2b.legend(loc='upper right', frameon=False)
-
-    plt.tight_layout()
-    plt.show()
-
-    return mean_gamma_lfp, mean_gamma_spad, CI_gamma_lfp, CI_gamma_spad, mean_theta_lfp
-
-
-
-def analyse_theta_nested_gamma(Fs, df, LFP_channel, peak_index, half_window, gamma_band=(30, 80)):
+def plot_gamma_power_on_theta(Fs, df, LFP_channel, theta_peak_index, half_window, gamma_band=(30, 80), bins=18):
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import seaborn as sns
     from scipy.signal import hilbert
-    
-    # Continuous wavelet transform on full LFP trace
-    theta_band_filtered = band_pass_filter(df[LFP_channel], low_freq=4, high_freq=12, Fs=Fs)
-    spad_theta_band_filtered = band_pass_filter(df['zscore_raw'], low_freq=4, high_freq=12, Fs=Fs)
-    gamma_band_filtered = band_pass_filter(df[LFP_channel], low_freq=gamma_band[0], high_freq=gamma_band[1], Fs=Fs)
-    spad_gamma_band_filtered = band_pass_filter(df['zscore_raw'], low_freq=gamma_band[0], high_freq=gamma_band[1], Fs=Fs)
+    from scipy.stats import entropy
 
-    # Calculate wavelet power spectra (continuous)
-    sst_theta, theta_freqs, theta_power, _ = Calculate_wavelet(theta_band_filtered, lowpassCutoff=50, Fs=Fs, scale=80)
-    sst_theta_spad, theta_freqs_spad, theta_power_spad, _ = Calculate_wavelet(spad_theta_band_filtered, lowpassCutoff=50, Fs=Fs, scale=80)
-    sst_gamma_lfp, gamma_freqs, gamma_power_lfp, _ = Calculate_wavelet(gamma_band_filtered, lowpassCutoff=200, Fs=Fs, scale=40)
-    sst_gamma_spad, gamma_freqs_spad, gamma_power_spad, _ = Calculate_wavelet(spad_gamma_band_filtered, lowpassCutoff=200, Fs=Fs, scale=40)
+    # --- Helper function to compute MI ---
+    def compute_MI(theta_phase, amplitude, bins):
+        amp = amplitude.flatten()
+        phase = theta_phase.flatten()
 
-    # Gamma amplitude envelope using Hilbert
-    gamma_envelope_lfp = np.abs(hilbert(gamma_band_filtered))
-    gamma_envelope_spad = np.abs(hilbert(spad_gamma_band_filtered))
+        # Bin phase
+        bin_edges = np.linspace(-np.pi, np.pi, bins + 1)
+        bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
+        binned_amp = np.zeros(bins)
 
-    # Create time axis for each extracted segment
-    window_size = int(half_window * Fs * 2)
-    time = np.linspace(-half_window, half_window, window_size)
+        for i in range(bins):
+            mask = (phase >= bin_edges[i]) & (phase < bin_edges[i+1])
+            if np.any(mask):
+                binned_amp[i] = np.mean(amp[mask])
+            else:
+                binned_amp[i] = 0
 
-    # Collect segments around each theta peak
-    lfp_theta_segments = []
-    spad_theta_segments=[]
-    gamma_power_lfp_segments = []
-    gamma_power_spad_segments = []
-    gamma_envelope_lfp_segments = []
-    gamma_envelope_spad_segments = []
+        # Normalise
+        p = binned_amp / np.sum(binned_amp + 1e-12)
+        uniform_p = np.ones(bins) / bins
+        mi = entropy(p, uniform_p) / np.log(bins)
 
-    for idx in peak_index:
-        start = int(idx - half_window * Fs)
-        end = int(idx + half_window * Fs)
+        return mi, bin_centres, p
 
-        if start >= 0 and end < len(df):
-            lfp_theta_segments.append(theta_band_filtered[start:end])
-            spad_theta_segments.append(spad_theta_band_filtered[start:end])
-            gamma_power_lfp_segments.append(gamma_power_lfp[:, start:end])
-            gamma_power_spad_segments.append(gamma_power_spad[:, start:end])
-            gamma_envelope_lfp_segments.append(gamma_envelope_lfp[start:end])
-            gamma_envelope_spad_segments.append(gamma_envelope_spad[start:end])
-
-    # Convert to numpy arrays
-    lfp_theta_segments_np = np.vstack(lfp_theta_segments)
-    spad_theta_segments_np=np.vstack(spad_theta_segments)
-    gamma_envelope_lfp_segments_np = np.vstack(gamma_envelope_lfp_segments)
-    gamma_envelope_spad_segments_np = np.vstack(gamma_envelope_spad_segments)
-
-    # Calculate averages and CIs
-    mean_lfp_theta, _, _ = calculateStatisticNumpy(lfp_theta_segments_np)
-    mean_spad_theta, _, _ = calculateStatisticNumpy(spad_theta_segments_np)
-    mean_gamma_env_lfp, _, CI_gamma_env_lfp = calculateStatisticNumpy(gamma_envelope_lfp_segments_np)
-    mean_gamma_env_spad, _, CI_gamma_env_spad = calculateStatisticNumpy(gamma_envelope_spad_segments_np)
-
-    # Average power spectra (over cycles) — shape: (freqs, time)
-    avg_gamma_power_lfp = np.mean(gamma_power_lfp_segments, axis=0)
-    avg_gamma_power_spad = np.mean(gamma_power_spad_segments, axis=0)
-    
-    'plot low gamma power spectrum'             
-    time = np.linspace(-half_window, half_window, len(mean_lfp_theta))
-    fig, ax = plt.subplots(2,1,figsize=(8, 10))
-
-    plot_title='Theta nested gamma(LFP)'
-    plot_theta_nested_gamma_overlay (ax[0],mean_lfp_theta,mean_spad_theta,gamma_freqs,avg_gamma_power_lfp,time,
-                            mean_lfp_theta,100,plot_title,plotLFP=True,plotSPAD=False,plotTheta=False)  
-    
-    plot_title='Theta nested gamma(optical)'
-    plot_theta_nested_gamma_overlay (ax[1],mean_lfp_theta,mean_spad_theta,gamma_freqs_spad,avg_gamma_power_spad,time,
-                            mean_lfp_theta,100,plot_title,plotLFP=False,plotSPAD=True,plotTheta=False)  
-    
-    fig, ax = plt.subplots(1,1,figsize=(8, 4))
-    plot_title='Theta average for LFP and optical'
-    plot_theta_nested_gamma_overlay (ax,mean_lfp_theta,mean_spad_theta,gamma_freqs,avg_gamma_power_lfp,time,
-                            mean_lfp_theta,100,plot_title,plotLFP=True,plotSPAD=True,plotTheta=True,plotSpectrum=False)  
-    plt.show()
-    
-    # Plotting
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8))
-    
-    # Optical gamma envelope
-    ax2.plot(time, mean_gamma_env_spad, color=sns.color_palette("husl", 8)[3], label='Mean optical gamma envelope')
-    ax2.fill_between(time, CI_gamma_env_spad[0], CI_gamma_env_spad[1], color=sns.color_palette("husl", 8)[3], alpha=0.3, label='0.95 CI')
-    ax2.axvline(x=0, color='k', linestyle='--')
-    ax2.set_ylabel('Gamma Amplitude (a.u.)', fontsize=16)
-    ax2.legend(loc='upper right', frameon=False)
-    
-    # LFP gamma envelope
-    ax1.plot(time, mean_gamma_env_lfp, color=sns.color_palette("husl", 8)[5], label='Mean LFP gamma envelope')
-    ax1.fill_between(time, CI_gamma_env_lfp[0], CI_gamma_env_lfp[1], color=sns.color_palette("husl", 8)[5], alpha=0.3, label='0.95 CI')
-    ax1.set_ylabel('Gamma Amplitude (μV)', fontsize=16)
-    ax1.axvline(x=0, color='k', linestyle='--')
-    ax1.legend(loc='upper right', frameon=False)
-    ax1.set_title('Mean Gamma Band Amplitude (Envelope)')
-    
-    # Common x-axis label
-    ax2.set_xlabel('Time (seconds)', fontsize=14)
-    
-    # Clean up spines
-    for ax in [ax1, ax2]:
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax2.spines['right'].set_visible(False)
-
-    return -1
-
-def plot_gamma_power_on_theta(Fs, df, LFP_channel, peak_index, half_window, gamma_band=(30, 80)):
     # 1. Pre-compute continuous wavelet power for the entire trace
     lfp_trace = df[LFP_channel].to_numpy()
     spad_trace = df['zscore_raw'].to_numpy()
@@ -1660,12 +1659,11 @@ def plot_gamma_power_on_theta(Fs, df, LFP_channel, peak_index, half_window, gamm
     sst_theta, theta_freqs, theta_power, _ = Calculate_wavelet(theta_band_filtered_lfp, lowpassCutoff=50, Fs=Fs, scale=80)
     sst_gamma_lfp, gamma_freqs, gamma_power_lfp, _ = Calculate_wavelet(gamma_band_filtered_lfp, lowpassCutoff=100, Fs=Fs, scale=40)
     sst_gamma_spad, gamma_freqs_spad, gamma_power_spad, _ = Calculate_wavelet(gamma_band_filtered_spad, lowpassCutoff=100, Fs=Fs, scale=40)
-    print (gamma_freqs)
-    # 2. Compute gamma amplitude envelopes using Hilbert transform
+
     gamma_amp_lfp = np.abs(hilbert(gamma_band_filtered_lfp))
     gamma_amp_spad = np.abs(hilbert(gamma_band_filtered_spad))
 
-    # 3. Cut and align data around theta peaks
+    # 2. Align data around theta peaks
     samples_window = int(half_window * Fs)
     time = np.linspace(-half_window, half_window, 2*samples_window)
 
@@ -1675,9 +1673,9 @@ def plot_gamma_power_on_theta(Fs, df, LFP_channel, peak_index, half_window, gamm
     aligned_gamma_amp_lfp = []
     aligned_gamma_amp_spad = []
 
-    for idx in peak_index:
+    for idx in theta_peak_index:
         if idx-samples_window < 0 or idx+samples_window > len(lfp_trace):
-            continue  # skip out-of-bound peaks
+            continue
         
         aligned_theta.append(theta_band_filtered_lfp[idx-samples_window:idx+samples_window])
         aligned_gamma_power_lfp.append(gamma_power_lfp[11, idx-samples_window:idx+samples_window])
@@ -1685,72 +1683,140 @@ def plot_gamma_power_on_theta(Fs, df, LFP_channel, peak_index, half_window, gamm
         aligned_gamma_amp_lfp.append(gamma_amp_lfp[idx-samples_window:idx+samples_window])
         aligned_gamma_amp_spad.append(gamma_amp_spad[idx-samples_window:idx+samples_window])
 
-    # Convert to numpy arrays
     aligned_theta = np.vstack(aligned_theta)
     aligned_gamma_power_lfp = np.vstack(aligned_gamma_power_lfp)
     aligned_gamma_power_spad = np.vstack(aligned_gamma_power_spad)
     aligned_gamma_amp_lfp = np.vstack(aligned_gamma_amp_lfp)
     aligned_gamma_amp_spad = np.vstack(aligned_gamma_amp_spad)
 
-    # 4. Calculate mean and CI
+    # 3. Compute mean + CI
     mean_theta, _, _ = calculateStatisticNumpy(aligned_theta)
     mean_gamma_power_lfp, _, CI_gamma_power_lfp = calculateStatisticNumpy(aligned_gamma_power_lfp)
     mean_gamma_power_spad, _, CI_gamma_power_spad = calculateStatisticNumpy(aligned_gamma_power_spad)
-    mean_gamma_amp_lfp, _, CI_gamma_amp_lfp = calculateStatisticNumpy(aligned_gamma_amp_lfp)
-    mean_gamma_amp_spad, _, CI_gamma_amp_spad = calculateStatisticNumpy(aligned_gamma_amp_spad)
 
-    # 5. Plot — your original figure style
+    # 4. Plot gamma power and theta (compact, frameless)
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 8))
-
-    # --- LFP gamma envelope + theta overlay ---
+    
     color_gamma = sns.color_palette("husl", 8)[5]
     color_theta = 'black'
-
-    ax1.plot(time, mean_gamma_power_lfp, color=color_gamma, label='Mean LFP gamma Power')
-    ax1.fill_between(time, CI_gamma_power_lfp[0], CI_gamma_power_lfp[1], color=color_gamma, alpha=0.3, label='0.95 CI')
-    ax1.set_ylabel('Gamma Amplitude (μV)', fontsize=14, color=color_gamma)
-    ax1.axvline(x=0, color='k', linestyle='--')
-    ax1.spines['top'].set_visible(False)
-    ax1.spines['right'].set_visible(False)
-
-    # Second y-axis for theta
-    ax1b = ax1.twinx()
-    ax1b.plot(time, mean_theta, color=color_theta, linewidth=2, label='Mean theta LFP')
-    ax1b.set_ylabel('Theta-filtered LFP (μV)', fontsize=14, color=color_theta)
-    ax1b.spines['top'].set_visible(False)
-    ax1b.spines['right'].set_visible(False)
-
-    ax1.set_title('Mean Gamma Power (LFP) with Theta LFP Overlay')
-    ax1.legend(loc='upper left', frameon=False)
-    ax1b.legend(loc='upper right', frameon=False)
-
-    # --- Optical gamma envelope + theta overlay ---
     color_gamma_spad = sns.color_palette("husl", 8)[3]
-
-    ax2.plot(time, mean_gamma_power_spad, color=color_gamma_spad, label='Mean optical gamma Power')
-    ax2.fill_between(time, CI_gamma_power_spad[0], CI_gamma_power_spad[1], color=color_gamma_spad, alpha=0.3, label='0.95 CI')
-    ax2.set_ylabel('Gamma Amplitude (a.u.)', fontsize=14, color=color_gamma_spad)
+    
+    # --- LFP gamma power ---
+    ax1.plot(time, mean_gamma_power_lfp, color=color_gamma)
+    ax1.fill_between(time, CI_gamma_power_lfp[0], CI_gamma_power_lfp[1], color=color_gamma, alpha=0.3)
+    ax1.set_ylabel('Gamma Power (μV²)', fontsize=14, color=color_gamma)
+    ax1.axvline(x=0, color='k', linestyle='--')
+    
+    ax1b = ax1.twinx()
+    ax1b.plot(time, mean_theta, color=color_theta, linewidth=2)
+    ax1b.set_ylabel('Theta-filtered LFP (μV)', fontsize=14, color=color_theta)
+    
+    # --- SPAD gamma power ---
+    ax2.plot(time, mean_gamma_power_spad, color=color_gamma_spad)
+    ax2.fill_between(time, CI_gamma_power_spad[0], CI_gamma_power_spad[1], color=color_gamma_spad, alpha=0.3)
+    ax2.set_ylabel('Gamma Power (a.u.)', fontsize=14, color=color_gamma_spad)
     ax2.axvline(x=0, color='k', linestyle='--')
-    ax2.spines['top'].set_visible(False)
-    ax2.spines['right'].set_visible(False)
-
-    # Second y-axis for theta
+    
     ax2b = ax2.twinx()
-    ax2b.plot(time, mean_theta, color=color_theta, linewidth=2, label='Mean theta LFP')
+    ax2b.plot(time, mean_theta, color=color_theta, linewidth=2)
     ax2b.set_ylabel('Theta-filtered LFP (μV)', fontsize=14, color=color_theta)
-    ax2b.spines['top'].set_visible(False)
-    ax2b.spines['right'].set_visible(False)
+    ax2.set_xlabel('Time (s)', fontsize=14)
 
-    ax2.set_xlabel('Time (seconds)', fontsize=14)
-    ax2.set_title('Mean Gamma Power (SPAD) with Theta LFP Overlay')
-    ax2.legend(loc='upper left', frameon=False)
-    ax2b.legend(loc='upper right', frameon=False)
-
+    # --- Remove frames and enlarge tick labels ---
+    for ax in [ax1, ax2, ax1b, ax2b]:
+        ax.tick_params(axis='both', labelsize=13)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+    
     plt.tight_layout()
     plt.show()
 
-    return -1
+    # 5. Compute MI
+    theta_phase = np.angle(hilbert(aligned_theta, axis=1))
 
+    mi_lfp, bin_centres, dist_lfp = compute_MI(theta_phase, aligned_gamma_power_lfp, bins)
+    mi_spad, _, dist_spad = compute_MI(theta_phase, aligned_gamma_power_spad, bins)
+
+    print(f"Modulation Index (LFP gamma): {mi_lfp:.4f}")
+    print(f"Modulation Index (SPAD gamma): {mi_spad:.4f}")
+
+    # 6. Plot polar histograms
+    fig_polar, ax_polar = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(6, 5))
+    width = (2 * np.pi) / bins
+    ax_polar.bar(bin_centres, dist_lfp, width=width, alpha=0.6, label='LFP gamma power')
+    ax_polar.bar(bin_centres, dist_spad, width=width, alpha=0.6, label='SPAD gamma power')
+    ax_polar.set_title('Theta Phase–Gamma Power Coupling')
+    ax_polar.legend(loc='upper right')
+    plt.show()
+
+    return mi_lfp, mi_spad,fig
+
+def compute_gamma_MI_with_wavelet_power(theta_phase, gamma_power_lfp, gamma_power_spad, bins=30):
+    """
+    Compute and plot gamma power modulation by theta phase using wavelet-derived gamma power.
+    
+    Parameters:
+        theta_phase: 1D array of instantaneous theta phase (0 to 2π).
+        gamma_power_lfp: 1D array of wavelet gamma power for LFP.
+        gamma_power_spad: 1D array of wavelet gamma power for SPAD/ΔF/F.
+        bins: Number of phase bins.
+    
+    Returns:
+        MI_LFP, MI_SPAD: Modulation indices for LFP and SPAD signals.
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    def compute_MI(theta_phase, amplitude, bins):
+        bin_edges = np.linspace(0, 2 * np.pi, bins + 1)
+        bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
+        binned_amp = np.zeros(bins)
+
+        for i in range(bins):
+            mask = (theta_phase >= bin_edges[i]) & (theta_phase < bin_edges[i + 1])
+            if np.any(mask):
+                binned_amp[i] = np.mean(amplitude[mask])
+            else:
+                binned_amp[i] = 0
+
+        # Normalise and compute MI using KL divergence
+        binned_amp = np.clip(binned_amp, a_min=0, a_max=None)
+        prob_dist = binned_amp / np.sum(binned_amp + 1e-10)
+        uniform_dist = np.ones_like(prob_dist) / bins
+        kl = np.sum(prob_dist * np.log((prob_dist + 1e-10) / uniform_dist))
+        MI = kl / np.log(bins)
+        return MI, bin_centres, prob_dist
+
+    # Compute modulation index
+    MI_LFP, bin_centres, dist_lfp = compute_MI(theta_phase, gamma_power_lfp, bins)
+    MI_SPAD, _, dist_spad = compute_MI(theta_phase, gamma_power_spad, bins)
+
+    # Plot polar plot for LFP
+    fig1 = plt.figure(figsize=(5, 5))
+    ax1 = fig1.add_subplot(111, polar=True)
+    ax1.plot(np.append(bin_centres, bin_centres[0]),
+             np.append(dist_lfp, dist_lfp[0]),
+             color="#1b9e77", linewidth=2)
+    ax1.fill(np.append(bin_centres, bin_centres[0]),
+             np.append(dist_lfp, dist_lfp[0]),
+             color="#1b9e77", alpha=0.3)
+    ax1.set_title(f"LFP Gamma Power Modulation\nMI = {MI_LFP:.3f}", fontsize=13)
+    ax1.set_yticklabels([])
+
+    # Plot polar plot for SPAD
+    fig2 = plt.figure(figsize=(5, 5))
+    ax2 = fig2.add_subplot(111, polar=True)
+    ax2.plot(np.append(bin_centres, bin_centres[0]),
+             np.append(dist_spad, dist_spad[0]),
+             color="#7570b3", linewidth=2)
+    ax2.fill(np.append(bin_centres, bin_centres[0]),
+             np.append(dist_spad, dist_spad[0]),
+             color="#7570b3", alpha=0.3)
+    ax2.set_title(f"SPAD Gamma Power Modulation\nMI = {MI_SPAD:.3f}", fontsize=13)
+    ax2.set_yticklabels([])
+
+    plt.show()
+    return MI_LFP, MI_SPAD
 def plot_gamma_power_heatmap_on_theta(Fs,df, LFP_channel, peak_index, half_window,gamma_band=(30, 80)):
     'plot low gamma'
     half_window = half_window  # second
