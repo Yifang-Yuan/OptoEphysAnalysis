@@ -44,7 +44,9 @@ Fs_atlas=841.68 when using full ROI
 Fs_atlas=1682.92 when using half of the ROI
 
 `AtlasDecode.py` contains functions that can decode ATLAS data. 
+
 `DemoSingleAtlasSmallFOV.py` can analyse a single ATLAS folder data.
+
 `BatchPreReadAtlasFolder.py` can batch read a parent folder, but need to change / comment codes in the main function for smaller ROI analysis.
 
 For small ROI analysis:
