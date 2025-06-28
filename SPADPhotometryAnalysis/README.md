@@ -38,7 +38,9 @@ A trial of Atlas data is saved as a folder containing multiple .mat files, each 
 ![image](https://github.com/user-attachments/assets/fcd34d5e-2a47-4050-a915-cdb8b973ed70)
 
 **Note: ATLAS sampling rate can be changed with smaller ROI size:**
+
 Fs_atlas=841.68 when using full ROI
+
 Fs_atlas=1682.92 when using half of the ROI
 
 `AtlasDecode.py` contains functions that can decode ATLAS data. 
@@ -46,7 +48,9 @@ Fs_atlas=1682.92 when using half of the ROI
 `BatchPreReadAtlasFolder.py` can batch read a parent folder, but need to change / comment codes in the main function for smaller ROI analysis.
 
 For small ROI analysis:
+
 `DemoSingleAtlasfolder.py` will call functions in 'AtlasDecode.py' to get raw optical trace and an average image of this recording. This file can be used to check and find the ROI of the fibre tip.
+
 `BatchPreReadAtlasFolder.py` can batch read a parent folder with multiple Altas recording folders.
 
 ## pyPhotometry data analysis
