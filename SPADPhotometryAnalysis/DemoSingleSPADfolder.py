@@ -18,7 +18,7 @@ fs   = 9938.4
 #dpath="E:/SPAD/SPADData/20231027_GCamp8f_pyr_OECSync/2023_10_27_17_5_43_Cage_td_g30Iso20_recording1/"
 #Green,Red=SPADreadBin.readMultipleBinfiles_twoROIs(dpath,9,xxrange_g=[105,210],yyrange_g=[125,235],xxrange_r=[105,210],yyrange_r=[25,105]) 
 '''Read binary files for single ROI'''
-dpath='E:/ATLAS_SPAD\HardwareTest/SPC_linearity/SPC/2024_11_4_17_3_25_2uW_Trial1/'
+dpath='H:\ThesisData\HardwareTest\Atlas_linearity\AtlasData\Burst-RS-4200frames-840Hz_2024-11-04_16-05_2uW'
 'To read raw trace'
 #TraceRaw=SPADreadBin.readMultipleBinfiles(dpath,9,xxRange=[0,160],yyRange=[80,240])
 # Set the path to the parent folder

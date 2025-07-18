@@ -19,7 +19,8 @@ import matplotlib.pyplot as plt
 # dpath='E:/ATLAS_SPAD/1825507_mCherry/Day1/'
 # recordingName='SavedMovingTrials'
 
-dpath='F:/2025_ATLAS_SPAD/PyramidalWT/1881363_Jedi2p_mCherry/ThetaTrials/Day6/'
+dpath=r'G:\2025_ATLAS_SPAD\1907336_Jedi2p_CB\Day1_bad'
+
 
 recordingName='SyncRecording4'
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''

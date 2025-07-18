@@ -58,8 +58,8 @@ def plot_ripple_heatmap(ripple_band_lfps,lfps,zscores,Fs=10000):
     axs[0].fill_between(time, ripple_band_lfps_CI[0], ripple_band_lfps_CI[1], color='#404040', alpha=0.2, label='0.95 CI')
     axs[1].plot(time, lfps_mean, color='dodgerblue', label='Ripple LFP Mean')
     axs[1].fill_between(time, lfps_CI[0], lfps_CI[1], color='dodgerblue', alpha=0.2, label='0.95 CI')
-    axs[2].plot(time, zscores_mean, color='limegreen', label='Ripple Zscore Mean')
-    axs[2].fill_between(time, zscores_CI[0], zscores_CI[1], color='limegreen', alpha=0.2, label='0.95 CI')
+    axs[2].plot(time, zscores_mean, color='tomato', label='Ripple Zscore Mean')
+    axs[2].fill_between(time, zscores_CI[0], zscores_CI[1], color='tomato', alpha=0.2, label='0.95 CI')
     axs[0].set_title('Averaged Ripple Epoch',fontsize=18)
     for i in range(3):
         axs[i].set_xlim(time[0], time[-1])
@@ -210,8 +210,8 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,theta_cutoff=0.5):
     For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
     rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,
                                                 ep_start=0,ep_end=20,
-                                                Low_thres=0.9,High_thres=10,
-                                                plot_segment=False,plot_ripple_ep=False,excludeTheta=False)
+                                                Low_thres=1.5,High_thres=10,
+                                                plot_segment=False,plot_ripple_ep=False,excludeTheta=True)
 
     'GEVI has a negative'
     index = LFP_channel.split('_')[-1] 
@@ -231,12 +231,12 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,theta_cutoff=0.5):
 
 def run_ripple_plot_main():
     'This is to process a single or concatenated rial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
-    dpath='F:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day2/'
+    dpath=r'G:\2025_ATLAS_SPAD\PVCre\1842515_PV_mNeon\Day6b'
     
-    recordingName='SavedSleepTrials'
-    savename='RippleSave_Sleep'
+    recordingName='SyncRecording16'
+    savename='SavedThetaTrials'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-    LFP_channel='LFP_1'
+    LFP_channel='LFP_4'
     run_ripple_plot (dpath,LFP_channel,recordingName,savename,theta_cutoff=0.5)
 
 def main():    

@@ -110,29 +110,64 @@ def PhotonCountMeans(dpath,filenamelist):
     MeanCountValues = [Mean_PhotonCount(os.path.join(dpath, i, "Green_traceAll.csv")) for i in filenamelist]
     return MeanCountValues
 
+def PhotonCountMeans_1(dpath,filenamelist):
+    MeanCountValues = [Mean_PhotonCount(os.path.join(dpath, i, "GreenValueAll.csv")) for i in filenamelist]
+    return MeanCountValues
+
+def CalculateMeans_SPAD(dpath, folder_list, some_param):
+    # Placeholder function
+    # Replace this with your real mean calculation function similar to CalculateCVs_SPAD
+    means = []
+    for folder in folder_list:
+        # Calculate mean for each folder, dummy example:
+        mean_val = some_param  # replace with actual mean retrieval
+        means.append(mean_val)
+    return np.array(means)
+
 #%%
 '''Coefficient covarience'''
 
-dpath="E:/ATLAS_SPAD/HardwareTest/pyPhotometry_linearity/"
 folder_list=["SyncRecording1","SyncRecording2","SyncRecording3",
               "SyncRecording4","SyncRecording5","SyncRecording6",
               "SyncRecording7","SyncRecording8","SyncRecording9",
               "SyncRecording10"]
-
+dpath="H:/ThesisData/HardwareTest/pyPhotometry_linearity/"
 CVs_py=CalculateCVs_SPAD(dpath,folder_list,1000,lowpass=False)
 
 LED_current_cont = np.array([2,4,6,8,10,12,14,16,18,20])
 
-dpath="E:/ATLAS_SPAD/HardwareTest/SPC_linearity/"
+dpath="H:/ThesisData/HardwareTest/SPC_linearity/"
 CVs_SPC=CalculateCVs_SPAD(dpath,folder_list,9938.4,lowpass=False)
 LED_current_cont =  np.array([2,4,6,8,10,12,14,16,18,20])
 
-dpath="E:/ATLAS_SPAD/HardwareTest/ATLAS_linearity/"
-
-
+dpath="H:/ThesisData/HardwareTest/ATLAS_linearity/"
 CVs_ATLAS=CalculateCVs_SPAD(dpath,folder_list,840,lowpass=False)
 LED_current_cont =  np.array([2,4,6,8,10,12,14,16,18,20])
 
+means_ATLAS = CalculateMeans_SPAD("H:/ThesisData/HardwareTest/ATLAS_linearity/", folder_list, 840)
+# Multiply means by 1257 pixels
+ideal_means = means_ATLAS * 1257
+
+# Calculate ideal CV for shot noise: CV = 1 / sqrt(mean)
+ideal_CV = 1 / np.sqrt(ideal_means)
+#%%
+# === Plotting ===
+plt.plot(LED_current_cont, CVs_py, 'o-', label='pyPhotometry')
+plt.plot(LED_current_cont, CVs_SPC, '^-', label='SPC')
+plt.plot(LED_current_cont, CVs_ATLAS, 'D-', label='ATLAS')
+plt.plot(LED_current_cont, ideal_CV, 'k--', label='Ideal shot noise CV')
+
+plt.xlabel('LED Light Power (μW)', fontsize=14)
+plt.ylabel('Signal coefficient of variation', fontsize=14)
+plt.ylim(ymin=0)
+plt.gca().spines['top'].set_visible(False)
+plt.gca().spines['right'].set_visible(False)
+
+plt.xticks(LED_current_cont, fontsize=14)
+plt.yticks(fontsize=14)
+plt.legend(frameon=False, fontsize=14)
+plt.show()
+#%%
 plt.plot(LED_current_cont, CVs_py,'o-', label='pyPhotometry')
 plt.plot(LED_current_cont, CVs_SPC,'^-', label='SPC')
 plt.plot(LED_current_cont, CVs_ATLAS,'D-', label='ATLAS')
@@ -150,7 +185,6 @@ plt.xticks(LED_current_cont)
 plt.legend()
 plt.legend(frameon=False)
 plt.show()
-
 #%%
 dpath="E:/ATLAS_SPAD\HardwareTest/PSD_noise_bleached/"
 GreenList=["5uW_bleached","10uW_bleached","20uW_bleached",
@@ -244,8 +278,45 @@ plt.legend(frameon=False)
 plt.show()
 #%%
 '''Compare Linearity SMALL VALUE'''
+from scipy.stats import linregress
 
-dpath="D:/SPAD2024/SPADdata_SNRtest/SNR_test_5uW/ForLinearity/pyPhotometry/"
+dpath = r"H:\ThesisData\HardwareTest\ForLinearity_5uWrange\pyPhotometry"
+GreenList = ["SyncRecording1","SyncRecording2","SyncRecording3",
+             "SyncRecording4","SyncRecording5","SyncRecording6",
+             "SyncRecording7","SyncRecording8"]
+
+Green_Auto = PhotonCountMeans_1(dpath, GreenList)
+Green_Power = np.array([.06, .25, .5, 1, 2, 3, 4, 5])
+# Linear regression (with intercept)
+slope, intercept, r_value, p_value, std_err = linregress(Green_Power, Green_Auto)
+r_squared = r_value**2
+# Extend x-range to include 0
+x_fit = np.linspace(0, Green_Power.max() * 1.05, 100)
+y_fit = slope * x_fit + intercept
+
+# Plot data
+plt.plot(Green_Power, Green_Auto, 'o-', color='#1f77b4', label='pyPhotometry')
+
+# Plot regression line (black)
+plt.plot(x_fit, y_fit, '--', color='gray', label=f'Linear Fit (R² = {r_squared:.4f})')
+
+# Aesthetics
+plt.rc('font', size=16)
+plt.xlabel('Continuous LED power (uW)', fontsize=16)
+plt.ylabel('Voltage (mV)', fontsize=16)
+plt.gca().spines['top'].set_visible(False)
+plt.gca().spines['right'].set_visible(False)
+plt.xticks(np.array([0, .5, 1, 2, 3, 4, 5])) 
+plt.xlim(left=0)  # 👈 Make x-axis start at 0
+plt.legend(frameon=False)
+plt.tight_layout()
+plt.show()
+
+# Print regression info
+print(f"Slope = {slope:.4f}, Intercept = {intercept:.4f}")
+print(f"R² = {r_squared:.4f}")
+#%%
+dpath=r"H:\ThesisData\HardwareTest\ForLinearity_5uWrange\Atlas"
 GreenList=["SyncRecording1","SyncRecording2","SyncRecording3",
               "SyncRecording4","SyncRecording5","SyncRecording6",
               "SyncRecording7","SyncRecording8"]
@@ -254,20 +325,71 @@ Green_Auto=PhotonCountMeans(dpath,GreenList)
 
 Green_Power = np.array([.06,.25,.5,1,2,3,4,5])
 
-plt.plot(Green_Power,Green_Auto,'o-',color='#1f77b4',label='pyPhotometry')# 2ca02c is green,ff7f0e is orange,1f77b4 is blue
-plt.rc('font', size=16)  # Adjust as needed
-plt.xlabel('Continuous LED power (uW)',fontsize=16)
-plt.ylabel('Average Photon Count',fontsize=16)
-plt.ylabel('Total Photon Count',fontsize=16)
-plt.ylabel('Voltage (mV)',fontsize=16)
+# Linear regression (with intercept)
+slope, intercept, r_value, p_value, std_err = linregress(Green_Power, Green_Auto)
+r_squared = r_value**2
+# Extend x-range to include 0
+x_fit = np.linspace(0, Green_Power.max() * 1.05, 100)
+y_fit = slope * x_fit + intercept
+
+# Plot data
+plt.plot(Green_Power, Green_Auto, 'o-', color='#2ca02c', label='ATLAS')
+
+# Plot regression line (black)
+plt.plot(x_fit, y_fit, '--', color='gray', label=f'Linear Fit (R² = {r_squared:.4f})')
+
+# Aesthetics
+plt.rc('font', size=16)
+plt.xlabel('Continuous LED power (uW)', fontsize=16)
+plt.ylabel('Voltage (mV)', fontsize=16)
 plt.gca().spines['top'].set_visible(False)
 plt.gca().spines['right'].set_visible(False)
-
-plt.xticks(np.array([.5,1,2,3,4,5])) 
-plt.legend()
+plt.xticks(np.array([0, .5, 1, 2, 3, 4, 5])) 
+plt.xlim(left=0)  # 👈 Make x-axis start at 0
 plt.legend(frameon=False)
+plt.tight_layout()
 plt.show()
 
+# Print regression info
+print(f"Slope = {slope:.4f}, Intercept = {intercept:.4f}")
+print(f"R² = {r_squared:.4f}")
+#%%
+dpath=r"H:\ThesisData\HardwareTest\ForLinearity_5uWrange\SPC"
+GreenList=["SyncRecording1","SyncRecording2","SyncRecording3",
+              "SyncRecording4","SyncRecording5","SyncRecording6",
+              "SyncRecording7","SyncRecording8"]
+
+Green_Auto=PhotonCountMeans_1(dpath,GreenList)
+
+Green_Power = np.array([.06,.25,.5,1,2,3,4,5])
+# Linear regression (with intercept)
+slope, intercept, r_value, p_value, std_err = linregress(Green_Power, Green_Auto)
+r_squared = r_value**2
+# Extend x-range to include 0
+x_fit = np.linspace(0, Green_Power.max() * 1.05, 100)
+y_fit = slope * x_fit + intercept
+
+# Plot data
+plt.plot(Green_Power, Green_Auto, 'o-', color='#ff7f0e', label='SPC')
+
+# Plot regression line (black)
+plt.plot(x_fit, y_fit, '--', color='gray', label=f'Linear Fit (R² = {r_squared:.4f})')
+
+# Aesthetics
+plt.rc('font', size=16)
+plt.xlabel('Continuous LED power (uW)', fontsize=16)
+plt.ylabel('Voltage (mV)', fontsize=16)
+plt.gca().spines['top'].set_visible(False)
+plt.gca().spines['right'].set_visible(False)
+plt.xticks(np.array([0, .5, 1, 2, 3, 4, 5])) 
+plt.xlim(left=0)  # 👈 Make x-axis start at 0
+plt.legend(frameon=False)
+plt.tight_layout()
+plt.show()
+
+# Print regression info
+print(f"Slope = {slope:.4f}, Intercept = {intercept:.4f}")
+print(f"R² = {r_squared:.4f}")
 #%%
 '''Compare Linearity Collimator'''
 

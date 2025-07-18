@@ -22,7 +22,7 @@ import pickle
 from SPADPhotometryAnalysis import photometry_functions as fp
 
 class SyncOEpyPhotometrySession:
-    def __init__(self, SessionPath,recordingName,IsTracking=False,read_aligned_data_from_file=False, recordingMode='py',indicator='GECI'):
+    def __init__(self, SessionPath,recordingName,IsTracking=False,read_aligned_data_from_file=False, recordingMode='Atlas',indicator='GEVI'):
         '''
         Parameters
         ----------
@@ -38,7 +38,7 @@ class SyncOEpyPhotometrySession:
         self.indicator=indicator
         'Define photometry recording sampling rate by recording mode'
         if self.recordingMode=='py':
-            self.pyPhotometry_fs = 1000
+            self.pyPhotometry_fs = 130
         if self.recordingMode=='SPAD':
             self.Spad_fs = 9938.4
         if self.recordingMode=='Atlas':
@@ -176,7 +176,7 @@ class SyncOEpyPhotometrySession:
         self.Ephys_tracking_spad_aligned.reset_index(drop=True, inplace=True)  
         
         OE.plot_two_traces_in_seconds (self.Ephys_tracking_spad_aligned['zscore_raw'],self.fs, 
-                                       self.Ephys_tracking_spad_aligned['LFP_4'], self.fs, label1='zscore_raw',label2='LFP_4')
+                                       self.Ephys_tracking_spad_aligned['LFP_2'], self.fs, label1='zscore_raw',label2='LFP_2')
         
         while True: #remove noise by cutting part of the synchronised the data
             start_time = input("Enter the start time to move noise (or 'q' to quit): ")
@@ -189,7 +189,7 @@ class SyncOEpyPhotometrySession:
             self.remove_noise(start_time=int(start_time),end_time=int(end_time))
         
             OE.plot_two_traces_in_seconds (self.Ephys_tracking_spad_aligned['zscore_raw'],self.fs, 
-                                       self.Ephys_tracking_spad_aligned['LFP_4'], self.fs, label1='zscore_raw',label2='LFP_4')
+                                       self.Ephys_tracking_spad_aligned['LFP_2'], self.fs, label1='zscore_raw',label2='LFP_2')
         return -1
     
     def read_open_ephys_data (self):
@@ -278,7 +278,7 @@ class SyncOEpyPhotometrySession:
     
     def form_photometry_sync_data (self):
         CamSync=self.PhotometryData['Cam_Sync']
-        py_mask=np.zeros(len(CamSync),dtype=np.int)
+        py_mask=np.zeros(len(CamSync),dtype=int)
         #indices = np.where(CamSync > 0.5)[0]
         py_mask[np.where(CamSync >0.5)[0]]=1
         for i in range(len(py_mask) - 1):
@@ -293,7 +293,7 @@ class SyncOEpyPhotometrySession:
             if py_mask[i] == 1 and py_mask[i - 1] == 0:
                 falling_edge_index = i
                 break  # Exit loop once the last falling edge is found
-        py_mask_final=np.zeros(len(CamSync),dtype=np.int)        
+        py_mask_final=np.zeros(len(CamSync),dtype=int)        
         py_mask_final[rising_edge_index:falling_edge_index]=1
 
         mask_array_bool = np.array(py_mask_final, dtype=bool)
@@ -572,7 +572,7 @@ class SyncOEpyPhotometrySession:
         silced_recording=self.slicing_pd_data (self.Ephys_tracking_spad_aligned,start_time=start_time, end_time=end_time)
        
         SPAD_smooth= OE.smooth_signal(silced_recording['zscore_raw'],Fs=self.fs,cutoff=SPAD_cutoff)
-        SPAD_smooth= OE.butter_filter(SPAD_smooth, btype='high', cutoff=3, fs=self.fs, order=3)
+        SPAD_smooth= OE.butter_filter(SPAD_smooth, btype='high', cutoff=2, fs=self.fs, order=3)
         
         lfp_lowpass = OE.butter_filter(silced_recording[LFP_channel], btype='low', cutoff=lfp_cutoff, fs=self.fs, order=5)
         lfp_lowpass = OE.butter_filter(lfp_lowpass, btype='high', cutoff=2, fs=self.fs, order=3)
@@ -653,8 +653,6 @@ class SyncOEpyPhotometrySession:
         plt.show()
         return -1
     
-
-
     def plot_segment_band_feature_twoROIs (self,LFP_channel,start_time,end_time,SPAD_cutoff,lfp_cutoff):
         silced_recording=self.slicing_pd_data (self.Ephys_tracking_spad_aligned,start_time=start_time, end_time=end_time)
         
@@ -685,7 +683,7 @@ class SyncOEpyPhotometrySession:
         sig_smooth= OE.butter_filter(sig_smooth, btype='high', cutoff=2, fs=self.fs, order=3)
 
         ref_smooth= OE.smooth_signal(dff_ref,Fs=self.fs,cutoff=SPAD_cutoff)
-        ref_smooth= OE.butter_filter(ref_smooth, btype='high', cutoff=2, fs=self.fs, order=3)
+        #ref_smooth= OE.butter_filter(ref_smooth, btype='high', cutoff=2, fs=self.fs, order=3)
         
         print (np.max(ref_smooth))
         print (np.max(sig_smooth))
@@ -698,11 +696,11 @@ class SyncOEpyPhotometrySession:
         lfp_low = pd.Series(lfp_lowpass, index=silced_recording[LFP_channel].index)
         
         sig_theta= OE.butter_filter(sig_low, btype='high', cutoff=4, fs=self.fs, order=5)
-        sig_theta= OE.butter_filter(sig_theta, btype='low', cutoff=10, fs=self.fs, order=5)
+        sig_theta= OE.butter_filter(sig_theta, btype='low', cutoff=9, fs=self.fs, order=5)
         ref_theta= OE.butter_filter(ref_low, btype='high', cutoff=4, fs=self.fs, order=5)
-        ref_theta= OE.butter_filter(ref_theta, btype='low', cutoff=10, fs=self.fs, order=5)
+        ref_theta= OE.butter_filter(ref_theta, btype='low', cutoff=9, fs=self.fs, order=5)
         lfp_theta = OE.butter_filter(lfp_low, btype='high', cutoff=4, fs=self.fs, order=5)
-        lfp_theta = OE.butter_filter(lfp_theta, btype='low', cutoff=10, fs=self.fs, order=5)
+        lfp_theta = OE.butter_filter(lfp_theta, btype='low', cutoff=9, fs=self.fs, order=5)
         
         sig_theta = pd.Series(sig_theta, index=silced_recording['sig_raw'].index)
         ref_theta = pd.Series(ref_theta, index=silced_recording['ref_raw'].index)
@@ -762,8 +760,8 @@ class SyncOEpyPhotometrySession:
         
         OE.plot_trace_in_seconds_ax (ax[6],sig_theta,self.fs,label='GEVI',color=sns.color_palette("husl", 8)[3],
                                ylabel='GEVI',xlabel=False)
-        OE.plot_trace_in_seconds_ax (ax[6],ref_theta,self.fs,label='Ref',color=sns.color_palette("husl", 8)[0],
-                               ylabel='Ref',xlabel=False)
+        # OE.plot_trace_in_seconds_ax (ax[6],ref_theta,self.fs,label='Ref',color=sns.color_palette("husl", 8)[0],
+        #                        ylabel='Ref',xlabel=False)
 
         OE.plot_trace_in_seconds_ax (ax[7],lfp_theta,self.fs,label='LFP',color=sns.color_palette("dark", 8)[7],
                                ylabel='μV',xlabel=True)
@@ -1475,7 +1473,7 @@ class SyncOEpyPhotometrySession:
         ripple_band_filtered,nSS,nSS3,rip_ep,rip_tsd = OE.getRippleEvents (LFP,self.fs,windowlen=400,
                                                                            Low_thres=Low_thres,High_thres=High_thres,
                                                                            low_freq=30,high_freq=60)
-        SPAD_ripple_band_filtered = pyna.eeg_processing.bandpass_filter(SPAD, 30, 60, self.fs)
+        SPAD_ripple_band_filtered = pyna.eeg_processing.bandpass_filter(SPAD, 30, 80, self.fs)
         # SPAD_ripple_band_filtered = OE.band_pass_filter(SPAD,120,300,self.fs)
         # SPAD_ripple_band_filtered=nap.Tsd(t = timestamps, d = SPAD_ripple_band_filtered, time_units = 's')
         

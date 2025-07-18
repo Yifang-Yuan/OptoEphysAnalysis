@@ -657,9 +657,9 @@ def plot_wavelet(ax,sst,frequency,power,Fs=10000,colorBar=False,logbase=False):
     yax.set_major_formatter(ticker.ScalarFormatter())
     if colorBar: 
         fig = plt.gcf()  # Get the current figure
-        position = fig.add_axes([0.2, 0.01, 0.4, 0.01])
+        position = fig.add_axes([0.2, 0.02, 0.4, 0.02])
         #position = fig.add_axes()
-        cbar=plt.colorbar(CS, cax=position, orientation='horizontal', fraction=0.1, pad=0.5)
+        cbar=plt.colorbar(CS, cax=position, orientation='horizontal', fraction=0.2, pad=0.5)
         cbar.set_label('Power (mV$^2$)', fontsize=12) 
         #plt.subplots_adjust(right=0.7, top=0.9)              
     return -1
@@ -1011,55 +1011,75 @@ def set_sparse_polar_labels(ax, angular_ticks=[0, 180], angular_labels=["0", "π
     # Set general tick label font size
     ax.tick_params(labelsize=fontsize)
     
+def bootstrap_ci(data, n_boot=1000, ci=95):
+    """Returns mean, lower, and upper CI bounds using bootstrapping."""
+    if len(data) == 0:
+        return 0, 0, 0
+    means = [np.mean(np.random.choice(data, size=len(data), replace=True)) for _ in range(n_boot)]
+    lower = np.percentile(means, (100 - ci) / 2)
+    upper = np.percentile(means, 100 - (100 - ci) / 2)
+    return np.mean(data), lower, upper
+
 def plot_zscore_to_theta_phase(theta_angle, zscore_data):
-    # Apply a low-pass filter to z-score data
-    zscore_data = butter_filter(zscore_data, btype="low", cutoff=50, fs=10000, order=5)
+    zscore_data = butter_filter(zscore_data, btype="low", cutoff=80, fs=10000, order=5)
     bins = 30
 
     # --- FIGURE 1: Histogram ---
     fig1, ax1 = plt.subplots(figsize=(6, 6), subplot_kw={'projection': 'polar'})
-    ax1.hist(theta_angle, bins=bins, weights=-zscore_data, color="#1b9e77", alpha=0.7, edgecolor="black")
+    ax1.hist(theta_angle, bins=bins, weights=zscore_data, color="#1b9e77", alpha=0.7, edgecolor="black")
     ax1.set_title("ΔF/F vs Phase (Histogram)", va="bottom", fontsize=14, fontweight="bold")
     ax1.tick_params(axis='both', labelsize=14)
     ax1.grid(False)
-    set_polar_labels_vertical(ax1)  # Apply label rotation
-
-    # Thicker circular border with alpha=0.5
+    set_polar_labels_vertical(ax1)
     ax1.spines['polar'].set_linewidth(2)
     ax1.spines['polar'].set_alpha(0.5)
 
-    # Compute binned means — now using [0, 2π] range
+    # Compute means and bootstrapped 95% CIs per bin
     bin_edges = np.linspace(0, 2 * np.pi, bins + 1)
     bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
-    zscore_means = [np.mean(zscore_data[(theta_angle >= bin_edges[i]) & (theta_angle < bin_edges[i + 1])]) for i in range(len(bin_edges) - 1)]
 
-    # Close the circular data for proper plotting
-    zscore_means = np.append(zscore_means, zscore_means[0])
+    zscore_means, ci_lowers, ci_uppers = [], [], []
+    
+
+    for i in range(len(bin_edges) - 1):
+        mask = (theta_angle >= bin_edges[i]) & (theta_angle < bin_edges[i + 1])
+        bin_data = zscore_data[mask]
+        mean, lower, upper = bootstrap_ci(bin_data)
+        zscore_means.append(mean)
+        ci_lowers.append(lower)
+        ci_uppers.append(upper)
+    print ('CI_LOWER:',ci_lowers)
+
+    # Close the loop
     bin_centers = np.append(bin_centers, bin_centers[0])
+    zscore_means.append(zscore_means[0])
+    ci_lowers.append(ci_lowers[0])
+    ci_uppers.append(ci_uppers[0])
 
-    # --- FIGURE 2: Line plot (Z-score means) ---
+    # --- FIGURE 2: Line plot with CI ---
     fig2, ax2 = plt.subplots(figsize=(6, 6), subplot_kw={'projection': 'polar'})
-    ax2.plot(bin_centers, zscore_means, color="#1b9e77", linewidth=3)
+    ax2.plot(bin_centers, zscore_means, color="#1b9e77", linewidth=3)#1b9e77
+
+    theta_fill = np.concatenate([bin_centers, bin_centers[::-1]])
+    radius_fill = np.concatenate([ci_uppers, ci_lowers[::-1]])
+    ax2.fill(theta_fill, radius_fill, color="#1b9e77", alpha=0.3)
+
     ax2.tick_params(axis='both', labelsize=18)
     ax2.set_title("-ZScore vs Phase", va="bottom", fontsize=14, fontweight="bold")
     ax2.grid(False)
     ax2.set_yticklabels([])
-    set_polar_labels_vertical(ax2)  # Apply label rotation
-
-    # Thicker circular border with alpha=0.5
+    set_polar_labels_vertical(ax2)
     ax2.spines['polar'].set_linewidth(4)
     ax2.spines['polar'].set_alpha(0.5)
-    
-    # --- FIGURE 3: Line plot (-Z-score means) ---
+
+    # --- FIGURE 3: Reversed radial axis ---
     fig3, ax3 = plt.subplots(figsize=(6, 6), subplot_kw={'projection': 'polar'})
-    ax3.plot(bin_centers, zscore_means, color="#d73027", linewidth=3)  # Reversed Z-score
+    ax3.plot(bin_centers, zscore_means, color="#d73027", linewidth=3)
     ax3.set_ylim(ax3.get_ylim()[::-1])  # Flip radial axis
     ax3.tick_params(axis='both', labelsize=16)
     ax3.set_title("Z-Score vs Phase", va="bottom", fontsize=14, fontweight="bold")
     ax3.grid(False)
-    set_polar_labels_vertical(ax3)  # Apply label rotation
-
-    # Thicker circular border with alpha=0.5
+    set_polar_labels_vertical(ax3)
     ax3.spines['polar'].set_linewidth(4)
     ax3.spines['polar'].set_alpha(0.5)
 

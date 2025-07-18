@@ -13,7 +13,7 @@ from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 #%% Workable code, above is testin
 #ppath='D:/ATLAS_SPAD/1825505_SimCre/Day2/Atlas/'
 
-dpath='F:/2025_ATLAS_SPAD/1887933_Jedi2P_Multi/Day1/Test/'
+dpath=r'H:\ThesisData\HardwareTest\Atlas_linearity\AtlasData\Burst-RS-4200frames-840Hz_2024-11-04_16-05_2uW'
 #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
 hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
 
@@ -21,7 +21,7 @@ pixel_array_all_frames,_,avg_pixel_array=AtlasDecode.decode_atlas_folder (dpath,
 #%%
 AtlasDecode.show_image_with_pixel_array(avg_pixel_array,showPixel_label=True)
 #%%
-center_x, center_y,best_radius=AtlasDecode.find_circle_mask(avg_pixel_array,radius=10,threh=0.2)
+center_x, center_y,best_radius=AtlasDecode.find_circle_mask(avg_pixel_array,radius=20,threh=0.2)
 #%%
 #center_x, center_y,best_radius=53, 46, 15
 Trace_raw=AtlasDecode.get_dff_from_pixel_array (pixel_array_all_frames,avg_pixel_array,hotpixel_path,center_x, center_y,best_radius,fs=840,snr_thresh=2)
@@ -29,6 +29,7 @@ Trace_raw=AtlasDecode.get_dff_from_pixel_array (pixel_array_all_frames,avg_pixel
 #Trace_raw,dff=AtlasDecode.get_total_photonCount_atlas_continuous_circle_mask (dpath,hotpixel_path,center_x, center_y,best_radius,fs=840,photoncount_thre=2000)
 
 #%%
+'''Calculate Frame Rate for ATLAS imaging'''
 signal = Trace_raw  # Your square wave signal as a NumPy array
 threshold = 200  # Set a threshold to separate high and low states
 square_wave_frequency = 100  # Known frequency of the square wave (in Hz)

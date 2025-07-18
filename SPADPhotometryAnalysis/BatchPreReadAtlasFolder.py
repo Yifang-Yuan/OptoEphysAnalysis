@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import re
 from datetime import datetime
-
+from SPADPhotometryAnalysis import photometry_functions as fp
 
 def extract_timestamp(folder_name):
     # Assuming the timestamp is at the end in the format "YYYY-MM-DD_HH-MM"
@@ -157,7 +157,7 @@ def read_multiple_Atlas_folder_twoROI_small(atlas_parent_folder,day_parent_folde
         directory=os.path.join(atlas_parent_folder, foldername)
         print("Folder:", directory)
         Trace_sig,Trace_ref,zdFF=AtlasDecode.get_trace_atlas_two_ROI_small (directory,hotpixel_path,
-                                                                      ROI_info,fs=1682.92,snr_thresh=4,
+                                                                      ROI_info,fs=1682.92,snr_thresh=0,
                                                                       photoncount_thre=photoncount_thre)
         
         folder_name = f'{new_folder_name}{i}'
@@ -214,6 +214,51 @@ def read_multiple_Atlas_folder_threeROI_small(atlas_parent_folder,day_parent_fol
         #np.save(os.path.join(save_folder, 'pixel_array_all_frames.npy'), pixel_array_all_frames)
     return -1
 
+def Calculate_dff (parent_folder,TargetfolderName='SyncRecording'):
+    
+    # List all files and directories in the parent folder
+    all_contents = os.listdir(parent_folder)
+    # Filter out directories containing the target string
+    sync_recording_folders = [folder for folder in all_contents if TargetfolderName in folder]
+    # Define a custom sorting key function to sort folders in numeric order
+    def numeric_sort_key(folder_name):
+        return int(folder_name.lstrip(TargetfolderName))
+    # Sort the folders in numeric order
+    sync_recording_folders.sort(key=numeric_sort_key)
+    lambd = 10e3 # Adjust lambda to get the best fit
+    porder = 1
+    itermax = 15
+    # Iterate over each sync recording folder
+    for SyncRecordingName in sync_recording_folders:
+        # Now you can perform operations on each folder, such as reading files inside it
+        print("----Now processing folder:", SyncRecordingName)
+        current_folder=os.path.join(parent_folder, SyncRecordingName)
+        sig_csv_filename=os.path.join(current_folder,"Green_traceAll.csv")
+        # ref_csv_filename=os.path.join(current_folder, "Red_raw.csv")
+        # zscore_csv_filename=os.path.join(current_folder, "Zscore_raw.csv")
+        
+        sig_data = np.genfromtxt(sig_csv_filename, delimiter=',')
+        # ref_data = np.genfromtxt(ref_csv_filename, delimiter=',')
+        # z_data = np.genfromtxt(zscore_csv_filename, delimiter=',')
+        
+        sig_base=fp.airPLS(sig_data,lambda_=lambd,porder=porder,itermax=itermax) 
+        sig = (sig_data - sig_base)  
+        dff_sig=100*sig / sig_base
+        
+        # ref_base=fp.airPLS(ref_data,lambda_=lambd,porder=porder,itermax=itermax) 
+        # ref = (ref_data - ref_base)  
+        # dff_ref=100*ref / ref_base
+        
+        # z_base=fp.airPLS(z_data,lambda_=lambd,porder=porder,itermax=itermax) 
+        # z = (z_data - z_base)  
+        # dff_z=100*z / z_base
+        
+        np.savetxt(os.path.join(current_folder,'Zscore_traceAll.csv'), dff_sig, delimiter=',', comments='')
+        # np.savetxt(os.path.join(current_folder,'Green_traceAll.csv'), dff_sig, delimiter=',', comments='')
+        # np.savetxt(os.path.join(current_folder,'Red_traceAll.csv'), dff_ref, delimiter=',', comments='')
+        
+    return -1       
+
 
 def main():
     '''Set the folder to the one-day recording folder that contain SPAD data for each trial'''
@@ -224,17 +269,27 @@ def main():
     #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
     hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
     'READ SINGLE ROI CODES --FULL FOV'
-    # center_x, center_y,radius=44, 31, 11
-    # day_folder='F:/2025_ATLAS_SPAD/Batch1/1842515_PV_mNeon/Day10/'
+    # center_x, center_y,radius=31, 49, 25
+    # day_folder='H:/2024MScR_NORtask/1765508_Jedi2p_CompareSystem/Day5_Atlas_EphysGood/'
     # atlas_folder=os.path.join(day_folder,'Atlas')
-    # read_multiple_Atlas_bin_folder(atlas_folder,day_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=400)
+    # read_multiple_Atlas_bin_folder(atlas_folder,day_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=500)
     
     'READ SINGLE ROI CODES--SMALL FOV'
-    # center_x, center_y,radius=42, 31, 12
-    # day_folder='F:/2025_ATLAS_SPAD/1887930_PV_mNeon_mCherry/Day5/'
-    # atlas_folder=os.path.join(day_folder,'Atlas')
-    # read_multiple_Atlas_bin_folder_smallFOV(atlas_folder,day_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=20000)
+    center_x, center_y,radius=63, 27, 12
     
+    
+    
+    day_folder=r'G:\2025_ATLAS_SPAD\1910567_Jedi2p_CB\Day3'
+    atlas_folder=os.path.join(day_folder,'Atlas')
+    read_multiple_Atlas_bin_folder_smallFOV(
+        atlas_folder,day_folder,hotpixel_path,center_x, center_y,radius,
+        new_folder_name='SyncRecording',photoncount_thre=80000)
+    
+    
+
+    
+
+
     'READ TWO ROIs CODES ---FULL FOV'
     # ROI_info = {
     # 'center_x_sig': 44,
@@ -251,41 +306,56 @@ def main():
 
     'READ TWO ROIs CODES---SMALL FOV'
     # ROI_info = {
-    # 'center_x_sig': 42,
-    # 'center_y_sig': 30,
-    # 'radius_sig': 11,
-    # 'center_x_ref': 63,
-    # 'center_y_ref': 20,
+    # 'center_x_sig': 64,
+    # 'center_y_sig': 26,
+    # 'radius_sig': 10,
+    # 'center_x_ref': 46,
+    # 'center_y_ref': 18,
     # 'radius_ref': 10
     # }
     
-    # day_folder='F:/2025_ATLAS_SPAD/1881363_Jedi2p_mCherry/Day7_openfield/'
+    # day_folder=r'G:\2025_ATLAS_SPAD\1881365_Jedi2p_mCherry\Day9_Cont'
     # atlas_folder=os.path.join(day_folder,'Atlas')
     # read_multiple_Atlas_folder_twoROI_small (atlas_folder,day_folder,hotpixel_path,ROI_info,new_folder_name='SyncRecording',photoncount_thre=50000)
     
-    'READ THREE ROIs CODES---SMALL FOV'
-    ROI_info = {
-    'center_x_z': 47,
-    'center_y_z': 35,
-    'radius_z': 9,
-    
-    'center_x_sig': 48,
-    'center_y_sig': 16,
-    'radius_sig': 10,
-    
-    'center_x_ref': 64,
-    'center_y_ref': 25,
-    'radius_ref': 10
-    }
-    
-    day_folder='F:/2025_ATLAS_SPAD/1887933_Jedi2P_Multi/Day1b/'
-    atlas_folder=os.path.join(day_folder,'Atlas')
-    read_multiple_Atlas_folder_threeROI_small (atlas_folder,day_folder,hotpixel_path,ROI_info,new_folder_name='SyncRecording',photoncount_thre=60000)
-    
-    day_folder='F:/2025_ATLAS_SPAD/1887933_Jedi2P_Multi/Day2/'
-    atlas_folder=os.path.join(day_folder,'Atlas')
-    read_multiple_Atlas_folder_threeROI_small (atlas_folder,day_folder,hotpixel_path,ROI_info,new_folder_name='SyncRecording',photoncount_thre=60000)
-    
 
+    '''
+    READ THREE ROIs CODES---SMALL FOV
+    z-Black label-Left CA3
+    sig-Green label-Left CA1
+    ref-Red label- Right CA1 with OEC
+    '''
+    
+    # ROI_info = {
+    # 'center_x_z': 47,
+    # 'center_y_z': 35,
+    # 'radius_z': 9,
+    
+    # 'center_x_sig': 48,
+    # 'center_y_sig': 16,
+    # 'radius_sig': 10,
+    
+    # 'center_x_ref': 64,
+    # 'center_y_ref': 25,
+    # 'radius_ref': 10
+    # }
+    
+    # day_folder='F:/2025_ATLAS_SPAD/1887932_Jedi2p_Multi_ephysbad/Day2/'
+    # atlas_folder=os.path.join(day_folder,'Atlas')
+    # read_multiple_Atlas_folder_threeROI_small (atlas_folder,day_folder,hotpixel_path,ROI_info,new_folder_name='SyncRecording',photoncount_thre=45000)
+    
+    
+    # day_folder='F:/2025_ATLAS_SPAD/1887933_Jedi2P_Multi/Day5/'
+    # atlas_folder=os.path.join(day_folder,'Atlas')
+    # read_multiple_Atlas_folder_threeROI_small (atlas_folder,day_folder,hotpixel_path,ROI_info,new_folder_name='SyncRecording',photoncount_thre=55000)
+    
+  
+    '''
+    CALCULATE DFF
+    '''
+    # day_folder='H:/2024_OEC_Atlas_main/1732333_pyramidal_G8f_Atlas/Day1/'
+    # Calculate_dff (day_folder,TargetfolderName='SyncRecording')
+    
+    
 if __name__ == "__main__":
     main()

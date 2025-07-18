@@ -65,7 +65,7 @@ def plot_ripple_heatmap(ripple_band_lfps,lfps,zscores,Fs=10000):
     axs[0].fill_between(time, ripple_band_lfps_CI[0], ripple_band_lfps_CI[1], color='#404040', alpha=0.2, label='0.95 CI')
     axs[1].plot(time, lfps_mean, color='dodgerblue', label='Ripple LFP Mean')
     axs[1].fill_between(time, lfps_CI[0], lfps_CI[1], color='dodgerblue', alpha=0.2, label='0.95 CI')
-    axs[2].plot(time, zscores_mean, color='limegreen', label='Ripple Zscore Mean')
+    axs[2].plot(time, zscores_mean, color='limegreen', label='Ripple Zscore Mean')#tomato  limegreen
     axs[2].fill_between(time, zscores_CI[0], zscores_CI[1], color='limegreen', alpha=0.2, label='0.95 CI')
     axs[0].set_title('Averaged Ripple Epoch',fontsize=18)
     for i in range(3):
@@ -102,8 +102,8 @@ def plot_aligned_ripple_save (save_path,LFP_channel,recordingName,ripple_trigger
     ripple_sample_numbers=len(ripple_triggered_lfps[0])
     midpoint=ripple_sample_numbers//2
     'align ripple in a 200ms window '
-    start_idx=int(midpoint-0.05*Fs)
-    end_idx=int(midpoint+0.05*Fs)
+    start_idx=int(midpoint-0.08*Fs)
+    end_idx=int(midpoint+0.08*Fs)
     print (midpoint,start_idx,end_idx)
     aligned_ripple_band_lfps,aligned_lfps,aligned_zscores=align_ripples (ripple_triggered_lfps,
                                                                          ripple_triggered_zscores,start_idx,end_idx,midpoint,Fs)
@@ -221,7 +221,7 @@ def run_Gamma_plot (dpath,LFP_channel,recordingName,savename,theta_thre=0):
                                                      ep_start=10,ep_end=18,
                                                      Low_thres=0.3,High_thres=8,
                                                      plot_segment=False,plot_ripple_ep=False,
-                                                     excludeTheta=False,excludeNonTheta=False)
+                                                     excludeTheta=False,excludeNonTheta=True)
     
     index = LFP_channel.split('_')[-1] 
     if index=='1':
@@ -244,13 +244,12 @@ def run_Gamma_plot (dpath,LFP_channel,recordingName,savename,theta_thre=0):
 
 def run_ripple_plot_main():
     'This is to process a single or concatenated rial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
-    #dpath='F:/2025_ATLAS_SPAD/1887930_PV_mNeon_mCherry/Day3/'
-    dpath='F:/2025_ATLAS_SPAD/PyramidalWT/1844609_WT_Jedi2p/ThetaTrials/Day5_best/'
-    
-    recordingName='SyncRecording1'
+    dpath=r'G:\2025_ATLAS_SPAD\PVCre\1842515_PV_mNeon\Day2'
+    recordingName='SyncRecording12'
+    LFP_channel='LFP_1'
     savename='GammaSave'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-    LFP_channel='LFP_1'
+    
     run_Gamma_plot (dpath,LFP_channel,recordingName,savename,theta_thre=-0.3)
 
 def main():    

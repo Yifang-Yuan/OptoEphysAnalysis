@@ -287,7 +287,7 @@ def mask_low_snr_pixels(snr_image, thresh):
     return mask
 
 def mask_high_snr_pixels(snr_image, thresh):
-    mask = np.ones((128, 128))
+    mask = np.ones(snr_image.shape)
     mask[np.where(snr_image>thresh)] = 0
     return mask
 
@@ -554,7 +554,7 @@ def get_dff_from_pixel_array_smallFOV (pixel_array_all_frames,avg_pixel_array,ho
         
     mean_image, std_image, snr_image = get_snr_image(pixel_array_all_frames)
     pixel_mask = mask_low_snr_pixels(snr_image, snr_thresh)
-
+    pixel_mask_high = mask_high_snr_pixels(snr_image, 60)
     shape = pixel_array_all_frames.shape[0:2] 
     y, x = np.ogrid[:shape[0], :shape[1]]
     roi_mask = (x - center_x) ** 2 + (y - center_y) ** 2 <= radius ** 2
@@ -787,9 +787,17 @@ def get_trace_atlas_three_ROI_small (dpath,hotpixel_path,ROI_info,fs=840,snr_thr
 
     Trace_sig=trace[1:]    #print('trace_raw lenth 1: ', len(Trace_raw))
     Trace_sig = np.append(Trace_sig, Trace_sig[-1])
-
+    
+    lambd = 10e3 # Adjust lambda to get the best fit
+    porder = 1
+    itermax = 15
+    sig_base=fp.airPLS(Trace_sig,lambda_=lambd,porder=porder,itermax=itermax) 
+    sig = (Trace_sig - sig_base)  
+    dff_sig=100*sig / sig_base
+    
     fig, ax = plt.subplots(figsize=(8, 2))
-    plot_trace(Trace_sig, ax,fs, label="Trace_sig")
+    plot_trace(dff_sig, ax,fs, label="Dff_Trace_sig")
+    
     'Get reference trace'
     roi_mask = (x - center_x_ref) ** 2 + (y - center_y_ref) ** 2 <= radius_ref ** 2
     
@@ -816,8 +824,12 @@ def get_trace_atlas_three_ROI_small (dpath,hotpixel_path,ROI_info,fs=840,snr_thr
     Trace_ref=trace[1:]    #print('trace_raw lenth 1: ', len(Trace_raw))
     Trace_ref = np.append(Trace_ref, Trace_ref[-1])
 
+    ref_base=fp.airPLS(Trace_ref,lambda_=lambd,porder=porder,itermax=itermax) 
+    ref = (Trace_ref - ref_base)  
+    dff_ref=100*ref / ref_base
+    
     fig, ax = plt.subplots(figsize=(8, 2))
-    plot_trace(Trace_ref, ax,fs, label="Trace_ref")
+    plot_trace(dff_ref, ax,fs, label="Dff_ref")
     
     'Get z- trace'
     roi_mask = (x - center_x_z) ** 2 + (y - center_y_z) ** 2 <= radius_z ** 2
@@ -845,8 +857,11 @@ def get_trace_atlas_three_ROI_small (dpath,hotpixel_path,ROI_info,fs=840,snr_thr
     Trace_z=trace[1:]    #print('trace_raw lenth 1: ', len(Trace_raw))
     Trace_z = np.append(Trace_z, Trace_z[-1])
     
+    z_base=fp.airPLS(Trace_z,lambda_=lambd,porder=porder,itermax=itermax) 
+    z = (Trace_z - z_base)  
+    dff_z=100*z / z_base
+    
     fig, ax = plt.subplots(figsize=(8, 2))
-    plot_trace(Trace_z, ax,fs, label="Trace_z")
-    plt.show()
+    plot_trace(dff_ref, ax,fs, label="Dff_z")
 
-    return Trace_sig,Trace_ref,Trace_z
+    return dff_sig,dff_ref,dff_z

@@ -79,11 +79,7 @@ def main():
     '''Set the parent folder your session results, this should be the same parent folder to save optical data'''
     
    
-    # save_parent_folder='F:/2025_ATLAS_SPAD/1887930_PV_mNeon_mCherry/Day4_Sleep/'
-    # BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
-    # label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
-    
-    save_parent_folder='F:/2025_ATLAS_SPAD/1887930_PV_mNeon_mCherry/Day5/'
+    save_parent_folder=r'G:\2025_ATLAS_SPAD\1910567_Jedi2p_CB\Day3'
     BehaviourData_folder_path=os.path.join(save_parent_folder,'Behaviour')
     label_multiple_behaviour_files_in_folder(BehaviourData_folder_path,save_parent_folder,tracking_fs=10,new_folder_name='SyncRecording')
     

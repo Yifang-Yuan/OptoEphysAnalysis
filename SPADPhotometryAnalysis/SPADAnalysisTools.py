@@ -57,19 +57,20 @@ def getTimeDivisionTrace (dpath, trace, sig_highlim,sig_lowlim, ref_highlim,ref_
     This method is suitable when the time-division two signals are with very different amplitude,
     I use two different thresholds to detect peak values for two channels
     '''
+    print (sig_highlim)
+    print (sig_lowlim)
+    print (ref_highlim)
+    print (ref_lowlim)
     lmin,lmax=SPADdemod.Find_targetPeaks(trace, dmin=1, dmax=1,high_limit=sig_highlim, low_limit=sig_lowlim)
     fig, ax = plt.subplots(figsize=(12, 3))
     ax.plot(lmax,trace[lmax], color='g')
     x_green, Green=SPADdemod.Interpolate_timeDiv (lmax,trace)
-    fname = os.path.join(dpath, "Green_traceAll.csv")
-    np.savetxt(fname, Green, delimiter=",")
     
-    lmin,lmax=SPADdemod.Find_targetPeaks(trace, dmin=1, dmax=1,high_limit=ref_highlim, low_limit=ref_lowlim)
+    lmin,lmax=SPADdemod.Find_targetPeaks(trace, dmin=2, dmax=2,high_limit=ref_highlim, low_limit=ref_lowlim)
     fig, ax = plt.subplots(figsize=(12, 3))
     ax.plot(lmax,trace[lmax], color='r')
     x_red, Red=SPADdemod.Interpolate_timeDiv (lmax,trace)
-    fname = os.path.join(dpath, "Red_traceAll.csv")
-    np.savetxt(fname, Red, delimiter=",")
+
     return Green,Red
 
 def getTimeDivisionTrace_fromMask (dpath, Trace_raw, high_thd,low_thd):
@@ -89,12 +90,6 @@ def getTimeDivisionTrace_fromMask (dpath, Trace_raw, high_thd,low_thd):
     
     x_green, Green=SPADdemod.Interpolate_timeDiv (Green_peakIdx,Green_raw)
     x_red, Red=SPADdemod.Interpolate_timeDiv (Red_peakIdx,Red_raw)
-    
-    fname = os.path.join(dpath, "Green_traceAll.csv")
-    np.savetxt(fname, Green, delimiter=",")
-    
-    fname = os.path.join(dpath, "Red_traceAll.csv")
-    np.savetxt(fname, Red, delimiter=",")
     
     fig, ax = plt.subplots(figsize=(12, 3))
     ax.plot(x_green,Green, color='g')

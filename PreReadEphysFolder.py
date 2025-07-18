@@ -129,26 +129,18 @@ def main():
     '''Set the folder for the Open Ephys recording, defualt folder names are usually date and time'''
     '''Set the parent folder your session results, this should be the same parent folder to save optical data'''
     Ephys_fs=30000 #Ephys sampling rate
-    '''IF ATLAS'''
-    #Frame_num=25200
-    #Fs_atlas=841.68
+    '''IF ATLAS, change the sampling rate and frame num according to the experiments'''
+    
+    # Frame_num=25200
+    # Fs_atlas=841.68
     
     Frame_num=51510
     Fs_atlas=1682.92
     recordingTime=Frame_num/Fs_atlas
     
    
-    save_parent_folder='F:/2025_ATLAS_SPAD/1887930_PV_mNeon_mCherry/Day4_Sleep/'
+    save_parent_folder=r'G:\2025_ATLAS_SPAD\1910567_Jedi2p_CB\Day4'
     read_multiple_Ephys_data_in_folder(save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
-    
-    save_parent_folder='F:/2025_ATLAS_SPAD/1887930_PV_mNeon_mCherry/Day5/'
-    read_multiple_Ephys_data_in_folder(save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
-    
-    # save_parent_folder='F:/2025_ATLAS_SPAD/1881363_Jedi2p_mCherry/Day7_openfield/'
-    # read_multiple_Ephys_data_in_folder(save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
-    
-    # save_parent_folder='F:/2025_ATLAS_SPAD/1881365_Jedi2p_mCherry/Day8_openfield/'
-    # read_multiple_Ephys_data_in_folder(save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
     
 if __name__ == "__main__":
     main()
