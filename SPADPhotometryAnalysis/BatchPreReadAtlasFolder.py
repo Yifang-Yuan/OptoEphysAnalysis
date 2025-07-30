@@ -275,20 +275,15 @@ def main():
     # read_multiple_Atlas_bin_folder(atlas_folder,day_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=500)
     
     'READ SINGLE ROI CODES--SMALL FOV'
-    center_x, center_y,radius=63, 27, 12
+    center_x, center_y,radius=52, 28, 10
     
-    
-    
-    day_folder=r'G:\2025_ATLAS_SPAD\1910567_Jedi2p_CB\Day3'
+    day_folder=r'G:\2025_ATLAS_SPAD\ChirpSignal\Set2'
     atlas_folder=os.path.join(day_folder,'Atlas')
     read_multiple_Atlas_bin_folder_smallFOV(
         atlas_folder,day_folder,hotpixel_path,center_x, center_y,radius,
-        new_folder_name='SyncRecording',photoncount_thre=80000)
+        new_folder_name='SyncRecording',photoncount_thre=20000)
     
     
-
-    
-
 
     'READ TWO ROIs CODES ---FULL FOV'
     # ROI_info = {

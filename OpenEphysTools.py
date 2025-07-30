@@ -27,6 +27,8 @@ from matplotlib.ticker import MaxNLocator
 from scipy.stats import pearsonr, spearmanr
 import seaborn as sns
 from scipy.signal import hilbert
+from scipy.signal import resample_poly
+from pandas.tseries.frequencies import to_offset
 
 def butter_filter(data, btype='low', cutoff=10, fs=9938.4, order=5): 
     # cutoff and fs in Hz
@@ -264,6 +266,45 @@ def save_open_ephys_data (dpath, data):
     data.to_pickle(filepath)
     return -1
 
+def resample_signal(signal_df, original_fs, target_fs):
+    """
+    Resample a timestamp-indexed DataFrame using polyphase filtering.
+    Handles both DatetimeIndex and TimedeltaIndex.
+
+    Parameters:
+        signal_df (pd.DataFrame): Timestamp-indexed signal.
+        original_fs (float): Original sampling rate in Hz.
+        target_fs (float): Target sampling rate in Hz.
+
+    Returns:
+        pd.DataFrame: Resampled DataFrame with timestamp index.
+    """
+    up = int(target_fs)
+    down = int(original_fs)
+
+    # Resample each column
+    resampled_data = {
+        col: resample_poly(signal_df[col].astype(float).values, up, down)
+        for col in signal_df.columns
+    }
+
+    n_samples = len(next(iter(resampled_data.values())))
+
+    # Determine proper start_time
+    index = signal_df.index
+    if isinstance(index, pd.TimedeltaIndex):
+        start_time = pd.Timestamp(0) + index[0]
+    elif isinstance(index, pd.DatetimeIndex):
+        start_time = index[0]
+    else:
+        raise TypeError("Index must be DatetimeIndex or TimedeltaIndex.")
+
+    # Generate new timestamp index
+    freq = to_offset(pd.Timedelta(seconds=1 / target_fs))
+    new_index = pd.date_range(start=start_time, periods=n_samples, freq=freq)
+
+    return pd.DataFrame(resampled_data, index=new_index)
+
 def getRippleEvents (lfp_raw,Fs,windowlen=200,Low_thres=1,High_thres=10,low_freq=130,high_freq=250):
     ripple_band_filtered = pyna.eeg_processing.bandpass_filter(lfp_raw, low_freq, high_freq, Fs) #for ripple:130Hz-250Hz
     squared_signal = np.square(ripple_band_filtered.values)
@@ -278,7 +319,7 @@ def getRippleEvents (lfp_raw,Fs,windowlen=200,Low_thres=1,High_thres=10,low_freq
     nSS3 = nSS2.threshold(High_thres, method='below')
     # Round 2 : Excluding ripples whose length < minRipLen and greater than Maximum Ripple Length
     minRipLen = 20 # ms
-    maxRipLen = 500 # ms   //200ms 
+    maxRipLen = 200 # ms   //200ms 
     rip_ep = nSS3.time_support
     rip_ep = rip_ep.drop_short_intervals(minRipLen, time_units = 'ms')
     rip_ep = rip_ep.drop_long_intervals(maxRipLen, time_units = 'ms')

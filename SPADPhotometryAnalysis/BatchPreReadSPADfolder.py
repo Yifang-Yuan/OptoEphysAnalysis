@@ -21,7 +21,7 @@ def read_multiple_SPAD_bin_folder(parent_folder,xxRange,yyRange):
     # Read the directories in sorted order
     for directory in directories:
         print("Folder:", directory)
-        SPADreadBin.readMultipleBinfiles(directory,1,xxRange=xxRange,yyRange=yyRange)
+        SPADreadBin.readMultipleBinfiles(directory,2,xxRange=xxRange,yyRange=yyRange)
     return -1
 
 'Following functions are used for calculate zscore for continuous recording'
@@ -109,10 +109,10 @@ def main():
     '''
     
     'Reading SPAD binary data'
-    SPC_data_folder='E:/ATLAS_SPAD\HardwareTest/SPC_linearity/SPC/'
-    read_multiple_SPAD_bin_folder(SPC_data_folder,xxRange=[135,270],yyRange=[70,205])
+    SPC_data_folder=r'G:\2025_ATLAS_SPAD\ChirpSignal\Set2\SPC'
+    read_multiple_SPAD_bin_folder(SPC_data_folder,xxRange=[90,190],yyRange=[50,150])
     multiple_SPAD_folders_get_zscore(SPC_data_folder)
-    day_parent_folder='E:/ATLAS_SPAD\HardwareTest/SPC_linearity/'
+    day_parent_folder=r'G:\2025_ATLAS_SPAD\ChirpSignal\Set2'
  
     copy_results_to_SyncRecording (day_parent_folder,SPC_data_folder,new_folder_name='SyncRecording')
 

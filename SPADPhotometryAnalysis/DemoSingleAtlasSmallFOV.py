@@ -10,13 +10,13 @@ import matplotlib.pyplot as plt
 from SPADPhotometryAnalysis import AtlasDecode
 from SPADPhotometryAnalysis import SPADAnalysisTools as Analysis
 
-dpath=r'G:\2025_ATLAS_SPAD\1907336_Jedi2p_CB\Day2\test'
+dpath=r'G:\2025_ATLAS_SPAD\ChirpSignal\Set2\test'
 #dpath='F:/2025_ATLAS_SPAD/1887933_Jedi2P_Multi/Day1/Test/'
 #hotpixel_path='E:/YYFstudy/OptoEphysAnalysis/Altas_hotpixel.csv'
 hotpixel_path='C:/SPAD/OptoEphysAnalysis/Altas_hotpixel.csv'
 
 pixel_array_all_frames,_,avg_pixel_array=AtlasDecode.decode_atlas_folder_smallFOV (
-    dpath,hotpixel_path,photoncount_thre=50000)
+    dpath,hotpixel_path,photoncount_thre=20000)
 #%%
 AtlasDecode.show_image_with_pixel_array(avg_pixel_array,showPixel_label=True)
 #%%

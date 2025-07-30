@@ -12,13 +12,12 @@ from SPADPhotometryAnalysis import SPADAnalysisTools as OpticalAnlaysis
 import matplotlib.pyplot as plt
 from SPADPhotometryAnalysis import photometry_functions as fp
 Fs=10000
-dpath='G:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day1/'
-
-recordingName='SyncRecording8'
+dpath=r'G:\2025_ATLAS_SPAD\PVCre\1842516_PV_Jedi2p\Day4'
+recordingName='SyncRecording4'
 Recording1=SyncOEpyPhotometrySession(
     dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,
-    recordingMode='Atlas',indicator='GECI') 
-LFP_channel='LFP_3'
+    recordingMode='Atlas',indicator='GEVI') 
+LFP_channel='LFP_2'
 # theta_part,non_theta_part=Recording1.pynacollada_label_theta (
 #     LFP_channel,Low_thres=-0.3,High_thres=8,save=False,plot_theta=True)
 # LFP_theta=Recording1.theta_part[LFP_channel]

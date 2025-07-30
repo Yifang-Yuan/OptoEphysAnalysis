@@ -18,7 +18,6 @@ import pynapple as nap
 import MakePlots
 import pynacollada as pyna
 import pickle
-
 from SPADPhotometryAnalysis import photometry_functions as fp
 
 class SyncOEpyPhotometrySession:
@@ -42,8 +41,8 @@ class SyncOEpyPhotometrySession:
         if self.recordingMode=='SPAD':
             self.Spad_fs = 9938.4
         if self.recordingMode=='Atlas':
-            #self.Spad_fs = 841.68
-            self.Spad_fs = 1682.92
+            self.Spad_fs = 841.68
+            #self.Spad_fs = 1682.92
             
         self.ephys_fs = 30000
         self.tracking_fs = 10
@@ -272,8 +271,7 @@ class SyncOEpyPhotometrySession:
                 'sig_raw': sig_raw,
                 'ref_raw': ref_raw,
                 'zscore_raw': zscore_raw,
-            })
-          
+            }) 
         return self.PhotometryData
     
     def form_photometry_sync_data (self):
@@ -325,17 +323,32 @@ class SyncOEpyPhotometrySession:
             print ('Yay~~Sync mask matched! Synchronising LFP and Optical signal finished.')          
         return self.photometry_sync_data
     
-    def resample_photometry (self):
-        time_interval_common = 1.0 / self.fs
-        self.py_resampled = self.photometry_sync_data.resample(f'{time_interval_common:.9f}S').mean()
-        self.py_resampled = self.py_resampled.fillna(method='bfill')
+    def resample_photometry(self):
+        if self.recordingMode=='py':
+            original_fs = self.pyPhotometry_fs
+        if self.recordingMode=='SPAD':
+            original_fs= self.Spad_fs
+        if self.recordingMode=='Atlas':
+            original_fs= self.Spad_fs
+        self.py_resampled = OE.resample_signal(self.photometry_sync_data, original_fs, self.fs)
         return self.py_resampled
+
+    def resample_ephys(self):
+        original_fs = self.ephys_fs  # use the known original sampling rate
+        self.ephys_resampled = OE.resample_signal(self.Ephys_sync_data, original_fs, self.fs)
+        return self.ephys_resampled
+
+    # def resample_photometry (self):
+    #     time_interval_common = 1.0 / self.fs
+    #     self.py_resampled = self.photometry_sync_data.resample(f'{time_interval_common:.9f}S').mean()
+    #     self.py_resampled = self.py_resampled.fillna(method='bfill')
+    #     return self.py_resampled
     
-    def resample_ephys (self):
-        time_interval_common = 1.0 / self.fs
-        self.ephys_resampled = self.Ephys_sync_data.resample(f'{time_interval_common:.9f}S').mean()
-        self.ephys_resampled = self.ephys_resampled.interpolate()
-        return self.ephys_resampled                     
+    # def resample_ephys (self):
+    #     time_interval_common = 1.0 / self.fs
+    #     self.ephys_resampled = self.Ephys_sync_data.resample(f'{time_interval_common:.9f}S').mean()
+    #     self.ephys_resampled = self.ephys_resampled.interpolate()
+    #     return self.ephys_resampled                     
     
     def slice_to_align_with_min_len (self):
         'This is important with different sampling rate, the calculated durations might have a ~10ms difference.'
@@ -405,7 +418,9 @@ class SyncOEpyPhotometrySession:
             print('Detected a difference between Behavioural Cam and Recording is larger than 300ms.')
             print ('If not changing, the pipeline will align the length automatically')
         else:
-            print ('Yay~~Camera time mask matched! Synchronising LFP and Optical signal finished.') 
+            print ('Yay~~Camera time mask matched! Synchronising LFP and Optical signal finished.')     
+        # original_fs = self.tracking_fs  # use the known original sampling rate
+        # self.trackingdata_resampled = OE.resample_signal(self.trackingdata, original_fs, self.fs)
         time_interval_common = 1.0 / self.fs
         self.trackingdata_resampled = self.trackingdata.resample(f'{time_interval_common:.9f}S').mean()
         self.trackingdata_resampled = self.trackingdata_resampled.fillna(method='ffill')
