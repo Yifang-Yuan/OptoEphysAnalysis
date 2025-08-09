@@ -136,7 +136,8 @@ Resulted figures will be saved in a newly created folder **'ResultsPooled'** in 
 `plot_example_traces.py` run example trace plot for a trial, by cutting the trial to 3 seconds (user defined) short period, and plot all segments' LFP and optical signal trace with LFP and optical signal power spectrogram.
 
 #### Example Results
-<img width="655" height="662" alt="image" src="https://github.com/user-attachments/assets/cec9c65c-e0db-4fca-856a-3496374d9c0e" />
+<img width="639" height="567" alt="image" src="https://github.com/user-attachments/assets/cbd79671-da41-4572-b220-b0cd81ad23dd" />
+
 
 
 
