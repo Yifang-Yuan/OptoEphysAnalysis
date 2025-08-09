@@ -34,7 +34,7 @@ https://paos.colorado.edu/research/wavelets/
 
 Functions are aleady included in my package so you don't need to install anything.
 
-## Pre-processing the data 
+## Pre-processing
 
 ### Option 1: Pre-process optical, ephys, behavioural data in one go
 Use `BatchPreProcessing.py` and change folder path according to your folder name.
@@ -121,4 +121,18 @@ Resulted figures will be saved in a newly created folder **'ResultsPooled'** in 
 #### Example Results
 ![image](https://github.com/Yifang-Yuan/OptoEphysAnalysis/assets/77569999/208da4d1-d08e-4035-8f48-04c303b51d10)
 
+## Hippocampus network oscillation analysis
+### Analyse and visualise theta, gamma and SWR
+`plotTheta.py`,`plotGamma.py`,`plotRipple.py` codes have following funtions: 
 
+(1) Generate heatmap, average trace for LFP and optical signal during theta, gamma and ripple.
+
+(2) Run Phase modulation analysis and calculate phase modulation index, prefered phase, phase modulation depth, ripple modulation depth. 
+
+#### Example Results
+
+<img width="632" height="914" alt="image" src="https://github.com/user-attachments/assets/60bef2db-e2da-4bf1-9241-1c902a6b6cd1" />
+<img width="503" height="512" alt="image" src="https://github.com/user-attachments/assets/c69b817c-e225-4aa8-963b-6c0c4d1cbbd5" />
+
+
+ 
