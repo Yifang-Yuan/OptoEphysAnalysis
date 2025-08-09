@@ -130,9 +130,15 @@ Resulted figures will be saved in a newly created folder **'ResultsPooled'** in 
 (2) Run Phase modulation analysis and calculate phase modulation index, prefered phase, phase modulation depth, ripple modulation depth. 
 
 #### Example Results
+<img width="1227" height="960" alt="image" src="https://github.com/user-attachments/assets/882ddee3-0f74-468f-91d6-7e476f71e6a4" />
 
-<img width="632" height="914" alt="image" src="https://github.com/user-attachments/assets/60bef2db-e2da-4bf1-9241-1c902a6b6cd1" />
-<img width="503" height="512" alt="image" src="https://github.com/user-attachments/assets/c69b817c-e225-4aa8-963b-6c0c4d1cbbd5" />
+### Plot Example traces with short durations.
+`plot_example_traces.py` run example trace plot for a trial, by cutting the trial to 3 seconds (user defined) short period, and plot all segments' LFP and optical signal trace with LFP and optical signal power spectrogram.
+
+#### Example Results
+<img width="655" height="662" alt="image" src="https://github.com/user-attachments/assets/cec9c65c-e0db-4fca-856a-3496374d9c0e" />
+
+
 
 
  
