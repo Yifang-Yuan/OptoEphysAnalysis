@@ -371,9 +371,9 @@ def get_dff_from_atlas_snr_circle_mask (dpath,hotpixel_path,center_x, center_y,r
 
     fig, ax = plt.subplots(figsize=(8, 2))
     plot_trace(Trace_raw,ax, fs, label="raw_data")
-    lambd = 10e3 # Adjust lambda to get the best fit
+    lambd = 5e4 # Adjust lambda to get the best fit
     porder = 1
-    itermax = 15
+    itermax = 50
     sig_base=fp.airPLS(Trace_raw,lambda_=lambd,porder=porder,itermax=itermax) 
     signal = (Trace_raw - sig_base)  
     dff=100*signal / sig_base
@@ -433,9 +433,9 @@ def get_total_photonCount_atlas_continuous_circle_mask (dpath,hotpixel_path,cent
     fig, ax = plt.subplots(figsize=(8, 2))
     plot_trace(Trace_raw,ax, fs, label="raw_data")
     
-    lambd = 10e3 # Adjust lambda to get the best fit
+    lambd = 5e4 # Adjust lambda to get the best fit
     porder = 1
-    itermax = 15
+    itermax = 50
     sig_base=fp.airPLS(Trace_raw,lambda_=lambd,porder=porder,itermax=itermax) 
     signal = (Trace_raw - sig_base)  
     dff=100*signal / sig_base
@@ -538,9 +538,9 @@ def get_dff_from_atlas_snr_circle_mask_smallFOV (dpath,hotpixel_path,center_x, c
 
     fig, ax = plt.subplots(figsize=(8, 2))
     plot_trace(Trace_raw,ax, fs, label="raw_data")
-    lambd = 10e3 # Adjust lambda to get the best fit
+    lambd = 5e4 # Adjust lambda to get the best fit
     porder = 1
-    itermax = 15
+    itermax = 50
     sig_base=fp.airPLS(Trace_raw,lambda_=lambd,porder=porder,itermax=itermax) 
     signal = (Trace_raw - sig_base)  
     dff=100*signal / sig_base
@@ -788,9 +788,9 @@ def get_trace_atlas_three_ROI_small (dpath,hotpixel_path,ROI_info,fs=840,snr_thr
     Trace_sig=trace[1:]    #print('trace_raw lenth 1: ', len(Trace_raw))
     Trace_sig = np.append(Trace_sig, Trace_sig[-1])
     
-    lambd = 10e3 # Adjust lambda to get the best fit
+    lambd = 5e4 # Adjust lambda to get the best fit
     porder = 1
-    itermax = 15
+    itermax = 50
     sig_base=fp.airPLS(Trace_sig,lambda_=lambd,porder=porder,itermax=itermax) 
     sig = (Trace_sig - sig_base)  
     dff_sig=100*sig / sig_base

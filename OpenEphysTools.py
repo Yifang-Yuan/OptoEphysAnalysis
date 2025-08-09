@@ -25,10 +25,11 @@ from scipy import stats
 from matplotlib.ticker import MaxNLocator
 #from tensorpac import Pac
 from scipy.stats import pearsonr, spearmanr
-import seaborn as sns
 from scipy.signal import hilbert
 from scipy.signal import resample_poly
 from pandas.tseries.frequencies import to_offset
+from SPADPhotometryAnalysis import photometry_functions as fp
+from scipy.stats import zscore
 
 def butter_filter(data, btype='low', cutoff=10, fs=9938.4, order=5): 
     # cutoff and fs in Hz
@@ -153,10 +154,10 @@ def readEphysChannel_withSessionInput (session,recordingNum,Fs=30000):
     LFP_clean2= butter_filter(LFP2, btype='low', cutoff=2000, fs=Fs, order=5)
     LFP_clean3= butter_filter(LFP3, btype='low', cutoff=2000, fs=Fs, order=5)
     LFP_clean4= butter_filter(LFP4, btype='low', cutoff=2000, fs=Fs, order=5)
-    LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
-    LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
-    LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
-    LFP_clean4= notchfilter (LFP_clean4,f0=50,bw=5)
+    # LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
+    # LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
+    # LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
+    # LFP_clean4= notchfilter (LFP_clean4,f0=50,bw=5)
     
     EphysData = pd.DataFrame({
         'timestamps': timestamps,
@@ -993,6 +994,14 @@ def calculate_gamma_trough_index(df,Fs=10000):
     #trough_time=trough_index/Fs
     return trough_index,peak_index
 
+def calculate_ripple_trough_index(df,Fs=10000):
+    troughs = (df['ripple_angle'] < df['ripple_angle'].shift(-1)) & (df['ripple_angle'] < df['ripple_angle'].shift(1)) & (df['ripple_angle']<-3.12)
+    trough_index = df.index[troughs]
+    peaks = (df['ripple_angle']<0.01) & (df['ripple_angle']>-0.01)
+    peak_index = df.index[peaks]
+    #trough_time=trough_index/Fs
+    return trough_index,peak_index
+
 # def plot_zscore_to_theta_phase (theta_angle,zscore_data):
 #     # Create a polar plot of ΔF/F against theta phase
 #     zscore_data=butter_filter(zscore_data, btype='low', cutoff=50, fs=10000, order=5)
@@ -1062,7 +1071,7 @@ def bootstrap_ci(data, n_boot=1000, ci=95):
     return np.mean(data), lower, upper
 
 def plot_zscore_to_theta_phase(theta_angle, zscore_data):
-    zscore_data = butter_filter(zscore_data, btype="low", cutoff=80, fs=10000, order=5)
+    zscore_data = butter_filter(zscore_data, btype="low", cutoff=250, fs=10000, order=5)
     bins = 30
 
     # --- FIGURE 1: Histogram ---
@@ -1099,153 +1108,586 @@ def plot_zscore_to_theta_phase(theta_angle, zscore_data):
 
     # --- FIGURE 2: Line plot with CI ---
     fig2, ax2 = plt.subplots(figsize=(6, 6), subplot_kw={'projection': 'polar'})
-    ax2.plot(bin_centers, zscore_means, color="#1b9e77", linewidth=3)#1b9e77
 
+    ax2.plot(bin_centers, zscore_means, color="#1b9e77", linewidth=3)
+    #ax2.plot(bin_centers, zscore_means, color="tomato", linewidth=3)
+    ax2.plot(0.5, 0.5, marker='o', markersize=6, color='black', transform=ax2.transAxes, zorder=10)
     theta_fill = np.concatenate([bin_centers, bin_centers[::-1]])
     radius_fill = np.concatenate([ci_uppers, ci_lowers[::-1]])
     ax2.fill(theta_fill, radius_fill, color="#1b9e77", alpha=0.3)
-
-    ax2.tick_params(axis='both', labelsize=18)
+    #ax2.fill(theta_fill, radius_fill, color="tomato", alpha=0.3)
+    
+    # Define radius limits
+    r_min = np.min(ci_lowers)
+    r_max = np.max(ci_uppers)
+    n_ticks = 4  # number of radius ticks
+    
+    r_ticks = np.linspace(r_min, r_max, n_ticks)
+    ax2.set_yticks(r_ticks)
+    ax2.set_yticklabels([f"{t:.2f}" for t in r_ticks], fontsize=14, color='darkred')  # <- change label colour here
+    ax2.set_rlim(r_min, r_max)
+    
+    # Set angular tick label size and colour
+    ax2.tick_params(axis='x', labelsize=18, colors='black')  # for angular (theta) labels
+    
     ax2.set_title("-ZScore vs Phase", va="bottom", fontsize=14, fontweight="bold")
     ax2.grid(False)
-    ax2.set_yticklabels([])
-    set_polar_labels_vertical(ax2)
+    
+    set_polar_labels_vertical(ax2)  # Assuming this sets angular label orientation
     ax2.spines['polar'].set_linewidth(4)
     ax2.spines['polar'].set_alpha(0.5)
 
-    # --- FIGURE 3: Reversed radial axis ---
-    fig3, ax3 = plt.subplots(figsize=(6, 6), subplot_kw={'projection': 'polar'})
-    ax3.plot(bin_centers, zscore_means, color="#d73027", linewidth=3)
-    ax3.set_ylim(ax3.get_ylim()[::-1])  # Flip radial axis
-    ax3.tick_params(axis='both', labelsize=16)
-    ax3.set_title("Z-Score vs Phase", va="bottom", fontsize=14, fontweight="bold")
-    ax3.grid(False)
-    set_polar_labels_vertical(ax3)
-    ax3.spines['polar'].set_linewidth(4)
-    ax3.spines['polar'].set_alpha(0.5)
+    return fig1, fig2
 
-    return fig1, fig2, fig3
-
-def compute_phase_modulation_index(theta_phase, raw_data, Fs=None, bins=30, plot=True):
+def compute_phase_modulation_index(theta_phase,
+                                   signal,
+                                   Fs=None,
+                                   bins: int = 30,
+                                   envelope_mode: str = "zclip",
+                                   min_count: int = 1,
+                                   plot: bool = True):
     """
-    Compute modulation index (MI) of a raw signal as a function of theta phase, optionally plotting the result.
+    Modulation Index (MI) between a signal’s amplitude envelope and theta phase.
 
-    Parameters:
-        theta_phase (array-like): Precomputed theta phase values (e.g., with 0 rad at theta trough), in radians [0, 2pi].
-        raw_data (array-like): Raw optical or neural signal.
-        Fs (float, optional): Sampling rate (Hz), not used unless filtering is added.
-        bins (int): Number of phase bins.
-        plot (bool): Whether to display a polar plot.
+    Parameters
+    ----------
+    theta_phase : array-like
+        LFP-theta phase (radians 0–2π) for every sample, same length as `signal`.
+    signal : array-like
+        Optical or neural signal.
+    Fs : float, optional
+        Sampling rate (not used here—kept for API compatibility).
+    bins : int
+        Number of phase bins (20–30 typical).
+    envelope_mode : {"raw", "z", "zclip"}, default "zclip"
+        * "raw"   – use |Hilbert(signal)| (all positive).
+        * "z"     – z-score the envelope, keep negatives **as is**.
+        * "zclip" – z-score then half-wave rectify (clip <0 to 0). **Matches your old code**.
+    min_count : int
+        Minimum samples required in a bin. Bins with fewer are left at 0.
+    plot : bool
+        Draw a polar plot if True.
 
-    Returns:
-        MI (float): Modulation Index (KL divergence from uniform).
-        bin_centers (np.ndarray): Center of each phase bin.
-        norm_amp (np.ndarray): Normalised amplitude (probability distribution).
+    Returns
+    -------
+    MI : float
+        Modulation Index (0 = uniform, >0 = modulation).
+    bin_centers : np.ndarray
+        Phase bin centres (radians).
+    norm_amp : np.ndarray
+        Normalised amplitude distribution (probability mass) over bins.
+    fig : matplotlib.figure.Figure or None
+        Figure handle (None if plot=False).
     """
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from scipy.signal import hilbert
-    from scipy.stats import zscore
 
-    # Compute envelope and z-score it
-    analytic_signal = hilbert(raw_data)
-    amplitude_envelope = np.abs(analytic_signal)
-    zscore_data = zscore(amplitude_envelope)
+    theta_phase = np.asarray(theta_phase) % (2 * np.pi)
+    signal      = np.asarray(signal)
+    assert len(theta_phase) == len(signal), "theta_phase and signal must be same length"
 
-    # Bin theta phases and compute average z-score in each bin
-    bin_edges = np.linspace(0, 2 * np.pi, bins + 1)
+    # --- 1. amplitude envelope ------------------------------------------------
+    env = np.abs(hilbert(signal))
+
+    if envelope_mode.lower() in ("z", "zclip"):
+        env = zscore(env)          # centre & scale
+    if envelope_mode.lower() == "zclip":
+        env = np.clip(env, 0, None)
+
+    if np.nanstd(env) == 0:
+        raise ValueError("Amplitude envelope has zero variance; cannot compute MI.")
+
+    # --- 2. phase binning -----------------------------------------------------
+    bin_edges   = np.linspace(0, 2 * np.pi, bins + 1)
     bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+
     amp_binned = np.zeros(bins)
+    for k in range(bins):
+        mask = (theta_phase >= bin_edges[k]) & (theta_phase < bin_edges[k + 1])
+        if np.sum(mask) >= min_count:
+            amp_binned[k] = np.mean(env[mask])
+        # else leave at 0
 
-    for i in range(bins):
-        mask = (theta_phase >= bin_edges[i]) & (theta_phase < bin_edges[i + 1])
-        if np.any(mask):
-            amp_binned[i] = np.mean(zscore_data[mask])
-        else:
-            amp_binned[i] = 0
+    # --- 3. normalise & MI ----------------------------------------------------
+    if amp_binned.sum() == 0:
+        raise ValueError("All bins are empty after clipping / min_count filter.")
 
-    # Shift by pi to align with user-defined phase convention
-    bin_centers = (bin_centers + np.pi) % (2 * np.pi)
+    norm_amp = amp_binned / (amp_binned.sum() + 1e-10)
+    uniform  = np.ones(bins) / bins
+    kl_div   = np.nansum(norm_amp * np.log((norm_amp + 1e-10) / uniform))
+    MI       = kl_div / np.log(bins)
 
-    # Ensure all amplitudes are non-negative
-    amp_binned = np.clip(amp_binned, a_min=0, a_max=None)
-
-    # Normalise to get a probability distribution over phase
-    norm_amp = amp_binned / np.sum(amp_binned + 1e-10)  # avoid divide-by-zero
-
-    # Compute Modulation Index (MI) using KL divergence
-    uniform_dist = np.ones(bins) / bins
-    kl_divergence = np.sum(norm_amp * np.log((norm_amp + 1e-10) / uniform_dist))
-    MI = kl_divergence / np.log(bins)
-
+    # --- 4. optional polar plot ----------------------------------------------
+    fig = None
     if plot:
         fig = plt.figure(figsize=(6, 6))
-        ax = fig.add_subplot(111, polar=True)
-        ax.plot(np.append(bin_centers, bin_centers[0]),
-                np.append(norm_amp, norm_amp[0]),
-                linewidth=3, color="#1b9e77")
-        ax.fill(np.append(bin_centers, bin_centers[0]),
-                np.append(norm_amp, norm_amp[0]),
-                alpha=0.3, color="#1b9e77")
-        ax.set_title(f"Phase Modulation (MI = {MI:.3f})", va='bottom', fontsize=14, fontweight="bold")
-        ax.tick_params(axis='both', labelsize=18)
-        ax.grid(False)
+        ax  = fig.add_subplot(111, projection='polar')
+        circ_amp = np.append(norm_amp, norm_amp[0])
+        circ_ctr = np.append(bin_centers, bin_centers[0])
+
+        ax.plot(circ_ctr, circ_amp, lw=3, color="#1b9e77")
+        ax.fill(circ_ctr, circ_amp, alpha=0.3, color="#1b9e77")
+        ax.set_title(f"Phase Modulation (MI = {MI:.3f})",
+                     va="bottom", fontsize=14, fontweight="bold")
         ax.set_yticklabels([])
-        ax.spines['polar'].set_linewidth(4)
-        ax.spines['polar'].set_alpha(0.5)
+        ax.tick_params(axis='x', labelsize=16)
+        ax.grid(False)
+        ax.spines['polar'].set_linewidth(3)
         plt.tight_layout()
-        plt.show()
 
     return fig, MI, bin_centers, norm_amp
 
-def plot_voltage_peaks_to_theta_phase(theta_angle, zscore_data, bins=40):
+def compute_optical_event_on_phase(theta_phase,
+                                         signal,
+                                         Fs=None,
+                                         bins=30,
+                                         height_factor=3.0,
+                                         distance=20,
+                                         prominence=None,
+                                         plot=True,**kw):
     """
-    Finds the minimum z-score in each theta cycle and plots a histogram of 
-    z-score troughs vs. theta phase with larger tick labels.
+    Event-count Modulation Index (MI) between optical transients and theta phase.
 
-    Parameters:
-    - theta_angle: 1D numpy array or Pandas Series of theta phase angles (radians).
-    - zscore_data: 1D numpy array or Pandas Series of z-score values.
-    - bins: Number of phase bins for the histogram.
+    Parameters
+    ----------
+    theta_phase : array-like
+        LFP-theta phase (radians 0–2π) for every sample; same length as `signal`.
+    signal : array-like
+        Optical trace (dF/F) sample-aligned with `theta_phase`.
+    Fs : float, optional
+        Sampling rate.  Only needed if you express `distance` in seconds.
+    bins : int, default 30
+        Number of equally spaced phase bins.
+    height_factor : float, default 3.0
+        Peak threshold = median + height_factor × MAD.
+    distance : int or None
+        Minimum number of *samples* between peaks (passed to `find_peaks`).
+    prominence : float or None
+        Prominence threshold for `find_peaks`.
+    plot : bool, default True
+        Draw a polar histogram of event probability.
+
+    Returns
+    -------
+    MI : float
+        Modulation Index (KL / log(bins)).
+    bin_centers : np.ndarray
+        Phase-bin centres (radians).
+    prob : np.ndarray
+        Normalised event probability per bin.
+    peak_idx : np.ndarray
+        Indices of detected peaks.
+    fig : matplotlib.figure.Figure or None
+        Figure handle (None if plot=False).
     """
 
-    # Identify cycle boundaries (theta crosses from π to -π)
-    cycle_starts = np.where(np.diff(theta_angle) < -np.pi)[0] + 1  # +1 to move to the next cycle start
+    # ---- sanity -------------------------------------------------------------
+    theta_phase = np.asarray(theta_phase) % (2 * np.pi)
+    signal      = np.asarray(signal)
 
-    # Add first and last indices to ensure full cycles
-    cycle_starts = np.insert(cycle_starts, 0, 0)  # First point
-    cycle_starts = np.append(cycle_starts, len(theta_angle))  # Last point
+    if theta_phase.shape != signal.shape:
+        raise ValueError("theta_phase and signal must be the same length")
 
-    # Store minimum z-score phase in each cycle
-    peak_phases = []
+    # ---- 1. detect peaks ----------------------------------------------------
+    baseline = np.median(signal)
+    mad      = median_abs_deviation(signal, scale=1.0)
+    thresh   = baseline + height_factor * mad
 
-    for i in range(len(cycle_starts) - 1):
-        start, end = cycle_starts[i], cycle_starts[i + 1]
-        cycle_zscores = zscore_data[start:end]
-        cycle_thetas = np.array(theta_angle[start:end])  # Convert to NumPy array
+    peak_idx, _ = find_peaks(signal,
+                             height=thresh,
+                             distance=distance,
+                             prominence=prominence)
+    #peak_idx, _ = find_peaks(signal, height=kw.get('th', np.std(signal)))
 
-        if len(cycle_zscores) > 0:
-            max_idx = np.argmax(cycle_zscores)  # Index of minimum z-score in this cycle
-            peak_phases.append(cycle_thetas[max_idx])  # Store corresponding theta phase
+    if len(peak_idx) < 10:
+        raise ValueError("Fewer than 10 peaks detected; MI not meaningful")
 
-    peak_phases = np.array(peak_phases)  # Convert to numpy array
+    # ---- 2. bin event counts -----------------------------------------------
+    events_phase = theta_phase[peak_idx]
+    bin_edges    = np.linspace(0, 2*np.pi, bins + 1)
+    counts, _    = np.histogram(events_phase, bins=bin_edges)
+    prob         = counts / counts.sum()
 
-    # --- Single Polar Plot ---
-    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'projection': 'polar'})
+    # ---- 3. compute MI ------------------------------------------------------
+    uniform  = np.ones(bins) / bins
+    kl_div   = np.sum(prob * np.log((prob + 1e-10) / uniform))
+    MI       = kl_div / np.log(bins)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
 
-    # Histogram of z-score troughs vs theta phase
-    ax.hist(peak_phases, bins=bins, color="#1b9e77", alpha=0.7, edgecolor="black")
-    ax.set_title("Events vs Theta Phase", va="bottom", fontsize=16, fontweight="bold")
+    # ---- 4. optional plot ---------------------------------------------------
+    fig = None
+    if plot:
+        fig = plt.figure(figsize=(6, 6))
+        ax  = fig.add_subplot(111, projection='polar')
+        circ_prob = np.append(prob, prob[0])
+        circ_ctr  = np.append(bin_centers, bin_centers[0])
 
-    # Increase tick label size
-    ax.tick_params(axis='both', labelsize=14)
+        #bar histogram
+        ax.bar(bin_centers, counts,
+               width=(2*np.pi/bins), color="#1b9e77",
+               alpha=0.7, edgecolor='black', align='center')
+        
+        # ax.bar(bin_centers, counts,
+        #        width=(2*np.pi/bins), color="tomato",
+        #        alpha=0.7, edgecolor='black', align='center')
+        
 
-    ax.grid(False)
-    ax.spines['polar'].set_linewidth(4)
-    ax.spines['polar'].set_alpha(0.5)
+         # overlay outline at full bar height
+        # circ_counts = np.append(counts, counts[0])     # raw bar heights
+        # ax.plot(circ_ctr, circ_counts, lw=3, color='k')
 
+        ax.set_title(f"Event Phase Histogram (MI={MI:.3f})",
+                     va="bottom", fontsize=14, fontweight="bold")
+        r_max = counts.max()
+        r_ticks = [0, r_max * 0.25, r_max * 0.5,r_max * 0.75, r_max]            # three ticks: 0, mid, max
+        ax.set_yticks(r_ticks)
+        ax.set_yticklabels([f"{t:.0f}" for t in r_ticks],
+                           fontsize=14)          
+        ax.tick_params(axis='x', labelsize=16)
+        ax.grid(False)
+        ax.spines['polar'].set_linewidth(3)
+        plt.tight_layout()
+
+    return fig, MI, bin_centers, prob
+
+def rayleigh_test(phases):
+    """
+    Rayleigh test for non-uniformity of circular data.
+    Returns: (z, p) where z = test statistic, p = p-value
+    """
+    n = len(phases)
+    R = np.sqrt(np.sum(np.cos(phases))**2 + np.sum(np.sin(phases))**2)
+    z = R**2 / n
+    p = np.exp(-z) * (1 + (2*z - z**2) / (4*n) -
+                      (24*z - 132*z**2 + 76*z**3 - 9*z**4) / (288*n**2))
+    return z, p
+
+def weighted_rayleigh(phases, weights):
+    """weights ≥0, same length as phases"""
+    C = np.sum(weights * np.cos(phases))
+    S = np.sum(weights * np.sin(phases))
+    R = np.sqrt(C**2 + S**2)
+    W = np.sum(weights)
+    z = (R**2) / W
+    # p-value approximation identical to unweighted Rayleigh
+    p = np.exp(-z) * (1 + (2*z - z**2)/(4*W))
+    return z, p
+
+from scipy.signal import find_peaks
+# def rayleigh_for_optical(theta_phase, optical_signal, mode='peaks', **kw):
+#     if mode == 'peaks':
+#         # detect transients
+#         idx, _ = find_peaks(optical_signal, height=kw.get('th', np.std(optical_signal)))
+#         phases = theta_phase[idx]
+#         z, p = rayleigh_test(phases)
+#     else:                      # 'weighted'
+#         amp_env = np.abs(hilbert(optical_signal))
+#         z, p = weighted_rayleigh(theta_phase, amp_env)
+#     return z, p
+
+def rayleigh_for_optical(theta_phase,
+                         optical_signal,
+                         mode='peaks',
+                         distance=None,
+                         prominence=None):
+    """
+    Rayleigh test for phase locking of an optical signal to LFP theta.
+
+    Parameters
+    ----------
+    theta_phase : array-like
+        Theta phase (radians, 0–2π) for every sample.
+    optical_signal : array-like
+        dF/F (or similar) trace, sample-aligned with theta_phase.
+    mode : {'peaks', 'weighted'}
+        'peaks'    – use peaks above median + 3×MAD (default).  
+        'weighted' – use amplitude envelope as weights.
+    distance : int, optional
+        Minimum samples between detected peaks (passed to find_peaks).
+    prominence : float, optional
+        Prominence threshold for find_peaks.
+
+    Returns
+    -------
+    z : float
+        Rayleigh test statistic.
+    p : float
+        Rayleigh p-value.
+    """
+
+    theta_phase = np.asarray(theta_phase) % (2 * np.pi)
+    optical_signal = np.asarray(optical_signal)
+
+    # ---------- peak-based Rayleigh ----------------------------------------
+    if mode.lower() == 'peaks':
+        baseline = np.median(optical_signal)
+        mad      = median_abs_deviation(optical_signal, scale=1.0)
+        thresh   = baseline + 3 * mad
+
+        peak_idx, _ = find_peaks(optical_signal,
+                                 height=thresh,
+                                 distance=distance,
+                                 prominence=prominence)
+
+        if len(peak_idx) == 0:
+            raise ValueError("No peaks above 3×MAD detected.")
+
+        phases = theta_phase[peak_idx]
+        z, p = rayleigh_test(phases)
+
+    # ---------- amplitude-weighted Rayleigh --------------------------------
+    else:  # mode == 'weighted'
+        amp_env = np.abs(hilbert(optical_signal))
+        z, p = weighted_rayleigh(theta_phase, amp_env)
+
+    return z, p
+# -----------------------
+# 2. Permutation test for MI
+# -----------------------
+from typing import Optional
+from scipy.stats import median_abs_deviation 
+def event_MI(theta_phase,
+             optical_signal,
+             bins: int = 30,
+             n_perm: int = 2000,
+             height_factor: float = 3.0,
+             distance: Optional[int] = None,
+             prominence: Optional[float] = None):
+    
+    """
+    Modulation Index (MI) based on *event counts* per phase bin.
+
+    Parameters
+    ----------
+    theta_phase : 1-D array (len N)
+        LFP-theta phase in radians [0, 2π] for every sample.
+    optical_signal : 1-D array (len N)
+        dF/F (or other) optical trace aligned sample-for-sample with `theta_phase`.
+    bins : int
+        Number of equally sized phase bins (default 30 → 12° each).
+    n_perm : int
+        Number of circular shuffles for the permutation test (default 2 000).
+    height_factor : float
+        Peak threshold = median + height_factor × MAD (default 3).
+    distance : int, optional
+        Minimum number of samples between peaks (passed to `find_peaks`).
+    prominence : float, optional
+        Prominence threshold for `find_peaks`.
+
+    Returns
+    -------
+    MI : float
+        Modulation Index (KL / log(k)).
+    p_value : float
+        Permutation p-value (fraction of null MIs ≥ real MI).
+    null_MI : np.ndarray
+        Null-distribution (length n_perm).
+    peak_idx : np.ndarray
+        Indices of detected peaks in `optical_signal`.
+    """
+    # --- sanity checks -------------------------------------------------------
+    theta_phase = np.asarray(theta_phase) % (2 * np.pi)
+    optical_signal = np.asarray(optical_signal)
+    assert theta_phase.shape == optical_signal.shape, "Signals must be same length"
+
+    # --- 1. peak detection ---------------------------------------------------
+    baseline = np.median(optical_signal)
+    mad = median_abs_deviation(optical_signal, scale=1.0)          # raw MAD
+    threshold = baseline + height_factor * mad
+
+    peak_idx, _ = find_peaks(optical_signal,
+                             height=threshold,
+                             distance=distance,
+                             prominence=prominence)
+
+    if len(peak_idx) < 10:                         # too few events → no MI
+        return 0.0, 1.0, np.zeros(n_perm), peak_idx
+
+    # --- 2. bin counts and real MI ------------------------------------------
+    events_phase = theta_phase[peak_idx]
+    bin_edges = np.linspace(0, 2*np.pi, bins + 1)
+    counts, _ = np.histogram(events_phase, bins=bin_edges)
+
+    prob = counts / counts.sum()
+    uniform = np.ones(bins) / bins
+    kl_real = np.sum(prob * np.log((prob + 1e-10) / uniform))
+    real_mi = kl_real / np.log(bins)
+
+    # --- 3. permutation null -------------------------------------------------
+    null_MI = np.empty(n_perm)
+    N = len(theta_phase)
+
+    for i in range(n_perm):
+        shift = np.random.randint(N)          # circular shuffle
+        shuff_idx = (peak_idx + shift) % N
+        shuff_counts, _ = np.histogram(theta_phase[shuff_idx], bins=bin_edges)
+        prob_null = shuff_counts / shuff_counts.sum()
+        kl_null = np.sum(prob_null * np.log((prob_null + 1e-10) / uniform))
+        null_MI[i] = kl_null / np.log(bins)
+
+    p_value = (null_MI >= real_mi).mean()
+
+    return real_mi, p_value, null_MI, peak_idx
+
+
+# -----------------------
+# 3. Wrapper function: run both tests & plot
+# -----------------------
+def run_phase_modulation_analysis(theta_phase, raw_data, bins=30, n_perm=1000,distance=20):
+    """
+    Runs Rayleigh test, MI permutation test, and plots phase vs signal scatter.
+    """
+    # Scatter plot for visual check
+    plt.figure(figsize=(6, 4))
+    plt.scatter(theta_phase, raw_data, alpha=0.4, s=10)
+    plt.xlabel('Theta Phase (radians)', fontsize=12)
+    plt.ylabel('Raw Signal', fontsize=12)
+    plt.title('Raw Signal vs Theta Phase', fontsize=14)
+    plt.grid(True)
+    plt.tight_layout()
     plt.show()
-    return fig
+
+    # Run Rayleigh test
+    rayleigh_z, rayleigh_p = rayleigh_for_optical(theta_phase, raw_data, mode='peaks')
+    
+    real_mi, p_value, null_mis,peaks = event_MI(theta_phase,
+                               raw_data,
+                               bins=bins,
+                               n_perm=n_perm,
+                               distance=distance)   # e.g. ≥20 ms apart
+
+    results = {
+        "rayleigh_z": rayleigh_z,
+        "rayleigh_p": rayleigh_p,
+        "Modulation Index": real_mi,
+        "mi_p_value": p_value,
+        "null_mis": null_mis[:10]
+    }
+    print("Rayleigh Z:", results['rayleigh_z'])
+    print("Rayleigh P:  ", results['rayleigh_p'])
+    print("MI p-value:  ", results['mi_p_value'])
+    print("real_mi:  ", results['Modulation Index'])
+
+    return results
+
+
+def compute_optical_phase_preference(theta_phase,
+                                     signal,
+                                     bins=30,
+                                     height_factor=3.0,
+                                     distance=20,
+                                     prominence=None,
+                                     min_events=50,
+                                     alpha=0.01,
+                                     use_event_indices=None,
+                                     plot=True):
+    """
+    Preferred theta phase & modulation depth of optical events.
+    Assumes `theta_phase` spans [0, 2π) with 0 at the trough (your convention).
+    """
+    theta_phase = np.asarray(theta_phase) % (2*np.pi)
+    signal      = np.asarray(signal)
+
+    if theta_phase.shape != signal.shape:
+        raise ValueError("theta_phase and signal must be the same length")
+
+    # --- Detect optical events or use provided indices
+    if use_event_indices is None:
+        baseline = np.median(signal)
+        mad      = median_abs_deviation(signal, scale=1.0)
+        thresh   = baseline + height_factor * mad
+        event_idx, _ = find_peaks(signal,
+                                  height=thresh,
+                                  distance=distance,
+                                  prominence=prominence)
+    else:
+        event_idx = np.asarray(use_event_indices, dtype=int)
+
+    if event_idx.size == 0:
+        raise ValueError("No optical events detected/provided.")
+
+    # --- Event phases
+    event_phases = theta_phase[event_idx]
+
+    # --- Preferred phase (mean direction) and modulation depth (R)
+    C = np.mean(np.cos(event_phases))
+    S = np.mean(np.sin(event_phases))
+    preferred_phase = (np.arctan2(S, C)) % (2*np.pi)  # radians
+    R = np.sqrt(C**2 + S**2)                          # mean resultant length
+
+    # --- Rayleigh test
+    Z, p = rayleigh_test(event_phases)
+
+    # --- Histogram for the contour
+    bin_edges   = np.linspace(0, 2*np.pi, bins + 1)
+    counts, _   = np.histogram(event_phases, bins=bin_edges)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+    if counts.max() > 0:
+        r = counts / counts.max()
+    else:
+        r = counts.astype(float)
+
+    theta_circ = np.append(bin_centers, bin_centers[0])
+    r_circ     = np.append(r, r[0])
+
+    # --- Plot (contour + arrow only)
+    fig = None
+    if plot:
+        fig = plt.figure(figsize=(5.2, 5.2))
+        ax  = fig.add_subplot(111, projection='polar')
+
+        # 0° at right, anti-clockwise
+        ax.set_theta_zero_location('E')
+        ax.set_theta_direction(1)  # positive direction anticlockwise
+
+        # Unit circle, thicker border
+        ax.spines['polar'].set_linewidth(2.5)
+        ax.grid(True, linewidth=0.8, alpha=0.4)
+
+        # Angle labels with larger font
+        ax.set_thetagrids([0, 90, 180, 270],
+                          labels=['0', '90', '180', '270'],
+                          fontsize=14, weight='bold')
+
+        # Radial ticks at 0.5 and 1.0
+        ax.set_ylim(0, 1.0)
+        ax.set_yticks([0.5, 1.0])
+        ax.set_yticklabels(['0.5', '1'])
+        ax.tick_params(axis='y', labelsize=11)
+
+        # Solid contour
+        ax.plot(theta_circ, r_circ, linewidth=2.5)
+
+        # Preferred-phase arrow
+        arrow_len = 0.9 * R
+        ax.annotate(
+            "",
+            xy=(preferred_phase, arrow_len),
+            xytext=(0, 0),
+            arrowprops=dict(arrowstyle="->", linewidth=4)
+        )
+
+        ax.set_title(
+            f"pref={np.degrees(preferred_phase):.1f}°, R={R:.3f}, p={p:.3g} (n={event_idx.size})",
+            va="bottom", pad=12, fontsize=12
+        )
+
+        plt.tight_layout()
+
+    significant = (event_idx.size >= min_events) and (p < alpha)
+
+    return {
+        'preferred_phase_rad': float(preferred_phase),
+        'preferred_phase_deg': float(np.degrees(preferred_phase) % 360.0),
+        'modulation_depth_R' : float(R),
+        'Z'                  : float(Z),
+        'p'                  : float(p),
+        'significant'        : bool(significant),
+        'n_events'           : int(event_idx.size),
+        'event_indices'      : event_idx,
+        'bin_centers'        : bin_centers,
+        'counts'             : counts,
+        'fig'                : fig
+    }
 
 from scipy.stats import circmean, circstd
 def calculate_perferred_phase(theta_angle, zscore_data):
@@ -1321,7 +1763,16 @@ def get_theta_cycle_value(df, LFP_channel, trough_index, half_window, fs=10000):
     cycle_data_values_lfp = []
     #half_cycle_time = pd.to_timedelta(half_window, unit='s')
     half_cycle_time=half_window
+    'use df/f'
+    lambd = 10e3 # Adjust lambda to get the best fit
+    porder = 1
+    itermax = 15
+    sig_base=fp.airPLS(df['sig_raw'],lambda_=lambd,porder=porder,itermax=itermax) 
+    sig = (df['sig_raw'] - sig_base)  
+    dff_sig=100*sig / sig_base
     zscore_raw_smoothed=smooth_signal(df['zscore_raw'],fs,cutoff=50,window='flat')
+    'use zscore'
+    #zscore_raw_smoothed=smooth_signal(df['zscore_raw'],fs,cutoff=50,window='flat')
     if len(zscore_raw_smoothed) == len(df['zscore_raw']):
         zscore_raw_smoothed_series = pd.Series(zscore_raw_smoothed, index=df['zscore_raw'].index)
     else:
@@ -1362,7 +1813,7 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
         end = int(trough_index[i] + half_cycle_time*fs)
         cycle_zscore = df['zscore_raw'].loc[start:end]
         #print ('length of the cycle',len(cycle_zscore))
-        cycle_zscore=smooth_signal(cycle_zscore,fs,cutoff=50,window='flat')
+        cycle_zscore=smooth_signal(cycle_zscore,fs,cutoff=250,window='flat')
         cycle_lfp = df[LFP_channel].loc[start:end]
         #cycle_zscore_np = cycle_zscore.to_numpy()
         cycle_zscore_np = cycle_zscore

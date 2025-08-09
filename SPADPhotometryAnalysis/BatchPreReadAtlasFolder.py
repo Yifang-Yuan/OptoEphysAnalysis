@@ -225,9 +225,9 @@ def Calculate_dff (parent_folder,TargetfolderName='SyncRecording'):
         return int(folder_name.lstrip(TargetfolderName))
     # Sort the folders in numeric order
     sync_recording_folders.sort(key=numeric_sort_key)
-    lambd = 10e3 # Adjust lambda to get the best fit
+    lambd = 5e4 # Adjust lambda to get the best fit
     porder = 1
-    itermax = 15
+    itermax = 50
     # Iterate over each sync recording folder
     for SyncRecordingName in sync_recording_folders:
         # Now you can perform operations on each folder, such as reading files inside it
@@ -275,13 +275,13 @@ def main():
     # read_multiple_Atlas_bin_folder(atlas_folder,day_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=500)
     
     'READ SINGLE ROI CODES--SMALL FOV'
-    center_x, center_y,radius=52, 28, 10
+    center_x, center_y,radius=57, 29, 10
     
-    day_folder=r'G:\2025_ATLAS_SPAD\ChirpSignal\Set2'
+    day_folder=r'G:\2025_ATLAS_SPAD\ChirpSignal\Set3'
     atlas_folder=os.path.join(day_folder,'Atlas')
     read_multiple_Atlas_bin_folder_smallFOV(
         atlas_folder,day_folder,hotpixel_path,center_x, center_y,radius,
-        new_folder_name='SyncRecording',photoncount_thre=20000)
+        new_folder_name='SyncRecording',photoncount_thre=15000)
     
     
 

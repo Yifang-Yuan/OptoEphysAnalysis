@@ -15,9 +15,9 @@ from SPADPhotometryAnalysis import photometry_functions as fp
 import os
 # Folder with your files
 # Modify it depending on where your file is located
-folder ="C:/SPAD/pyPhotometry_v0.3.1/data/"
+folder =r"G:\2024_OEC_Atlas_main\1732333_pyPhotometry\Day2\pyPhotometry/"
 # File name
-file_name = 'Jd17059Ana-2023-10-11-120121_25mA_theta.csv'
+file_name = '1732333-2024-02-13-112952.csv'
 sampling_rate=130
 '''Read csv file and calculate zscore of the fluorescent signal'''
 raw_signal,raw_reference=fp.read_photometry_data (folder, file_name, readCamSync=False,plot=True)
@@ -25,17 +25,17 @@ raw_signal,raw_reference=fp.read_photometry_data (folder, file_name, readCamSync
 # plt.tight_layout()
 #%%
 '''Get zdFF directly'''
-zdFF = fp.get_zdFF(raw_reference,raw_signal,smooth_win=2,remove=0,lambd=5e4,porder=1,itermax=50)
+zdFF = fp.get_zdFF(raw_reference,raw_signal,smooth_win=2,remove=0,lambd=5e3,porder=1,itermax=50)
 fig = plt.figure(figsize=(16, 5))
 ax1 = fig.add_subplot(111)
 ax1 = fp.plotSingleTrace (ax1, zdFF, SamplingRate=sampling_rate,color='black',Label='zscore_signal')
 '''Save signal'''
-# greenfname = os.path.join(folder, "Green_traceAll.csv")
-# np.savetxt(greenfname, raw_signal, delimiter=",")
-# redfname = os.path.join(folder, "Red_traceAll.csv")
-# np.savetxt(redfname, raw_reference, delimiter=",")
-# zscorefname = os.path.join(folder, "Zscore_traceAll.csv")
-# np.savetxt(zscorefname, zdFF, delimiter=",")
+greenfname = os.path.join(folder, "Green_traceAll.csv")
+np.savetxt(greenfname, raw_signal, delimiter=",")
+redfname = os.path.join(folder, "Red_traceAll.csv")
+np.savetxt(redfname, raw_reference, delimiter=",")
+zscorefname = os.path.join(folder, "Zscore_traceAll.csv")
+np.savetxt(zscorefname, zdFF, delimiter=",")
 # CamSyncfname = os.path.join(folder, "CamSync_photometry.csv")
 # np.savetxt(CamSyncfname, Cam_Sync, fmt='%d',delimiter=",")
 #%%
@@ -70,8 +70,8 @@ These will give you plots for
 smoothed signal, corrected signal, normalised signal and the final zsocre
 '''
 '''Step 1, plot smoothed traces'''
-smooth_win = 10
-smooth_signal,s_base = fp.photometry_smooth_signal (raw_signal,sampling_rate=sampling_rate, smooth_win = smooth_win)
+smooth_win = 2
+
 smooth_reference,smooth_signal,r_base,s_base = fp.photometry_smooth_plot (
     raw_reference,raw_signal,sampling_rate=sampling_rate, smooth_win = smooth_win)
 #%%
@@ -102,7 +102,7 @@ ax2 = fp.plotSingleTrace (ax2, z_reference, SamplingRate=sampling_rate,color='pu
 #%%
 '''Step 4, plot fitted reference trace and signal'''
 from sklearn.linear_model import Lasso
-lin = Lasso(alpha=0.001,precompute=True,max_iter=1000,
+lin = Lasso(alpha=0.0001,precompute=True,max_iter=1000,
             positive=True, random_state=9999, selection='random')
 n = len(z_reference)
 '''Need to change to numpy if previous smooth window is 1'''

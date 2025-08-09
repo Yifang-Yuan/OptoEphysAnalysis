@@ -47,7 +47,7 @@ def read_multiple_photometry_files_in_folder(pydata_folder_path,save_parent_fold
         Cam_Sync=PhotometryData[' Digital1'][1:]
         if mode=='td':
             '''Get zdFF directly'''
-            zdFF = fp.get_zdFF(raw_reference,raw_signal,smooth_win=2,remove=0,lambd=5e4,porder=1,itermax=50)
+            zdFF = fp.get_zdFF(raw_reference,raw_signal,smooth_win=2,remove=0,lambd=5e3,porder=1,itermax=50)
             fig = plt.figure(figsize=(16, 5))
             ax1 = fig.add_subplot(111)
             ax1 = fp.plotSingleTrace (ax1, zdFF, SamplingRate=130,color='black',Label='zscore_signal')

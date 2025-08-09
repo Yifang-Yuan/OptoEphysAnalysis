@@ -9,7 +9,7 @@ import pandas as pd
 import os
 
 # Set the folder path and filename
-folder_path = r'G:\2024_OEC_Atlas_main\1732333_pyPhotometry\Day1\SyncRecording7'
+folder_path = r'G:\2024_OEC_Atlas_main\1765508_Jedi2p_pyPhotometry\Day2\SyncRecording4'
 file_name = "Ephys_tracking_photometry_aligned.pkl"
 file_path = os.path.join(folder_path, file_name)
 

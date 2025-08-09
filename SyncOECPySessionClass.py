@@ -1021,6 +1021,8 @@ class SyncOEpyPhotometrySession:
             self.theta_part.set_index('time_column', inplace=True)      
             
             #plot theta
+            thetaPropotion=len(self.theta_part)/len(self.non_theta_part)
+            print ('thetaPropotion is:',thetaPropotion)
             sst,frequency,power,global_ws=OE.Calculate_wavelet(self.theta_part[LFP_channel]/1000,lowpassCutoff=500,Fs=self.fs)
             time = np.arange(len(sst)) *(1/self.fs)
             OE.plot_wavelet_feature(sst,frequency,power,global_ws,time,self.theta_part[LFP_channel])
@@ -1030,7 +1032,7 @@ class SyncOEpyPhotometrySession:
             time = np.arange(len(sst)) *(1/self.fs)
             OE.plot_wavelet_feature(sst,frequency,power,global_ws,time,self.non_theta_part[LFP_channel])
             #self.plot_lowpass_two_trace (self.non_theta_part, LFP_channel,SPAD_cutoff=20,lfp_cutoff=20)
-        return self.theta_part,self.non_theta_part
+        return -1
     
     def plot_theta_correlation(self,LFP_channel,save_path=None):
         silced_recording=self.theta_part
@@ -1042,10 +1044,24 @@ class SyncOEpyPhotometrySession:
         trough_index,peak_index = OE.calculate_theta_trough_index(silced_recording,Fs=10000)
         #print (trough_index)
         fig=OE.plot_theta_cycle (silced_recording, LFP_channel,trough_index,half_window=0.15,fs=10000,plotmode='two')
-        fig1,fig2,fig3=OE.plot_zscore_to_theta_phase (silced_recording['theta_angle'],silced_recording['zscore_raw'])
-        #fig4=OE.plot_voltage_peaks_to_theta_phase (silced_recording['theta_angle'],silced_recording['zscore_raw'])
-        OE.calculate_perferred_phase(silced_recording['theta_angle'],silced_recording['zscore_raw'])
-        fig4,MI, bin_centers, norm_amp=OE.compute_phase_modulation_index(silced_recording['theta_angle'], silced_recording['zscore_raw'], bins=30, plot=True)
+        fig1,fig2=OE.plot_zscore_to_theta_phase (silced_recording['theta_angle'],silced_recording['zscore_raw'])
+        #OE.calculate_perferred_phase(silced_recording['theta_angle'],silced_recording['zscore_raw'])
+        
+        fig4,MI, bin_centers, prop=OE.compute_optical_event_on_phase(silced_recording['theta_angle'], 
+                                    silced_recording['zscore_raw'], bins=30, distance=10,plot=True)
+        OE.compute_optical_phase_preference(silced_recording['theta_angle'],
+                                     silced_recording['zscore_raw'],bins=30,
+                                     height_factor=3.0,
+                                     distance=20,
+                                     prominence=None,
+                                     min_events=50,
+                                     alpha=0.01,
+                                     use_event_indices=None,
+                                     plot=True)
+        
+
+        OE.run_phase_modulation_analysis(silced_recording['theta_angle'],
+                                         silced_recording['zscore_raw'], bins=30, n_perm=2000)
         
         if save_path:
             fig_path = os.path.join(save_path,'LFP_GEVI_average.png')
@@ -1053,9 +1069,6 @@ class SyncOEpyPhotometrySession:
             
             fig_path = os.path.join(save_path,'zscore_theta_phase.png')
             fig2.savefig(fig_path, transparent=True)
-            
-            fig_path = os.path.join(save_path,'zscore_theta_phase_reverse.png')
-            fig3.savefig(fig_path, transparent=True)
             
             fig_path = os.path.join(save_path,'Phase modulation depth.png')
             fig4.savefig(fig_path, transparent=True)
@@ -1066,7 +1079,7 @@ class SyncOEpyPhotometrySession:
                 pickle.dump({
                     'MI': MI,
                     'bin_centers': bin_centers,
-                    'norm_amp': norm_amp
+                    'prop': prop
                 }, f)
         
         return trough_index,peak_index
@@ -1081,19 +1094,25 @@ class SyncOEpyPhotometrySession:
         trough_index,peak_index = OE.calculate_gamma_trough_index(silced_recording,Fs=10000)
         #print (trough_index)
         fig=OE.plot_theta_cycle (silced_recording, LFP_channel,peak_index,half_window=0.15,fs=10000,plotmode='two')
-        fig1,fig2,fig3=OE.plot_zscore_to_theta_phase (silced_recording['gamma_angle'],silced_recording['zscore_raw'])
-        fig4,MI, bin_centers, norm_amp=OE.compute_phase_modulation_index(silced_recording['gamma_angle'], silced_recording['zscore_raw'], bins=30, plot=True)
-        #fig4=OE.plot_voltage_peaks_to_theta_phase (silced_recording['gamma_angle'],silced_recording['zscore_raw'])
-        OE.calculate_perferred_phase(silced_recording['gamma_angle'],silced_recording['zscore_raw'])
+        fig1,fig2=OE.plot_zscore_to_theta_phase (silced_recording['gamma_angle'],silced_recording['zscore_raw'])
+        fig4,MI, bin_centers, norm_amp=OE.compute_optical_event_on_phase(silced_recording['gamma_angle'], silced_recording['zscore_raw'], bins=12, plot=True)
+        OE.compute_optical_phase_preference(silced_recording['gamma_angle'],
+                                     silced_recording['zscore_raw'],bins=30,
+                                     height_factor=3.0,
+                                     distance=20,
+                                     prominence=None,
+                                     min_events=50,
+                                     alpha=0.01,
+                                     use_event_indices=None,
+                                     plot=True)
+        
+        OE.run_phase_modulation_analysis(silced_recording['gamma_angle'], silced_recording['zscore_raw'], bins=12, n_perm=3000)
         
         fig_path = os.path.join(save_path,'LFP_GEVI_gamma_average.png')
         fig.savefig(fig_path, transparent=True)
         
         fig_path = os.path.join(save_path,'zscore_gamma_phase.png')
         fig2.savefig(fig_path, transparent=True)
-        
-        fig_path = os.path.join(save_path,'zscore_gamma_phase_reverse.png')
-        fig3.savefig(fig_path, transparent=True)
         
         fig_path = os.path.join(save_path,'Gamma Phase modulation depth.png')
         fig4.savefig(fig_path, transparent=True)
@@ -1107,6 +1126,7 @@ class SyncOEpyPhotometrySession:
                     'norm_amp': norm_amp
                 }, f)
         return trough_index,peak_index
+ 
     
     def pynappleAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,
                           Low_thres=1,High_thres=10,plot_segment=False,plot_ripple_ep=True,excludeTheta=True,excludeREM=False):
@@ -1175,6 +1195,7 @@ class SyncOEpyPhotometrySession:
         self.ripple_freq=np.round(self.ripple_numbers/(nontheta_length/self.fs),4)
         
         print('LFP length in seconds:',len(LFP)/self.fs)
+        print('nontheta_LFP length in seconds:',nontheta_length/self.fs)
         print('Optical signal length in seconds:',len(SPAD)/self.fs)
         print('Found ripple event numbers:',self.ripple_numbers)
         print('Ripple event frequency during non-theta:',self.ripple_freq, 'events/seconds')
@@ -2068,11 +2089,16 @@ class SyncOEpyPhotometrySession:
                 LFP_normalised_2=OE.getNormalised (LFP_smooth_2)
                 LFP_normalised_3=OE.getNormalised (LFP_smooth_3)
                 LFP_normalised_4=OE.getNormalised (LFP_smooth_4)
+                
+                LFP_values_1.append(LFP_smooth_1)
+                LFP_values_2.append(LFP_smooth_2)
+                LFP_values_3.append(LFP_smooth_3)
+                LFP_values_4.append(LFP_smooth_4)
               
-                LFP_values_1.append(LFP_normalised_1)
-                LFP_values_2.append(LFP_normalised_2)
-                LFP_values_3.append(LFP_normalised_3)
-                LFP_values_4.append(LFP_normalised_4)
+                # LFP_values_1.append(LFP_normalised_1)
+                # LFP_values_2.append(LFP_normalised_2)
+                # LFP_values_3.append(LFP_normalised_3)
+                # LFP_values_4.append(LFP_normalised_4)
                 #Calculate optical peak triggerred by ripple peak
                 mididx=int(len(normalized_z_score)/2)
                 if self.indicator=='GECI':

@@ -255,7 +255,7 @@ def DemodFreqShift (count_value,fc_g,fc_r,fs=9938.4):
     '''PLOT TO COMPARE'''    
     fig=plotTwoChannel (mixed_red=signal_r,envelope_red=red_recovered,
                         mixed_green=signal_g,envelope_green=green_recovered,
-                        zoomWindw=[0,10000])
+                        zoomWindw=[0,500])
     
     return red_recovered,green_recovered
 

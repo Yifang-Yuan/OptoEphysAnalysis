@@ -179,17 +179,17 @@ def run_theta_cycle_plot (dpath,LFP_channel,recordingName,savename,theta_low_thr
                                          read_aligned_data_from_file=True,
                                          recordingMode='Atlas',indicator='GEVI') 
     
-    Recording1.pynacollada_label_theta (LFP_channel,Low_thres=theta_low_thres,High_thres=10,save=False,plot_theta=True)
-    theta_part=Recording1.theta_part
+    # Recording1.pynacollada_label_theta (LFP_channel,Low_thres=theta_low_thres,High_thres=10,save=False,plot_theta=True)
+    # theta_part=Recording1.theta_part
     
-    #theta_part=Recording1.Ephys_tracking_spad_aligned
+    theta_part=Recording1.Ephys_tracking_spad_aligned
     theta_part=theta_part.reset_index(drop=True)
     theta_part['LFP_theta_angle']=OE.calculate_theta_phase_angle(theta_part[LFP_channel], theta_low=5, theta_high=12) 
     theta_part['optical_theta_angle']=OE.calculate_theta_phase_angle(theta_part['zscore_raw'], theta_low=5, theta_high=12) 
     trough_index_LFP,peak_index_LFP = calculate_theta_trough_index(theta_part,LFP_channel,Fs=10000)
     trough_index_optical,peak_index_optical = calculate_theta_trough_index(theta_part,'zscore_raw',Fs=10000)
     
-    for i in range(4):
+    for i in range(9):
         plot_theta_traces(theta_part, LFP_channel, start_time=i*3, end_time=i*3+3, fs=10000)
         
     plot_zscore_peaks_on_LFP_phase(theta_part, fs=10000, wrap_cycles=2)
@@ -198,11 +198,11 @@ def run_theta_cycle_plot (dpath,LFP_channel,recordingName,savename,theta_low_thr
 #%%
 'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
    
-dpath=r'G:\2025_ATLAS_SPAD\PVCre\1842515_PV_mNeon\Day7'
+dpath=r'C:\SPAD\Data\OEC\1765508_Jedi2p_Atlas\Day3'
 
-recordingName='SyncRecording3'
+recordingName='SyncRecording5'
 
 savename='ThetaSave_Move'
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
 LFP_channel='LFP_1'
-theta_part=run_theta_cycle_plot (dpath,LFP_channel,recordingName,savename,theta_low_thres=-0.5) #-0.3
+theta_part=run_theta_cycle_plot (dpath,LFP_channel,recordingName,savename,theta_low_thres=-0.7) #-0.3

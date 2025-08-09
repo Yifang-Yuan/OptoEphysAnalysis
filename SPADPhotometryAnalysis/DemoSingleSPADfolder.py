@@ -18,7 +18,7 @@ fs   = 9938.4
 #dpath="E:/SPAD/SPADData/20231027_GCamp8f_pyr_OECSync/2023_10_27_17_5_43_Cage_td_g30Iso20_recording1/"
 #Green,Red=SPADreadBin.readMultipleBinfiles_twoROIs(dpath,9,xxrange_g=[105,210],yyrange_g=[125,235],xxrange_r=[105,210],yyrange_r=[25,105]) 
 '''Read binary files for single ROI'''
-dpath=r'G:\2025_ATLAS_SPAD\ChirpSignal\Set2\SPC\2025_7_28_18_34_32'
+dpath=r'G:\2025_ATLAS_SPAD\ChirpSignal\Set3\SPC\2025_8_1_17_40_6'
 'To read raw trace'
 #TraceRaw=SPADreadBin.readMultipleBinfiles(dpath,9,xxRange=[0,160],yyRange=[80,240])
 # Set the path to the parent folder
@@ -26,7 +26,7 @@ dpath=r'G:\2025_ATLAS_SPAD\ChirpSignal\Set2\SPC\2025_7_28_18_34_32'
 filename = os.path.join(dpath, "spc_data1.bin")
 Bindata=SPADreadBin.SPADreadBin(filename,pyGUI=False)
 #%%
-SPADreadBin.ShowImage(Bindata,dpath,xxRange=[90,190],yyRange=[50,150]) #squara wave
+SPADreadBin.ShowImage(Bindata,dpath,xxRange=[85,185],yyRange=[55,155]) #squara wave
 #SPADreadBin.ShowImage(Bindata,dpath,xxRange=[10,170],yyRange=[70,230]) #SNR calculation
 #SPADreadBin.ShowImage(Bindata,dpath,xxRange=[10,170],yyRange=[70,230]) #sin wave
 #%%

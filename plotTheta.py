@@ -14,8 +14,11 @@ import pickle
 import matplotlib.pyplot as plt
 import seaborn as sns
 import glob
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from matplotlib import cm
 
-def plot_theta_heatmap(theta_band_lfps,lfps,zscores,Fs=10000):
+
+def plot_theta_heatmap_noColorbar(theta_band_lfps,lfps,zscores,Fs=10000):
     theta_band_lfps_mean,theta_band_lfps_std, theta_band_lfps_CI=OE.calculateStatisticNumpy (theta_band_lfps)
     lfps_mean,lfps_std, lfps_CI=OE.calculateStatisticNumpy (lfps)
     zscores_mean,zscores_std, zscores_CI=OE.calculateStatisticNumpy (zscores)
@@ -27,7 +30,7 @@ def plot_theta_heatmap(theta_band_lfps,lfps,zscores,Fs=10000):
     axs[0].fill_between(time, theta_band_lfps_CI[0], theta_band_lfps_CI[1], color='#404040', alpha=0.2, label='0.95 CI')
     axs[1].plot(time, lfps_mean, color='dodgerblue', label='theta LFP Mean')
     axs[1].fill_between(time, lfps_CI[0], lfps_CI[1], color='dodgerblue', alpha=0.2, label='0.95 CI')
-    axs[2].plot(time, zscores_mean, color='limegreen', label='theta Zscore Mean')  #limegreen
+    axs[2].plot(time, zscores_mean, color='limegreen', label='theta Zscore Mean')  #limegreen, tomato
     axs[2].fill_between(time, zscores_CI[0], zscores_CI[1], color='limegreen', alpha=0.2, label='0.95 CI')
     axs[0].set_title('Averaged Theta Epoch',fontsize=18)
     for i in range(3):
@@ -60,6 +63,81 @@ def plot_theta_heatmap(theta_band_lfps,lfps,zscores,Fs=10000):
 
     plt.tight_layout()
     plt.show()
+    return fig
+
+def plot_theta_heatmap(theta_band_lfps, lfps, zscores, Fs=10000):
+    theta_band_lfps_mean, theta_band_lfps_std, theta_band_lfps_CI = OE.calculateStatisticNumpy(theta_band_lfps)
+    lfps_mean, lfps_std, lfps_CI = OE.calculateStatisticNumpy(lfps)
+    zscores_mean, zscores_std, zscores_CI = OE.calculateStatisticNumpy(zscores)
+
+    time = np.linspace((-len(lfps_mean)/2)/Fs, (len(lfps_mean)/2)/Fs, len(lfps_mean))  
+
+    fig, axs = plt.subplots(5, 1, gridspec_kw={'height_ratios': [1, 1, 1, 2, 2]}, figsize=(8, 16))
+    
+    # Plotting theta-band LFP
+    axs[0].plot(time, theta_band_lfps_mean, color='#404040')
+    axs[0].fill_between(time, theta_band_lfps_CI[0], theta_band_lfps_CI[1], color='#404040', alpha=0.2)
+    #axs[0].set_title('Averaged Theta Epoch', fontsize=18)
+    axs[0].set_ylabel('LFP (μV)', fontsize=16)
+    
+    # Plotting LFP mean
+    axs[1].plot(time, lfps_mean, color='dodgerblue')
+    axs[1].fill_between(time, lfps_CI[0], lfps_CI[1], color='dodgerblue', alpha=0.2)
+    axs[1].set_ylabel('LFP (μV)', fontsize=16)
+    # Plotting z-score mean
+    axs[2].plot(time, zscores_mean, color='tomato')
+    axs[2].fill_between(time, zscores_CI[0], zscores_CI[1], color='tomato', alpha=0.2)
+    axs[2].set_ylabel('ΔF/F', fontsize=16)
+    for i in range(3):
+        axs[i].set_xlim(time[0], time[-1])
+        axs[i].margins(x=0)
+        axs[i].spines['top'].set_visible(False)
+        axs[i].spines['right'].set_visible(False)
+        axs[i].spines['bottom'].set_visible(False)
+        axs[i].spines['left'].set_visible(False)  # Hide left spine
+        axs[i].yaxis.tick_right()  # Show ticks on the right
+        axs[i].yaxis.set_label_position("right")  # Move label to the right
+        axs[i].tick_params(axis='y', labelsize=16)
+    
+    axs[0].tick_params(labelbottom=False, bottom=False)
+    axs[1].tick_params(labelbottom=False, bottom=False)
+    
+    # Add LFP heatmap
+    sns.heatmap(lfps, cmap="viridis", ax=axs[3], cbar=False)
+    axs[3].set_ylabel('Epoch Number', fontsize=16)
+    axs[3].tick_params(axis='both', labelsize=12)
+    axs[3].tick_params(labelbottom=False, bottom=False)
+    
+    # Add Z-score heatmap
+    sns.heatmap(zscores, cmap="viridis", ax=axs[4], cbar=False)
+    axs[4].set_ylabel('Epoch Number', fontsize=16)
+    axs[4].tick_params(axis='both', labelsize=12)
+    axs[4].tick_params(labelbottom=False, bottom=False)
+    
+    # Add colorbars to right of heatmaps using inset_axes
+    cbar_ax1 = inset_axes(axs[3],
+                          width="2%", height="100%",
+                          bbox_to_anchor=(1.05, 0., 1, 1),
+                          bbox_transform=axs[3].transAxes,
+                          loc='upper left', borderpad=0)
+    norm1 = plt.Normalize(np.min(lfps), np.max(lfps))
+    sm1 = cm.ScalarMappable(cmap="viridis", norm=norm1)
+    cbar1 = plt.colorbar(sm1, cax=cbar_ax1, orientation='vertical')
+    cbar1.set_label('LFP (μV)', fontsize=16)
+    cbar1.ax.tick_params(labelsize=16)
+    
+    # Z-score heatmap colourbar
+    cbar_ax2 = inset_axes(axs[4],
+                          width="2%", height="100%",
+                          bbox_to_anchor=(1.05, 0., 1, 1),
+                          bbox_transform=axs[4].transAxes,
+                          loc='upper left', borderpad=0)
+    norm2 = plt.Normalize(np.min(zscores), np.max(zscores))
+    sm2 = cm.ScalarMappable(cmap="viridis", norm=norm2)
+    cbar2 = plt.colorbar(sm2, cax=cbar_ax2, orientation='vertical')
+    cbar2.set_label('ΔF/F', fontsize=16)
+    cbar2.ax.tick_params(labelsize=16)
+    
     return fig
 
 def plot_aligned_theta_phase (save_path,LFP_channel,recordingName,theta_triggered_lfps,theta_triggered_zscores,Fs=10000):
@@ -113,9 +191,9 @@ def plot_aligned_theta_phase (save_path,LFP_channel,recordingName,theta_triggere
     mean_cross_corr,std_cross_corr, CI_cross_corr=OE.calculateStatisticNumpy (event_corr_array)
     
     # Find index of peak (maximum) mean correlation
-    #peak_idx = np.argmax(mean_cross_corr)
-    peak_idx = np.argmin(mean_cross_corr)
-    
+    # peak_idx = np.argmax(mean_cross_corr)
+    # peak_idx = np.argmin(mean_cross_corr)
+    peak_idx = np.argmax(np.abs(mean_cross_corr))
     # Get values at that index
     peak_value = mean_cross_corr[peak_idx]
     
@@ -236,14 +314,10 @@ def run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low
                                          recordingMode='Atlas',indicator='GEVI') 
     
     Recording1.pynacollada_label_theta (LFP_channel,Low_thres=theta_low_thres,High_thres=10,save=False,plot_theta=True)
-
-    
     trough_index,peak_index =Recording1.plot_theta_correlation(LFP_channel,save_path)
-    
     theta_part=Recording1.theta_part
     #theta_part=Recording1.Ephys_tracking_spad_aligned
     theta_zscores_np,theta_lfps_np=OE.get_theta_cycle_value(theta_part, LFP_channel, trough_index, half_window=0.5, fs=Recording1.fs)
-    
     plot_aligned_theta_phase (save_path,LFP_channel,recordingName,theta_lfps_np,theta_zscores_np,Fs=10000)
     #plot_raster_histogram_theta_phase (save_path,theta_lfps_np,theta_zscores_np,Fs=10000)
     
@@ -252,12 +326,14 @@ def run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low
 def run_theta_plot_main():
     'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
    
-    dpath=r'G:\2025_ATLAS_SPAD\PVCre\1842515_PV_mNeon\Day7'
-    recordingName='SyncRecording3'
+    dpath=r'C:\SPAD\Data\OEC\1765508_Jedi2p_Atlas\Day3'
+    recordingName='SyncRecording13'
+
+
     savename='ThetaSave_Move'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
     LFP_channel='LFP_1'
-    run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low_thres=-0.3) #-0.3
+    run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low_thres=-0.7) #-0.3
 
 def main():    
     run_theta_plot_main()

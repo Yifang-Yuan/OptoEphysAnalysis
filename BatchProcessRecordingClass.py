@@ -34,7 +34,7 @@ def ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', IsTrackin
                                              read_aligned_data_from_file=read_aligned_data_from_file,
                                              recordingMode=recordingMode,indicator=indicator) 
         for i in range (1):
-            LFP_channel='LFP_'+str(i+1)
+            LFP_channel='LFP_'+str(i+4)
             #LFP_channel='LFP_4'
             theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.5,High_thres=10)
     
@@ -74,7 +74,7 @@ def main():
     Put all your parent folders here for batch processing.
     recordingMode: 'py' for pyPhotometry recording, 'SPAD' for SPAD-SPC recording
     '''
-    parent_folder=r'G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\Day5'
+    parent_folder=r'G:\2025_ATLAS_SPAD\PVCre\1887930_PV_mNeon_mCherry\Day4_Sleep'
     ReadOneDaySession (parent_folder,TargetfolderName='SyncRecording', 
                                           IsTracking=True,read_aligned_data_from_file=False,recordingMode='Atlas',indicator='GEVI')
     

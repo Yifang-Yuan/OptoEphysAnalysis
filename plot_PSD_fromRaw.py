@@ -46,13 +46,6 @@ def PSD_plot(data, fs, method="welch", color='tab:blue', xlim=[0,100], linewidth
         
     return fig, ax
 #%%
-#dpath = "D:/2025_ATLAS_SPAD/1836686_PV_mNeon_F/Day7/"
-# dpath = "D:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day2/"
-# dpath = "D:/2024_OEC_Atlas_main/1765010_PVGCaMP8f_Atlas/Day1/"
-#dpath = "D:/2025_ATLAS_SPAD/1844609_WT_Jedi2p/Day4/"
-#dpath = "D:/2025_ATLAS_SPAD/1844608_WT_mNeon/Day5/"
-#dpath = 'D:/2025_ATLAS_SPAD/1851547_WT_mNeon/Day3/'
-#dpath = "F:/2024_ATLAS_OEC/1825507_mCherry/Day1/"
 dpath = 'F:/2025_ATLAS_SPAD/1881363_Jedi2p_mCherry/Day2/'
 'choose the sampling rate with ATLAS'
 fs=841.68

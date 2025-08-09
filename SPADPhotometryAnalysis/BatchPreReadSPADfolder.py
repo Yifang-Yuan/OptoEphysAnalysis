@@ -89,11 +89,13 @@ def copy_results_to_SyncRecording (day_parent_folder,SPAD_parent_folder,new_fold
         # Create the folder if it doesn't exist
         if not os.path.exists(destination_dir):
             os.makedirs(destination_dir)
-        file_to_copy = 'Zscore_traceAll.csv'
-        copy_file(file_to_copy,source_dir,destination_dir)
-        file_to_copy = 'Green_traceAll.csv'
-        copy_file(file_to_copy,source_dir,destination_dir)
-        file_to_copy = 'Red_traceAll.csv'
+        # file_to_copy = 'Zscore_traceAll.csv'
+        # copy_file(file_to_copy,source_dir,destination_dir)
+        # file_to_copy = 'Green_traceAll.csv'
+        # copy_file(file_to_copy,source_dir,destination_dir)
+        # file_to_copy = 'Red_traceAll.csv'
+        # copy_file(file_to_copy,source_dir,destination_dir)
+        file_to_copy = 'traceValueAll.csv'
         copy_file(file_to_copy,source_dir,destination_dir)
     return -1
 
@@ -109,11 +111,11 @@ def main():
     '''
     
     'Reading SPAD binary data'
-    SPC_data_folder=r'G:\2025_ATLAS_SPAD\ChirpSignal\Set2\SPC'
-    read_multiple_SPAD_bin_folder(SPC_data_folder,xxRange=[90,190],yyRange=[50,150])
-    multiple_SPAD_folders_get_zscore(SPC_data_folder)
-    day_parent_folder=r'G:\2025_ATLAS_SPAD\ChirpSignal\Set2'
- 
+    SPC_data_folder=r'G:\2025_ATLAS_SPAD\ChirpSignal\Set3\SPC'
+    # read_multiple_SPAD_bin_folder(SPC_data_folder,xxRange=[85,185],yyRange=[55,155])
+    # multiple_SPAD_folders_get_zscore(SPC_data_folder)
+    
+    day_parent_folder=r'G:\2025_ATLAS_SPAD\ChirpSignal\Set3'
     copy_results_to_SyncRecording (day_parent_folder,SPC_data_folder,new_folder_name='SyncRecording')
 
 if __name__ == "__main__":

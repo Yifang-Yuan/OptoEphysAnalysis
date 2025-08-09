@@ -21,7 +21,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import glob
 from scipy.stats import sem
-
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from matplotlib import cm
 
 def align_ripples (lfps,zscores,start_idx,end_idx,midpoint,Fs=10000):
     aligned_ripple_band_lfps = np.zeros_like(lfps)
@@ -53,7 +54,7 @@ def align_ripples (lfps,zscores,start_idx,end_idx,midpoint,Fs=10000):
         ax2[2].plot(aligned_ripple_lfp_i)
     return aligned_ripple_band_lfps,aligned_lfps,aligned_zscores
     
-def plot_ripple_heatmap(ripple_band_lfps,lfps,zscores,Fs=10000):
+def plot_ripple_heatmap_noColorbar(ripple_band_lfps,lfps,zscores,Fs=10000):
     ripple_band_lfps_mean,ripple_band_lfps_std, ripple_band_lfps_CI=OE.calculateStatisticNumpy (ripple_band_lfps)
     lfps_mean,lfps_std, lfps_CI=OE.calculateStatisticNumpy (lfps)
     zscores_mean,zscores_std, zscores_CI=OE.calculateStatisticNumpy (zscores)
@@ -95,6 +96,83 @@ def plot_ripple_heatmap(ripple_band_lfps,lfps,zscores,Fs=10000):
     plt.tight_layout()
     plt.show()
     return fig
+
+def plot_ripple_heatmap(ripple_band_lfps, lfps, zscores, Fs=10000):
+    ripple_band_lfps_mean, ripple_band_lfps_std, ripple_band_lfps_CI = OE.calculateStatisticNumpy(ripple_band_lfps)
+    lfps_mean, lfps_std, lfps_CI = OE.calculateStatisticNumpy(lfps)
+    zscores_mean, zscores_std, zscores_CI = OE.calculateStatisticNumpy(zscores)
+    
+    time = np.linspace((-len(lfps_mean)/2)/Fs, (len(lfps_mean)/2)/Fs, len(lfps_mean))  
+    
+    fig, axs = plt.subplots(5, 1, gridspec_kw={'height_ratios': [1, 1, 1, 2, 2]}, figsize=(8, 16))
+    
+    # Plot Ripple band LFP
+    axs[0].plot(time, ripple_band_lfps_mean, color='#404040')
+    axs[0].fill_between(time, ripple_band_lfps_CI[0], ripple_band_lfps_CI[1], color='#404040', alpha=0.2)
+    axs[0].set_ylabel('LFP (μV)', fontsize=16)
+    
+    # Plot broadband LFP
+    axs[1].plot(time, lfps_mean, color='dodgerblue')
+    axs[1].fill_between(time, lfps_CI[0], lfps_CI[1], color='dodgerblue', alpha=0.2)
+    axs[1].set_ylabel('LFP (μV)', fontsize=16)
+    
+    # Plot z-score
+    axs[2].plot(time, zscores_mean, color='tomato')
+    axs[2].fill_between(time, zscores_CI[0], zscores_CI[1], color='tomato', alpha=0.2)
+    axs[2].set_ylabel('ΔF/F', fontsize=16)
+
+    for i in range(3):
+        axs[i].set_xlim(time[0], time[-1])
+        axs[i].margins(x=0)
+        axs[i].spines['top'].set_visible(False)
+        axs[i].spines['right'].set_visible(False)
+        axs[i].spines['bottom'].set_visible(False)
+        axs[i].spines['left'].set_visible(False)
+        axs[i].yaxis.tick_right()
+        axs[i].yaxis.set_label_position("right")
+        axs[i].tick_params(axis='y', labelsize=16)
+
+    axs[0].tick_params(labelbottom=False, bottom=False)
+    axs[1].tick_params(labelbottom=False, bottom=False)
+    
+    # Heatmap of LFPs
+    sns.heatmap(lfps, cmap="viridis", ax=axs[3], cbar=False)
+    axs[3].set_ylabel('Epoch Number', fontsize=16)
+    axs[3].tick_params(axis='both', labelsize=12)
+    axs[3].tick_params(labelbottom=False, bottom=False)
+    
+    # Heatmap of z-scores
+    sns.heatmap(zscores, cmap="viridis", ax=axs[4], cbar=False)
+    axs[4].set_ylabel('Epoch Number', fontsize=16)
+    axs[4].tick_params(axis='both', labelsize=12)
+    axs[4].tick_params(labelbottom=False, bottom=False)
+
+    # LFP colourbar
+    cbar_ax1 = inset_axes(axs[3],
+                          width="2%", height="100%",
+                          bbox_to_anchor=(1.05, 0., 1, 1),
+                          bbox_transform=axs[3].transAxes,
+                          loc='upper left', borderpad=0)
+    norm1 = plt.Normalize(np.min(lfps), np.max(lfps))
+    sm1 = cm.ScalarMappable(cmap="viridis", norm=norm1)
+    cbar1 = plt.colorbar(sm1, cax=cbar_ax1, orientation='vertical')
+    cbar1.set_label('LFP (μV)', fontsize=16)
+    cbar1.ax.tick_params(labelsize=16)
+
+    # Z-score colourbar
+    cbar_ax2 = inset_axes(axs[4],
+                          width="2%", height="100%",
+                          bbox_to_anchor=(1.05, 0., 1, 1),
+                          bbox_transform=axs[4].transAxes,
+                          loc='upper left', borderpad=0)
+    norm2 = plt.Normalize(np.min(zscores), np.max(zscores))
+    sm2 = cm.ScalarMappable(cmap="viridis", norm=norm2)
+    cbar2 = plt.colorbar(sm2, cax=cbar_ax2, orientation='vertical')
+    cbar2.set_label('ΔF/F', fontsize=16)
+    cbar2.ax.tick_params(labelsize=16)
+
+    plt.tight_layout()
+    return fig
     
 def plot_aligned_ripple_save (save_path,LFP_channel,recordingName,ripple_triggered_lfps,ripple_triggered_zscores,Fs=10000):
     os.makedirs(save_path, exist_ok=True)
@@ -102,8 +180,8 @@ def plot_aligned_ripple_save (save_path,LFP_channel,recordingName,ripple_trigger
     ripple_sample_numbers=len(ripple_triggered_lfps[0])
     midpoint=ripple_sample_numbers//2
     'align ripple in a 200ms window '
-    start_idx=int(midpoint-0.08*Fs)
-    end_idx=int(midpoint+0.08*Fs)
+    start_idx=int(midpoint-0.06*Fs)
+    end_idx=int(midpoint+0.06*Fs)
     print (midpoint,start_idx,end_idx)
     aligned_ripple_band_lfps,aligned_lfps,aligned_zscores=align_ripples (ripple_triggered_lfps,
                                                                          ripple_triggered_zscores,start_idx,end_idx,midpoint,Fs)
@@ -198,8 +276,7 @@ def plot_ripple_zscore(savepath, lfp_ripple, zscore):
     plt.tight_layout()
     plt.savefig(os.path.join(savepath, 'ripple_optical_raster.png'), transparent=True)
     plt.show()
-
-
+    
 '''recordingMode: use py, Atlas, SPAD for different systems'''
 def run_Gamma_plot (dpath,LFP_channel,recordingName,savename,theta_thre=0):
     save_path = os.path.join(dpath,savename)
@@ -210,10 +287,7 @@ def run_Gamma_plot (dpath,LFP_channel,recordingName,savename,theta_thre=0):
     '''separate the theta and non-theta parts.
     theta_thres: the theta band power should be bigger than 80% to be defined theta period.
     nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-    theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,
-                                                                  Low_thres=theta_thre,
-                                                                  High_thres=8,save=False,
-                                                                  plot_theta=True)
+    Recording1.pynacollada_label_theta (LFP_channel,Low_thres=theta_thre,High_thres=10,save=False,plot_theta=True)
 
     '''RIPPLE DETECTION
     For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
@@ -235,22 +309,21 @@ def run_Gamma_plot (dpath,LFP_channel,recordingName,savename,theta_thre=0):
     
     ripple_triggered_zscore_values=Recording1.ripple_triggered_zscore_values
     aligned_ripple_band_lfps,aligned_zscores=plot_aligned_ripple_save (save_path,LFP_channel,recordingName,ripple_triggered_LFP_values,ripple_triggered_zscore_values,Fs=10000)
-    plot_ripple_zscore(save_path, aligned_ripple_band_lfps, aligned_zscores)
-
+    # plot_ripple_zscore(save_path, aligned_ripple_band_lfps, aligned_zscores)
 
     trough_index,peak_index =Recording1.plot_gamma_correlation(LFP_channel,save_path)
-    
+
     return -1
 
 def run_ripple_plot_main():
     'This is to process a single or concatenated rial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
-    dpath=r'G:\2025_ATLAS_SPAD\PVCre\1842515_PV_mNeon\Day2'
-    recordingName='SyncRecording12'
-    LFP_channel='LFP_1'
+    dpath=r'G:\2024_OEC_Atlas_main\1825507_mCherry\Day1'
+    recordingName='SyncRecording3'
+    LFP_channel='LFP_3'
     savename='GammaSave'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
     
-    run_Gamma_plot (dpath,LFP_channel,recordingName,savename,theta_thre=-0.3)
+    run_Gamma_plot (dpath,LFP_channel,recordingName,savename,theta_thre=-0.5)
 
 def main():    
     run_ripple_plot_main()
