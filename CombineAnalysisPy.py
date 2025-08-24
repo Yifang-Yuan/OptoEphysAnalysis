@@ -19,14 +19,14 @@ import matplotlib.pyplot as plt
 # dpath='E:/ATLAS_SPAD/1825507_mCherry/Day1/'
 # recordingName='SavedMovingTrials'
 
-dpath=r'H:\2024MScR_NORtask\1765508_Jedi2p_CompareSystem\Day5_Atlas_EphysGood'
-
-recordingName='SyncRecording2'
+dpath=r'G:\2024_OEC_Atlas_main\1825507_mCherry\Day1'
+recordingName='SyncRecording5'
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
 LFP_channel='LFP_4'
-Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,
+Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=True,
                                      read_aligned_data_from_file=False,
-                                     recordingMode='Atlas',indicator='GEVI') 
+                                     recordingMode='Atlas',indicator='GEVI',
+                                     tracking_source='Bonsai') 
 #%%
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined theta period.
@@ -34,7 +34,8 @@ nonthetha_thres: the theta band power should be smaller than 50% to be defined a
 Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.3,High_thres=10,save=False,plot_theta=True)
 #%%  
 'This is to calculate and plot the trace around theta trough'
-Recording1.plot_theta_correlation(LFP_channel)
+theta_part=Recording1.theta_part
+Recording1.plot_theta_correlation(theta_part,LFP_channel)
 #%%
 'plot feature can be LFP or SPAD to show the power spectrum of LFP or SPAD'
 Recording1.plot_gamma_power_on_theta_cycle(LFP_channel=LFP_channel)

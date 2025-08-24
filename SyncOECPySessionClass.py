@@ -19,9 +19,20 @@ import MakePlots
 import pynacollada as pyna
 import pickle
 from SPADPhotometryAnalysis import photometry_functions as fp
+import re
 
 class SyncOEpyPhotometrySession:
-    def __init__(self, SessionPath,recordingName,IsTracking=False,read_aligned_data_from_file=False, recordingMode='Atlas',indicator='GEVI'):
+    def __init__(
+        self,
+        SessionPath,
+        recordingName,
+        IsTracking=False,
+        read_aligned_data_from_file=False,
+        recordingMode='Atlas',
+        indicator='GEVI',
+        tracking_source='Bonsai',              # NEW: 'Bonsai' or 'DLC'
+        dlc_bodyparts=('head','shoulder','bottom'),  # NEW: which DLC parts to load
+    ):
         '''
         Parameters
         ----------
@@ -47,16 +58,26 @@ class SyncOEpyPhotometrySession:
         self.ephys_fs = 30000
         self.tracking_fs = 10
         self.fs = 10000
+        
         self.recordingName=recordingName
         self.dpath=os.path.join(SessionPath, self.recordingName) #Recording pre-processed data path:'SyncRecording*' folder
         self.IsTracking=IsTracking
+        self.tracking_source = tracking_source
+        self.dlc_bodyparts = tuple([bp.lower() for bp in dlc_bodyparts])
+        
+        # --- NEW: fixed speed/movement parameters ---
+        self.cm_per_px_x = 0.0525
+        self.cm_per_px_y = 0.0525
+        self.speed_threshold_cm_s = 3.0
+        self.min_moving_duration_s = 0
+        self.speed_bodypart_preference = ('shoulder', 'head', 'bottom')
+        
         if self.IsTracking:
             self.ReadTrialAnimalState(SessionPath)
         
         if (read_aligned_data_from_file):
             filepath=os.path.join(self.dpath, "Ephys_tracking_photometry_aligned.pkl")
             self.Ephys_tracking_spad_aligned = pd.read_pickle(filepath)
-            
             duration= len(self.Ephys_tracking_spad_aligned['timestamps'])/self.fs
             self.Ephys_tracking_spad_aligned['timestamps']= np.linspace(0, duration, len(self.Ephys_tracking_spad_aligned['timestamps']), endpoint=False)
         else:
@@ -68,9 +89,11 @@ class SyncOEpyPhotometrySession:
                 if self.indicator == 'GEVI':
                     self.Ephys_tracking_spad_aligned['zscore_raw']=-self.Ephys_tracking_spad_aligned['zscore_raw']  
                     self.Ephys_tracking_spad_aligned['sig_raw']=-self.Ephys_tracking_spad_aligned['sig_raw'] 
+            'Label REM and nonREM sleep'
+            self.Label_REM_sleep ('LFP_1')
+            'Speed calculation was done before resample'
             self.save_data(self.Ephys_tracking_spad_aligned, 'Ephys_tracking_photometry_aligned.pkl')
-            
-        self.Label_REM_sleep ('LFP_2')
+        
         self.savepath = os.path.join(SessionPath, "Results")
         if not os.path.exists(self.savepath):
             os.makedirs(self.savepath) 
@@ -338,17 +361,17 @@ class SyncOEpyPhotometrySession:
         self.ephys_resampled = OE.resample_signal(self.Ephys_sync_data, original_fs, self.fs)
         return self.ephys_resampled
 
-    # def resample_photometry (self):
-    #     time_interval_common = 1.0 / self.fs
-    #     self.py_resampled = self.photometry_sync_data.resample(f'{time_interval_common:.9f}S').mean()
-    #     self.py_resampled = self.py_resampled.fillna(method='bfill')
-    #     return self.py_resampled
+    def resample_photometry (self):
+        time_interval_common = 1.0 / self.fs
+        self.py_resampled = self.photometry_sync_data.resample(f'{time_interval_common:.9f}S').mean()
+        self.py_resampled = self.py_resampled.fillna(method='bfill')
+        return self.py_resampled
     
-    # def resample_ephys (self):
-    #     time_interval_common = 1.0 / self.fs
-    #     self.ephys_resampled = self.Ephys_sync_data.resample(f'{time_interval_common:.9f}S').mean()
-    #     self.ephys_resampled = self.ephys_resampled.interpolate()
-    #     return self.ephys_resampled                     
+    def resample_ephys (self):
+        time_interval_common = 1.0 / self.fs
+        self.ephys_resampled = self.Ephys_sync_data.resample(f'{time_interval_common:.9f}S').mean()
+        self.ephys_resampled = self.ephys_resampled.interpolate()
+        return self.ephys_resampled                     
     
     def slice_to_align_with_min_len (self):
         'This is important with different sampling rate, the calculated durations might have a ~10ms difference.'
@@ -367,17 +390,111 @@ class SyncOEpyPhotometrySession:
                 self.trackingdata_align = pd.concat([add_to_start, self.trackingdata_resampled])
         return -1
     
-    def read_tracking_data (self):
-        keyword='AnimalTracking'
+    # def read_tracking_data (self):
+    #     keyword='AnimalTracking'
+    #     'Only for Bonsai tracking'
+    #     files_in_directory = os.listdir(self.dpath)
+    #     matching_files = [filename for filename in files_in_directory if keyword in filename]
+    #     if matching_files:
+    #         behaviour_file_path = os.path.join(self.dpath, matching_files[0])
+    #         print ('---Reading behavioural tracking data----')
+    #         self.trackingdata = pd.read_pickle(behaviour_file_path)
+    #         OE.plot_animal_tracking (self.trackingdata)
+    #     else:
+    #         print ('No available Tracking data in the folder!')
+    #     return self.trackingdata
+    
+    def _find_file(self, keyword, ext=None):
+        """Find first file in self.dpath containing keyword (and optional extension)."""
+        files = os.listdir(self.dpath)
+        for fn in files:
+            if keyword in fn and (ext is None or fn.lower().endswith(ext.lower())):
+                return os.path.join(self.dpath, fn)
+        return None
+
+    def _read_tracking_bonsai(self):
+        """
+        Read Bonsai tracking from a pickled DataFrame.
+        Accepts any file named like 'AnimalTracking_<index>.pkl' (index can vary).
+        Returns the DataFrame as-is (e.g., with columns such as 'x','y' if present).
+        """
         files_in_directory = os.listdir(self.dpath)
-        matching_files = [filename for filename in files_in_directory if keyword in filename]
-        if matching_files:
-            behaviour_file_path = os.path.join(self.dpath, matching_files[0])
-            print ('---Reading behavioural tracking data----')
-            self.trackingdata = pd.read_pickle(behaviour_file_path)
-            OE.plot_animal_tracking (self.trackingdata)
+        matching = [fn for fn in files_in_directory
+                    if fn.startswith("AnimalTracking_") and fn.lower().endswith(".pkl")]
+        if not matching:
+            raise FileNotFoundError("Bonsai PKL not found (expected 'AnimalTracking_<index>.pkl').")
+        # If multiple, choose the first in sorted order (customise if you prefer mtime)
+        matching.sort()
+        behaviour_file_path = os.path.join(self.dpath, matching[0])
+        print(f"---Reading Bonsai tracking (PKL): {os.path.basename(behaviour_file_path)}")
+        df = pd.read_pickle(behaviour_file_path)
+        return df
+    
+
+
+    def _read_tracking_dlc_csv(self, bodyparts=('head','shoulder','bottom')):
+        """
+        Read a DLC CSV with a 3-row MultiIndex header and extract x/y for specified bodyparts.
+        Matches any filename containing 'AnimalVideo_<number>DLC_Resnet50_' (case-insensitive).
+        """
+        pattern = re.compile(r"AnimalVideo_\d+DLC_Resnet50_", re.IGNORECASE)
+    
+        candidates = [
+            fn for fn in os.listdir(self.dpath)
+            if fn.lower().endswith(".csv") and pattern.search(fn)
+        ]
+        if not candidates:
+            raise FileNotFoundError(
+                "DLC CSV not found. Expected a filename containing 'AnimalVideo_<n>DLC_Resnet50_'."
+            )
+    
+        candidates.sort()
+        path = os.path.join(self.dpath, candidates[0])
+        print(f"---Reading DLC tracking (CSV): {os.path.basename(path)}")
+    
+        # Read with MultiIndex header
+        df_mi = pd.read_csv(path, header=[0, 1, 2])
+    
+        # Collect requested bodyparts (x/y)
+        want = {bp.lower() for bp in bodyparts}
+        cols = {}
+        for col in df_mi.columns:
+            scorer, bp, coord = col
+            bp_l = str(bp).strip().lower()
+            coord_l = str(coord).strip().lower()
+            if bp_l in want and coord_l in ("x", "y"):
+                cols[f"{bp_l}_{coord_l}"] = col
+    
+        if not cols:
+            raise ValueError(f"No requested DLC bodyparts found. Asked for: {bodyparts}")
+    
+        # Build output DataFrame
+        out = pd.DataFrame(index=df_mi.index)
+        for k, col in sorted(cols.items()):
+            out[k] = pd.to_numeric(df_mi[col], errors="coerce")
+    
+        return out
+    
+    def read_tracking_data(self):
+        """
+        Unified tracking reader controlled by self.tracking_source.
+        - 'Bonsai': returns ['x','y']
+        - 'DLC': returns ['head_x','head_y','shoulder_x','shoulder_y','bottom_x','bottom_y'] (subset if missing)
+        Also triggers a quick plot (if desired) via OE.plot_animal_tracking.
+        """
+        print('---Reading behavioural tracking data----')
+        if self.tracking_source.lower() == 'bonsai':
+            self.trackingdata = self._read_tracking_bonsai()
+        elif self.tracking_source.lower() == 'dlc':
+            self.trackingdata = self._read_tracking_dlc_csv(self.dlc_bodyparts)
         else:
-            print ('No available Tracking data in the folder!')
+            raise ValueError("tracking_source must be 'Bonsai' or 'DLC'.")
+        # Optional: quick sanity plot if your OE helper accepts multi-column
+        try:
+            OE.plot_animal_tracking(self.trackingdata)
+        except Exception:
+            pass
+    
         return self.trackingdata
     
     def form_tracking_spad_sync_data (self):
@@ -400,31 +517,57 @@ class SyncOEpyPhotometrySession:
         print ('Tracking data length during SPAD mask (seconds)---', len(self.trackingdata)/self.tracking_fs)
         return -1  
     
-    def resample_tracking_to_ephys (self):
+    def resample_tracking_to_ephys(self):
+        # ----- build tracking time index at the native tracking Fs -----
         time_interval = 1.0 / self.tracking_fs
         total_duration = len(self.trackingdata) * time_interval
         timestamps = np.arange(0, total_duration, time_interval)
         timestamps_time = pd.to_timedelta(timestamps, unit='s')
-        #To make the timestamp always the same length with the data, otherwise one might be 1 data longer than the other
-        if len(self.trackingdata)>len(timestamps_time):
-            self.trackingdata=self.trackingdata[:len(timestamps_time)]
-        elif len(self.trackingdata)<len(timestamps_time):
-            timestamps_time=timestamps_time[:len(self.trackingdata)]    
+        if len(self.trackingdata) > len(timestamps_time):
+            self.trackingdata = self.trackingdata[:len(timestamps_time)]
+        elif len(self.trackingdata) < len(timestamps_time):
+            timestamps_time = timestamps_time[:len(self.trackingdata)]
         self.trackingdata.index = timestamps_time
-        print(f'Behavioural data length {total_duration} seconds')
+    
+        print(f'Behavioural data length {total_duration:.3f} seconds')
         absolute_difference = abs(total_duration - len(self.Ephys_sync_data)/self.ephys_fs)
-        if absolute_difference>0.3:
-            print ('NOTE!!!Behavioural tracking data length might be wrong!')
-            print('Detected a difference between Behavioural Cam and Recording is larger than 300ms.')
-            print ('If not changing, the pipeline will align the length automatically')
+        if absolute_difference > 0.3:
+            print('NOTE!!! Behavioural tracking data length might be wrong!')
+            print('Detected a difference between Behavioural Cam and Recording > 300 ms.')
+            print('If not changing, the pipeline will align the length automatically')
         else:
-            print ('Yay~~Camera time mask matched! Synchronising LFP and Optical signal finished.')     
-        # original_fs = self.tracking_fs  # use the known original sampling rate
-        # self.trackingdata_resampled = OE.resample_signal(self.trackingdata, original_fs, self.fs)
+            print('Yay~~Camera time mask matched! Synchronising LFP and Optical signal finished.')
+    
+        # ----- NEW: compute speed & movement at tracking Fs BEFORE resampling -----
+        speed_tracking = self._compute_speed_from_tracking_pre_resample(self.trackingdata)
+        move_tracking  = self._classify_movement_at_tracking_fs(speed_tracking)
+        # attach to the tracking dataframe (still at tracking Fs)
+        self.trackingdata['speed']    = speed_tracking
+        self.trackingdata['movement'] = move_tracking
+    
+        # ----- resample everything to the common Fs (e.g., 10 kHz) -----
         time_interval_common = 1.0 / self.fs
-        self.trackingdata_resampled = self.trackingdata.resample(f'{time_interval_common:.9f}S').mean()
-        self.trackingdata_resampled = self.trackingdata_resampled.fillna(method='ffill')
-        return self.trackingdata_resampled    
+    
+        # For categorical 'movement', resample as 0/1 then map back
+        move_map = {'moving': 1.0, 'notmoving': 0.0}
+        df_to_resample = self.trackingdata.copy()
+        df_to_resample['movement'] = df_to_resample['movement'].map(move_map)
+    
+        # pandas Resampler may not have .pad(); use .ffill() instead
+        self.trackingdata_resampled = df_to_resample.resample(f'{time_interval_common:.9f}S').ffill()
+    
+        # convert movement back to labels
+        self.trackingdata_resampled['movement'] = (
+            self.trackingdata_resampled['movement']
+            .round()
+            .map({1.0: 'moving', 0.0: 'notmoving'})
+            .astype('object')
+        )
+    
+        # ensure no leading NaNs after resample
+        self.trackingdata_resampled = self.trackingdata_resampled.fillna(method='bfill')
+    
+        return self.trackingdata_resampled
     
     def save_data (self, data,filename):
         filepath=os.path.join(self.dpath, filename)
@@ -447,39 +590,70 @@ class SyncOEpyPhotometrySession:
         silced_data=data[start_idx:end_idx]
         return silced_data    
         
-    def plot_two_traces_heatmapSpeed (self, spad_data,lfp_data, speed_series, spad_label='spad',lfp_label='LFP',Spectro_ylim=30,AddColorbar=False):
-        fig, (ax1, ax2, ax3,ax4) = plt.subplots(4, 1, figsize=(15, 8))
-        OE.plot_trace_in_seconds_ax (ax1,spad_data,self.fs,label=spad_label,color=sns.color_palette("husl", 8)[3],
-                               ylabel='z-score',xlabel=False)
-        OE.plot_trace_in_seconds_ax (ax2,lfp_data,self.fs, label=lfp_label,color=sns.color_palette("husl", 8)[5],ylabel='uV')
-        # You can adjust this percentile as needed
-        OE.plotSpectrogram (ax3,lfp_data,plot_unit='WHz',nperseg=4096,y_lim=Spectro_ylim,vmax_percentile=100,Fs=self.fs,showCbar=AddColorbar)
-        OE.plot_speed_heatmap(ax4, speed_series,cbar=AddColorbar)
-        plt.subplots_adjust(hspace=0.2)
-        #plt.tight_layout()
-        #plt.show()
-        return -1
+    def _select_xy_columns_for_speed(self, df):
+        """Pick (x, y) columns. Prefer shoulder_x/shoulder_y; fallback to head/bottom; else Bonsai x,y."""
+        cols = {c.lower(): c for c in df.columns}
+        # DLC priority list
+        for bp in self.speed_bodypart_preference:
+            xk, yk = f"{bp}_x", f"{bp}_y"
+            if xk in cols and yk in cols:
+                return cols[xk], cols[yk]
+        # Bonsai default
+        if 'x' in cols and 'y' in cols:
+            return cols['x'], cols['y']
+        # DLC fallback: any prefix with _x/_y
+        prefixes = {n[:-2] for n in cols if n.endswith('_x')}
+        for pre in prefixes:
+            if f"{pre}_y" in cols:
+                return cols[f"{pre}_x"], cols[f"{pre}_y"]
+        raise ValueError("No suitable (x,y) columns found for speed.")
+
+# --- NEW: compute speed (cm/s) on the aligned dataframe ---
+    def _compute_speed_from_tracking_pre_resample(self, tracking_df):
+        """
+        Compute speed (cm/s) at the *tracking* sampling rate (e.g. 10 Hz), BEFORE upsampling.
+        """
+        x_col, y_col = self._select_xy_columns_for_speed(tracking_df)
+        x = pd.to_numeric(tracking_df[x_col], errors='coerce').interpolate(limit_direction='both')
+        y = pd.to_numeric(tracking_df[y_col], errors='coerce').interpolate(limit_direction='both')
     
-    def plot_two_traces_lineSpeed (self, spad_data,lfp_data, speed_series, spad_label='spad',lfp_label='LFP',Spectro_ylim=20,AddColorbar=False):
-        lfp_data=lfp_data/1000
-        
-        fig, ax = plt.subplots(4, 1, figsize=(20, 16))
-        OE.plot_trace_in_seconds_ax (ax[0],spad_data,self.fs,label=spad_label,color=sns.color_palette("husl", 8)[3],
-                               ylabel='z-score',xlabel=False)
-        OE.plot_trace_in_seconds_ax (ax[1],lfp_data,self.fs,label=lfp_label,color=sns.color_palette("husl", 8)[5],ylabel='uV')
-        # You can adjust this percentile as needed
-        # OE.plotSpectrogram (ax[2],lfp_data,plot_unit='WHz',nperseg=8192,y_lim=Spectro_ylim,vmax_percentile=100,Fs=self.fs,showCbar=AddColorbar)
-        
-        sst,frequency,power,global_ws=OE.Calculate_wavelet(lfp_data,lowpassCutoff=500,Fs=self.fs)
-        OE.plot_wavelet(ax[2],sst,frequency,power,Fs=self.fs,colorBar=AddColorbar,logbase=False)
-        OE.plot_trace_in_seconds_ax(ax[3],speed_series,self.fs,label='speed',color=sns.color_palette("husl", 8)[6],ylabel='speed')
-        ax[3].set_ylim(0,20)
-        ax[3].set_xlabel('Time (seconds)')
-        plt.subplots_adjust(hspace=0.5)
-        #plt.tight_layout()
-        #plt.show()
-        return -1
+        # Per-frame displacement in cm (anisotropic scaling supported)
+        dx_cm = x.diff() * self.cm_per_px_x
+        dy_cm = y.diff() * self.cm_per_px_y
+        ds_cm = np.sqrt(dx_cm**2 + dy_cm**2)
     
+        # Frames → seconds using the *tracking* fps
+        speed = ds_cm * float(self.tracking_fs)      # (cm/frame) * (frames/s) = cm/s
+        speed.iloc[0] = 0.0
+    
+        # Optional: light smoothing at 10 Hz (e.g., 3 frames ≈ 0.3 s)
+        speed = speed.rolling(3, min_periods=1, center=True).median()
+    
+        speed.name = 'speed'
+        return speed
+    
+    # --- NEW: classify movement from speed ---
+    def _classify_movement_at_tracking_fs(self, speed_series):
+        """
+        Classify at tracking Fs: 'moving' if speed > threshold for >= min_moving_duration_s consecutively.
+        """
+        arr = (speed_series > self.speed_threshold_cm_s).to_numpy()
+        win = int(round(self.min_moving_duration_s * self.tracking_fs))
+        if win < 1: win = 1
+    
+        # Run-length segmentation
+        # pad with 0 at both ends to detect edges
+        z = np.r_[0, arr.astype(int), 0]
+        edges = np.diff(z)
+        starts = np.where(edges == 1)[0]
+        ends   = np.where(edges == -1)[0]
+        keep = np.zeros_like(arr, dtype=bool)
+        for s, e in zip(starts, ends):
+            if (e - s) >= win:
+                keep[s:e] = True
+    
+        lab = np.where(keep, 'moving', 'notmoving')
+        return pd.Series(lab, index=speed_series.index, name='movement')
     
     def plot_freq_power_coherence (self,LFP_channel,start_time,end_time,SPAD_cutoff,lfp_cutoff):
         silced_recording=self.slicing_pd_data (self.Ephys_tracking_spad_aligned,start_time=start_time, end_time=end_time)
@@ -800,19 +974,25 @@ class SyncOEpyPhotometrySession:
         self.plot_lowpass_two_trace (silced_recording,LFP_channel, SPAD_cutoff,lfp_cutoff)
         return -1
     
-    def plot_lowpass_two_trace (self,data, LFP_channel,SPAD_cutoff,lfp_cutoff, plotSpeed=False):
-        #SPAD_smooth= OE.butter_filter(data['zscore_raw'], btype='high', cutoff=0.5, fs=self.fs, order=5)
-        SPAD_smooth= OE.smooth_signal(data['zscore_raw'],Fs=self.fs,cutoff=SPAD_cutoff)
+    def plot_lowpass_two_trace (self,data, LFP_channel,SPAD_cutoff,lfp_cutoff):
+        
+        lambd = 5e4 # Adjust lambda to get the best fit
+        porder = 1
+        itermax = 50
+        sig_base = fp.airPLS(data['sig_raw'], lambda_=lambd, porder=porder, itermax=itermax)
+        sig = data['sig_raw'] - sig_base
+        eps = 1e-12
+        dff_sig = 100.0 * sig / (sig_base + eps)
+        SPAD_smooth= OE.smooth_signal(dff_sig,Fs=self.fs,cutoff=SPAD_cutoff)
+        
+        #SPAD_smooth= OE.smooth_signal(data['zscore_raw'],Fs=self.fs,cutoff=SPAD_cutoff)
         SPAD_smooth= OE.butter_filter(SPAD_smooth, btype='high', cutoff=2.5, fs=self.fs, order=3)
         lfp_lowpass = OE.butter_filter(data[LFP_channel],btype='low', cutoff=lfp_cutoff, fs=self.fs, order=5)
         lfp_lowpass = OE.butter_filter(lfp_lowpass, btype='high', cutoff=4, fs=self.fs, order=3)
 
         spad_low = pd.Series(SPAD_smooth, index=data['zscore_raw'].index)
         lfp_low = pd.Series(lfp_lowpass, index=data[LFP_channel].index)
-        if plotSpeed:
-            self.plot_two_traces_lineSpeed (spad_low,lfp_low,data['speed'],Spectro_ylim=20,AddColorbar=True)
-        else:
-            self.plot_two_traces_noSpeed (spad_low,lfp_low,Spectro_ylim=20,AddColorbar=True)
+        self.plot_two_traces (spad_low,lfp_low,Spectro_ylim=20,AddColorbar=True)
         return -1
     
     def plot_band_power_feature (self,LFP_channel,start_time,end_time,LFP=True):
@@ -835,115 +1015,164 @@ class SyncOEpyPhotometrySession:
         OE.plot_wavelet_feature(data,frequency,power,global_ws,time,lfp_rippleband,powerband='(150-250Hz)')     
         return -1
 
-    def plot_two_traces_noSpeed (self, spad_data,lfp_data, spad_label='photometry',lfp_label='LFP',Spectro_ylim=20,AddColorbar=False):
-        '''This will plot both SPAD and LFP signal with their wavelet spectrum'''
-        
-        fig, ax = plt.subplots(4, 1, figsize=(10, 8))
-        OE.plot_trace_in_seconds_ax (ax[0],spad_data,self.fs,label=spad_label,color=sns.color_palette("husl", 8)[3],
-                               ylabel='z-score',xlabel=False)
-        #spad_filtered=OE.band_pass_filter(spad_data,120,300,self.fs)
-        sst,frequency,power,global_ws=OE.Calculate_wavelet(spad_data,lowpassCutoff=100,Fs=self.fs,scale=40)
-        OE.plot_wavelet(ax[1],sst,frequency,power,Fs=self.fs,colorBar=False,logbase=False)
-        lfp_data=lfp_data/1000
-        OE.plot_trace_in_seconds_ax (ax[2],lfp_data,self.fs,label=lfp_label,color=sns.color_palette("husl", 8)[5],ylabel='mV',xlabel=False)
-        #lfp_data_filtered=OE.band_pass_filter(lfp_data,120,300,self.fs)
-        sst,frequency,power,global_ws=OE.Calculate_wavelet(lfp_data,lowpassCutoff=500,Fs=self.fs,scale=40)
-        OE.plot_wavelet(ax[3],sst,frequency,power,Fs=self.fs,colorBar=AddColorbar,logbase=False)
-        ax[1].set_ylim(0,20)
-        ax[3].set_ylim(0,20)
-        ax[3].set_xlabel('Time (seconds)')
+    def plot_two_traces(self, spad_data, lfp_data,
+                    spad_label='photometry', lfp_label='LFP',
+                    Spectro_ylim=20, AddColorbar=False,
+                    # --- NEW: font controls ---
+                    label_fs=18, tick_fs=16,
+                    five_xticks=False):
+        """Plot SPAD + LFP with wavelets; bigger labels/ticks; optional 5 x-ticks."""
+        fig, ax = plt.subplots(4, 1, figsize=(12, 10))
+    
+        # SPAD trace + wavelet
+        OE.plot_trace_in_seconds_ax(ax[0], spad_data, self.fs, label=spad_label,
+                                    color=sns.color_palette("husl", 8)[3],
+                                    ylabel='z-score', xlabel=False)
+        sst, frequency, power, global_ws = OE.Calculate_wavelet(spad_data, lowpassCutoff=100, Fs=self.fs, scale=40)
+        OE.plot_wavelet(ax[1], sst, frequency, power, Fs=self.fs, colorBar=False, logbase=False)
+    
+        # LFP (mV) + wavelet
+        lfp_data = lfp_data / 1000
+        OE.plot_trace_in_seconds_ax(ax[2], lfp_data, self.fs, label=lfp_label,
+                                    color=sns.color_palette("husl", 8)[5],
+                                    ylabel='mV', xlabel=False)
+        sst, frequency, power, global_ws = OE.Calculate_wavelet(lfp_data, lowpassCutoff=500, Fs=self.fs, scale=40)
+        OE.plot_wavelet(ax[3], sst, frequency, power, Fs=self.fs, colorBar=AddColorbar, logbase=False)
+    
+        # Spectrogram y-lims
+        for a in (ax[1], ax[3]):
+            a.set_ylim(0, Spectro_ylim)
+    
+        # Axis labels (bigger)
+        ax[3].set_xlabel('Time (seconds)', fontsize=label_fs)
+        for i in (0, 2):
+            if ax[i].get_ylabel():
+                ax[i].set_ylabel(ax[i].get_ylabel(), fontsize=label_fs)
+    
+        # Ticks (bigger)
+        for a in ax:
+            a.tick_params(axis='both', labelsize=tick_fs, width=1.2)
+    
+        # Optional: exactly five x-ticks on bottom axis
+        if five_xticks:
+            lo, hi = ax[3].get_xlim()
+            ticks = np.linspace(lo, hi, 5)
+            ticks[np.isclose(ticks, 0.0)] = 0.0  # avoid -0.00
+            ax[3].set_xticks(ticks)
+            ax[3].set_xticklabels([f"{t:.2f}" for t in ticks], fontsize=tick_fs)
+    
+        # Legends off (unchanged)
         ax[0].legend().set_visible(False)
         ax[2].legend().set_visible(False)
-        ax[1].spines['top'].set_visible(False)
-        ax[1].spines['right'].set_visible(False)
-        ax[1].spines['bottom'].set_visible(False)
-        ax[1].spines['left'].set_visible(False)
-        ax[3].spines['top'].set_visible(False)
-        ax[3].spines['right'].set_visible(False)
-        ax[3].spines['bottom'].set_visible(False)
-        ax[3].spines['left'].set_visible(False)
+    
+        # Cosmetics (unchanged)
+        for a in (ax[1], ax[3]):
+            a.spines['top'].set_visible(False)
+            a.spines['right'].set_visible(False)
+            a.spines['bottom'].set_visible(False)
+            a.spines['left'].set_visible(False)
         ax[2].spines['bottom'].set_visible(False)
-        ax[1].set_xticks([])  # Hide x-axis tick marks
-        ax[1].set_xlabel([])
-        ax[1].set_xlabel('')  # Hide x-axis label
-        ax[2].set_xticks([])  # Hide x-axis tick marks
-        ax[2].set_xlabel([])
-        ax[2].set_xlabel('')  # Hide x-axis label
-        
-        #plt.subplots_adjust(hspace=0.5)
-        #plt.tight_layout()
+        ax[1].set_xticks([]); ax[1].set_xlabel('')
+        ax[2].set_xticks([]); ax[2].set_xlabel('')
+    
+        # Save
         makefigure_path = os.path.join(self.savepath, 'makefigure')
-        if not os.path.exists(makefigure_path):
-            os.makedirs(makefigure_path)
-            
-        output_path=os.path.join(makefigure_path,'example_trace_powerspectral.png')
-        fig.savefig(output_path, bbox_inches='tight', pad_inches=0, transparent=True)
+        os.makedirs(makefigure_path, exist_ok=True)
+        output_path = os.path.join(makefigure_path, 'example_trace_powerspectral.png')
+        fig.savefig(output_path, bbox_inches='tight', pad_inches=0, transparent=True, dpi=300)
         plt.show()
         return -1
     
-    def plot_segment_feature_multiROI (self,LFP_channel,start_time,end_time,SPAD_cutoff,lfp_cutoff):
-        'slice recording'
-        data=self.slicing_pd_data (self.Ephys_tracking_spad_aligned,start_time=start_time, end_time=end_time)
-        sig_smooth= OE.smooth_signal(data['sig_raw'],Fs=self.fs,cutoff=SPAD_cutoff)
-        sig_smooth= OE.butter_filter(sig_smooth, btype='high', cutoff=2.5, fs=self.fs, order=3)
-        ref_smooth= OE.smooth_signal(data['ref_raw'],Fs=self.fs,cutoff=SPAD_cutoff)
-        ref_smooth= OE.butter_filter(ref_smooth, btype='high', cutoff=2.5, fs=self.fs, order=3)
-        
-        lfp_lowpass = OE.butter_filter(data[LFP_channel],btype='low', cutoff=lfp_cutoff, fs=self.fs, order=5)
+    def plot_segment_feature_multiROI(self, LFP_channel, start_time, end_time,
+                                  SPAD_cutoff, lfp_cutoff,
+                                  # --- NEW: font controls ---
+                                  label_fs=18, tick_fs=16, text_fs=16,
+                                  five_xticks=False):
+        """Bigger labels/ticks; optional 5 x-ticks on the bottom axis."""
+        # slice recording
+        data = self.slicing_pd_data(self.Ephys_tracking_spad_aligned,
+                                    start_time=start_time, end_time=end_time)
+    
+        sig_smooth = OE.smooth_signal(data['sig_raw'], Fs=self.fs, cutoff=SPAD_cutoff)
+        sig_smooth = OE.butter_filter(sig_smooth, btype='high', cutoff=2.5, fs=self.fs, order=3)
+        ref_smooth = OE.smooth_signal(data['ref_raw'], Fs=self.fs, cutoff=SPAD_cutoff)
+        ref_smooth = OE.butter_filter(ref_smooth, btype='high', cutoff=2.5, fs=self.fs, order=3)
+    
+        lfp_lowpass = OE.butter_filter(data[LFP_channel], btype='low', cutoff=lfp_cutoff, fs=self.fs, order=5)
         lfp_lowpass = OE.butter_filter(lfp_lowpass, btype='high', cutoff=2.5, fs=self.fs, order=3)
-
+    
         signal_data = pd.Series(sig_smooth, index=data['sig_raw'].index)
-        ref_data = pd.Series(ref_smooth, index=data['ref_raw'].index)
-        lfp_data = pd.Series(lfp_lowpass, index=data[LFP_channel].index)
-        
-        fig, ax = plt.subplots(6, 1, figsize=(10, 12))
-        OE.plot_trace_in_seconds_ax (ax[0],signal_data,self.fs,label='signal',color=sns.color_palette("husl", 8)[3],
-                               ylabel='z-score',xlabel=False)
-        #spad_filtered=OE.band_pass_filter(spad_data,120,300,self.fs)
-        sst,frequency,power,global_ws=OE.Calculate_wavelet(signal_data,lowpassCutoff=100,Fs=self.fs,scale=40)
-        OE.plot_wavelet(ax[1],sst,frequency,power,Fs=self.fs,colorBar=False,logbase=False)
-        OE.plot_trace_in_seconds_ax (ax[2],ref_data,self.fs,label='control',color=sns.color_palette("husl", 8)[0],
-                               ylabel='z-score',xlabel=False)
-        #spad_filtered=OE.band_pass_filter(spad_data,120,300,self.fs)
-        sst,frequency,power,global_ws=OE.Calculate_wavelet(ref_data,lowpassCutoff=100,Fs=self.fs,scale=40)
-        OE.plot_wavelet(ax[3],sst,frequency,power,Fs=self.fs,colorBar=False,logbase=False)
-        
-        lfp_data=lfp_data/1000
-        OE.plot_trace_in_seconds_ax (ax[4],lfp_data,self.fs,label='LFP',color=sns.color_palette("husl", 8)[5],ylabel='mV',xlabel=False)
-        #lfp_data_filtered=OE.band_pass_filter(lfp_data,120,300,self.fs)
-        sst,frequency,power,global_ws=OE.Calculate_wavelet(lfp_data,lowpassCutoff=500,Fs=self.fs,scale=40)
-        OE.plot_wavelet(ax[5],sst,frequency,power,Fs=self.fs,colorBar=False,logbase=False)
-        ax[1].set_ylim(0,20)
-        ax[3].set_ylim(0,20)
-        ax[5].set_ylim(0,20)
-        ax[5].set_xlabel('Time (seconds)')
-        ax[0].legend().set_visible(False)
-        ax[2].legend().set_visible(False)
-        ax[1].spines['top'].set_visible(False)
-        ax[1].spines['right'].set_visible(False)
-        ax[1].spines['bottom'].set_visible(False)
-        ax[1].spines['left'].set_visible(False)
-        ax[3].spines['top'].set_visible(False)
-        ax[3].spines['right'].set_visible(False)
-        ax[3].spines['bottom'].set_visible(False)
-        ax[3].spines['left'].set_visible(False)
+        ref_data    = pd.Series(ref_smooth, index=data['ref_raw'].index)
+        lfp_data    = pd.Series(lfp_lowpass, index=data[LFP_channel].index)
+    
+        fig, ax = plt.subplots(6, 1, figsize=(12, 14))  # a bit bigger
+    
+        # signal trace + wavelet
+        OE.plot_trace_in_seconds_ax(ax[0], signal_data, self.fs, label='signal',
+                                    color=sns.color_palette("husl", 8)[3],
+                                    ylabel='z-score', xlabel=False)
+        sst, frequency, power, global_ws = OE.Calculate_wavelet(signal_data, lowpassCutoff=100, Fs=self.fs, scale=40)
+        OE.plot_wavelet(ax[1], sst, frequency, power, Fs=self.fs, colorBar=False, logbase=False)
+    
+        # control trace + wavelet
+        OE.plot_trace_in_seconds_ax(ax[2], ref_data, self.fs, label='control',
+                                    color=sns.color_palette("husl", 8)[0],
+                                    ylabel='z-score', xlabel=False)
+        sst, frequency, power, global_ws = OE.Calculate_wavelet(ref_data, lowpassCutoff=100, Fs=self.fs, scale=40)
+        OE.plot_wavelet(ax[3], sst, frequency, power, Fs=self.fs, colorBar=False, logbase=False)
+    
+        # LFP (to mV) + wavelet
+        lfp_data = lfp_data / 1000
+        OE.plot_trace_in_seconds_ax(ax[4], lfp_data, self.fs, label='LFP',
+                                    color=sns.color_palette("husl", 8)[5],
+                                    ylabel='mV', xlabel=False)
+        sst, frequency, power, global_ws = OE.Calculate_wavelet(lfp_data, lowpassCutoff=500, Fs=self.fs, scale=40)
+        OE.plot_wavelet(ax[5], sst, frequency, power, Fs=self.fs, colorBar=False, logbase=False)
+    
+        # wavelet y-lims
+        ax[1].set_ylim(0, 20)
+        ax[3].set_ylim(0, 20)
+        ax[5].set_ylim(0, 20)
+    
+        # axis cosmetics
+        ax[5].set_xlabel('Time (seconds)', fontsize=label_fs)
+    
+        # legends off (keep, but scale if you ever show them)
+        leg = ax[0].legend();  leg.set_visible(False)
+        leg = ax[2].legend();  leg.set_visible(False)
+    
+        # remove spines on wavelets
+        for a in (ax[1], ax[3]):
+            a.spines['top'].set_visible(False)
+            a.spines['right'].set_visible(False)
+            a.spines['bottom'].set_visible(False)
+            a.spines['left'].set_visible(False)
+    
+        # hide x-ticks/labels where requested
         ax[2].spines['bottom'].set_visible(False)
-        ax[1].set_xticks([])  # Hide x-axis tick marks
-        ax[1].set_xlabel([])
-        ax[1].set_xlabel('')  # Hide x-axis label
-        ax[2].set_xticks([])  # Hide x-axis tick marks
-        ax[2].set_xlabel([])
-        ax[2].set_xlabel('')  # Hide x-axis label
-        
-        #plt.subplots_adjust(hspace=0.5)
-        #plt.tight_layout()
- 
+        ax[1].set_xticks([]); ax[1].set_xlabel('')
+        ax[2].set_xticks([]); ax[2].set_xlabel('')
+    
+        # --- NEW: scale fonts everywhere ---------------------------------------
+        for a in ax:
+            # keep existing labels but enlarge
+            if a.get_ylabel():
+                a.set_ylabel(a.get_ylabel(), fontsize=label_fs)
+            a.tick_params(axis='both', labelsize=tick_fs, width=1.2)
+    
+        # --- OPTIONAL: exactly five x-ticks on bottom axis ---------------------
+        if five_xticks:
+            lo, hi = ax[5].get_xlim()
+            ticks = np.linspace(lo, hi, 5)
+            ticks[np.isclose(ticks, 0.0)] = 0.0  # avoid -0.00
+            ax[5].set_xticks(ticks)
+            ax[5].set_xticklabels([f"{t:.2f}" for t in ticks], fontsize=tick_fs)
+    
+        # save
         makefigure_path = os.path.join(self.savepath, 'makefigure')
-        if not os.path.exists(makefigure_path):
-            os.makedirs(makefigure_path)
-            
-        output_path=os.path.join(makefigure_path,'example_trace_powerspectral.png')
-        fig.savefig(output_path, bbox_inches='tight', pad_inches=0, transparent=True)
+        os.makedirs(makefigure_path, exist_ok=True)
+        output_path = os.path.join(makefigure_path, 'example_trace_powerspectral.png')
+        fig.savefig(output_path, bbox_inches='tight', pad_inches=0, transparent=True, dpi=300)
         plt.show()
         return -1
     
@@ -955,7 +1184,7 @@ class SyncOEpyPhotometrySession:
         ThetaDeltaRatio=OE.getThetaDeltaRatio (LFP,self.fs,windowlen=1000)
         self.Ephys_tracking_spad_aligned['REMstate'] = 'nonREM'  # Initialize with 'nonREM'
         self.Ephys_tracking_spad_aligned.loc[ThetaDeltaRatio > 1.2, 'REMstate'] = 'REM'
-        return ThetaDeltaRatio
+        return -1
     
     def pynacollada_label_theta (self,LFP_channel,Low_thres=0.2,High_thres=10,save=False,plot_theta=False):
         '''NOTE: 
@@ -1034,8 +1263,8 @@ class SyncOEpyPhotometrySession:
             #self.plot_lowpass_two_trace (self.non_theta_part, LFP_channel,SPAD_cutoff=20,lfp_cutoff=20)
         return -1
     
-    def plot_theta_correlation(self,LFP_channel,save_path=None):
-        silced_recording=self.theta_part
+    def plot_theta_correlation(self,theta_part,LFP_channel,save_path=None):
+        silced_recording=theta_part
         #silced_recording=self.Ephys_tracking_spad_aligned
         silced_recording=silced_recording.reset_index(drop=True)
         #print (silced_recording.index)
@@ -1131,8 +1360,8 @@ class SyncOEpyPhotometrySession:
     def pynappleAnalysis (self,lfp_channel='LFP_2',ep_start=0,ep_end=10,
                           Low_thres=1,High_thres=10,plot_segment=False,plot_ripple_ep=True,excludeTheta=True,excludeREM=False):
         'This is the LFP data that need to be saved for the sync ananlysis'
-        data_segment=self.Ephys_tracking_spad_aligned
-        #data_segment=self.non_theta_part
+        #data_segment=self.Ephys_tracking_spad_aligned
+        data_segment=self.non_theta_part
         timestamps=data_segment['timestamps'].copy()
         timestamps=timestamps.to_numpy()
         #timestamps=timestamps-timestamps[0]
@@ -1738,7 +1967,7 @@ class SyncOEpyPhotometrySession:
         self.theta_ep=rip_ep
         self.theta_tsd=rip_tsd
         if len(self.theta_tsd)>0:
-            self.Oscillation_triggered_Optical_transient  (mode='theta',lfp_channel=lfp_channel,half_window=0.5,plot_single_trace=True,plotShade='CI')
+            self.Oscillation_triggered_Optical_transient (mode='theta',lfp_channel=lfp_channel,half_window=0.5,plot_single_trace=True,plotShade='CI')
             self.Oscillation_optical_correlation (mode='theta',lfp_channel=lfp_channel, half_window=0.5)
         return data_segment,timestamps
     
@@ -2248,7 +2477,6 @@ class SyncOEpyPhotometrySession:
         if mode=='theta':
             self.theta_event_corr_array=event_corr_array
             # Assuming mean_cross_corr and CI_cross_corr have already been calculated
-            
 
             # # Save mean_cross_corr to a pickle file
             # with open(os.path.join(self.dpath,'mean_cross_corr.pkl'), 'wb') as f:
@@ -2279,50 +2507,3 @@ class SyncOEpyPhotometrySession:
         plt.show()
         return -1
     
-
-    # def separate_theta_by_relative_bandpower (self,LFP_channel,theta_thres,nonthetha_thres):
-    #     '''NOTE: 
-    #     This is not a good way to separate theta automatically
-    #     The threshold for spectrum power is highly depended on the recording quality, electrode position, etc.
-    #     A rigid threshold will also cut the recording into incontinuous pieces.
-    #     I changed to use the pynacollada method in function  
-    #     '''
-    #     lfp_data=self.Ephys_tracking_spad_aligned[LFP_channel]/1000
-    #     sst,frequency,power,global_ws=OE.Calculate_wavelet(lfp_data/1000,lowpassCutoff=500,Fs=self.fs)
-    #     #set bound for theta band
-    #     lower_bound= 4
-    #     upper_bound = 12
-    #     indices_between_range = np.where((frequency >= lower_bound) & (frequency <= upper_bound))
-        
-    #     power_band=power[indices_between_range[0]]
-    #     power_band_mean=np.max(power_band,axis=0)
-    #     percentile_thres_theta = np.percentile(power_band_mean, theta_thres)
-    #     percentile_thres_nontheta = np.percentile(power_band_mean, nonthetha_thres)
-    #     indices_above_percentile = np.where(power_band_mean > percentile_thres_theta)
-    #     indices_below_percentile = np.where(power_band_mean < percentile_thres_nontheta)
-    #     #Separate theta and non-theta
-    #     self.theta_part=self.Ephys_tracking_spad_aligned.iloc[indices_above_percentile[0]]
-    #     self.non_theta_part=self.Ephys_tracking_spad_aligned.iloc[indices_below_percentile[0]] 
-    #     # Save the theta part with real indices
-    #     theta_path=os.path.join(self.dpath, "theta_part_with_index.pkl")
-    #     self.theta_part.to_pickle(theta_path) 
-    #     non_theta_path=os.path.join(self.dpath, "non_theta_part_with_index.pkl")
-    #     self.non_theta_part.to_pickle(non_theta_path)
-        
-    #     #From here,I reset the index, concatenate the theta part and non-theta part just for plotting and show the features
-    #     self.theta_part=self.theta_part.reset_index(drop=True)
-    #     self.non_theta_part=self.non_theta_part.reset_index(drop=True)
-        
-    #     time_interval = 1.0 / self.fs
-    #     total_duration = len(self.non_theta_part) * time_interval
-    #     self.non_theta_part['timestamps'] = np.arange(0, total_duration, time_interval)
-    #     total_duration = len(self.theta_part) * time_interval
-    #     # Convert the 'time_column' to timedelta if it's not already
-    #     self.non_theta_part['time_column'] = pd.to_timedelta(self.non_theta_part['timestamps'],unit='s') 
-    #     # Set the index to the 'time_column'
-    #     self.non_theta_part.set_index('time_column', inplace=True)
-        
-    #     self.theta_part['timestamps'] = np.arange(0, total_duration, time_interval)
-    #     self.theta_part['time_column'] = pd.to_timedelta(self.theta_part['timestamps'], unit='s') 
-    #     self.theta_part.set_index('time_column', inplace=True)            
-    #     return self.theta_part,self.non_theta_part

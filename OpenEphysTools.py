@@ -83,6 +83,7 @@ def smooth_signal(data,Fs,cutoff,window='flat'):
     else:
         w=eval('np.'+window+'(window_len)')
     y=np.convolve(w/w.sum(),s,mode='valid')
+    
     return y[(int(window_len/2)-1):-int(window_len/2)]
 
 def readEphysChannel (Directory,recordingNum,Fs=30000):
@@ -267,44 +268,41 @@ def save_open_ephys_data (dpath, data):
     data.to_pickle(filepath)
     return -1
 
-def resample_signal(signal_df, original_fs, target_fs):
+def resample_signal(signal_df, original_fs, target_fs, *, start_at_zero=True, max_den=1_000_000):
     """
-    Resample a timestamp-indexed DataFrame using polyphase filtering.
-    Handles both DatetimeIndex and TimedeltaIndex.
-
-    Parameters:
-        signal_df (pd.DataFrame): Timestamp-indexed signal.
-        original_fs (float): Original sampling rate in Hz.
-        target_fs (float): Target sampling rate in Hz.
-
-    Returns:
-        pd.DataFrame: Resampled DataFrame with timestamp index.
+    Polyphase resample that preserves index *type* but (optionally) re-anchors start to 0 s.
     """
-    up = int(target_fs)
-    down = int(original_fs)
-
-    # Resample each column
-    resampled_data = {
-        col: resample_poly(signal_df[col].astype(float).values, up, down)
-        for col in signal_df.columns
-    }
-
-    n_samples = len(next(iter(resampled_data.values())))
-
-    # Determine proper start_time
-    index = signal_df.index
-    if isinstance(index, pd.TimedeltaIndex):
-        start_time = pd.Timestamp(0) + index[0]
-    elif isinstance(index, pd.DatetimeIndex):
-        start_time = index[0]
-    else:
+    if not isinstance(signal_df.index, (pd.TimedeltaIndex, pd.DatetimeIndex)):
         raise TypeError("Index must be DatetimeIndex or TimedeltaIndex.")
 
-    # Generate new timestamp index
-    freq = to_offset(pd.Timedelta(seconds=1 / target_fs))
-    new_index = pd.date_range(start=start_time, periods=n_samples, freq=freq)
+    # ratio without truncation
+    ratio = Fraction(target_fs / original_fs).limit_denominator(max_den)
+    up, down = ratio.numerator, ratio.denominator
 
-    return pd.DataFrame(resampled_data, index=new_index)
+    in_len = len(signal_df)
+    expected_n = int(round(in_len * target_fs / original_fs))
+
+    resampled_cols = {}
+    for col in signal_df.columns:
+        y = resample_poly(signal_df[col].astype(float).to_numpy(), up, down)
+        if len(y) > expected_n:
+            y = y[:expected_n]
+        elif len(y) < expected_n:
+            y = np.pad(y, (0, expected_n - len(y)), mode='edge')
+        resampled_cols[col] = y
+
+    # ---- build new index
+    dt = pd.to_timedelta(1 / target_fs, unit="s")
+    if isinstance(signal_df.index, pd.TimedeltaIndex):
+        # anchor
+        start = pd.Timedelta(0) if start_at_zero else signal_df.index[0]
+        new_index = pd.TimedeltaIndex(start + pd.to_timedelta(np.arange(expected_n) / target_fs, unit="s"))
+    else:
+        # DatetimeIndex path (rare in your flow)
+        start = (signal_df.index[0] if not start_at_zero else pd.Timestamp(0, unit="s"))
+        new_index = pd.DatetimeIndex(start + pd.to_timedelta(np.arange(expected_n) / target_fs, unit="s"))
+
+    return pd.DataFrame(resampled_cols, index=new_index)
 
 def getRippleEvents (lfp_raw,Fs,windowlen=200,Low_thres=1,High_thres=10,low_freq=130,high_freq=250):
     ripple_band_filtered = pyna.eeg_processing.bandpass_filter(lfp_raw, low_freq, high_freq, Fs) #for ripple:130Hz-250Hz
@@ -683,27 +681,46 @@ def Calculate_wavelet(signal_pd,lowpassCutoff=1500,Fs=10000,scale=40):
     frequency=1/period
     return sst,frequency,power,global_ws
 
-def plot_wavelet(ax,sst,frequency,power,Fs=10000,colorBar=False,logbase=False):
+def plot_wavelet(ax, sst, frequency, power,
+                 Fs=10_000,
+                 colorBar=False,
+                 logbase=False,
+                 # --- font controls ---
+                 y_label_fs=20,          # <- NEW: y-axis label fontsize
+                 tick_fs=16,
+                 cbar_label_fs=18,
+                 cbar_tick_fs=16,
+                 levels=8):
+    """
+    Wavelet power plot with adjustable font sizes.
+    - y_label_fs controls ONLY the y-axis label size.
+    - tick_fs controls axis tick label size.
+    - cbar_* control colour-bar text sizes.
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
     import matplotlib.ticker as ticker
-    time = np.arange(len(sst)) /Fs   # construct time array
-    level=8 #level is how many contour levels you want
-    CS = ax.contourf(time, frequency, power, level)
-    #ax.set_xlabel('Time (seconds)')
-    ax.set_ylabel('Frequency (Hz)')
-    #ax.set_title('Wavelet Power Spectrum')
-    #ax.set_xlim(xlim[:])
+
+    time = np.arange(len(sst)) / Fs
+    CS = ax.contourf(time, frequency, power, levels)
+
+    # Axis labels & ticks
+    ax.set_ylabel('Frequency (Hz)', fontsize=y_label_fs)   # <- larger y-axis label
+    ax.tick_params(axis='both', labelsize=tick_fs)
+
     if logbase:
-        ax.set_yscale('log', base=2, subs=None)
-    ax.set_ylim([np.min(frequency), np.max(frequency)])
-    yax = plt.gca().yaxis
-    yax.set_major_formatter(ticker.ScalarFormatter())
-    if colorBar: 
-        fig = plt.gcf()  # Get the current figure
-        position = fig.add_axes([0.2, 0.02, 0.4, 0.02])
-        #position = fig.add_axes()
-        cbar=plt.colorbar(CS, cax=position, orientation='horizontal', fraction=0.2, pad=0.5)
-        cbar.set_label('Power (mV$^2$)', fontsize=12) 
-        #plt.subplots_adjust(right=0.7, top=0.9)              
+        ax.set_yscale('log', base=2)
+    ax.set_ylim([float(np.min(frequency)), float(np.max(frequency))])
+    ax.yaxis.set_major_formatter(ticker.ScalarFormatter())
+
+    # Optional colour bar
+    if colorBar:
+        fig = ax.get_figure()
+        cax = fig.add_axes([0.20, 0.02, 0.60, 0.03])       # x, y, w, h (figure coords)
+        cbar = fig.colorbar(CS, cax=cax, orientation='horizontal')
+        cbar.set_label('Power (mV$^2$)', fontsize=cbar_label_fs)
+        cbar.ax.tick_params(labelsize=cbar_tick_fs, width=1.2)
+
     return -1
 
 def plot_wavelet_feature(sst,frequency,power,global_ws,time,sst_filtered,powerband='(4-15Hz)'):
@@ -1668,7 +1685,7 @@ def compute_optical_phase_preference(theta_phase,
 
         ax.set_title(
             f"pref={np.degrees(preferred_phase):.1f}°, R={R:.3f}, p={p:.3g} (n={event_idx.size})",
-            va="bottom", pad=12, fontsize=12
+            va="bottom", pad=12, fontsize=16
         )
 
         plt.tight_layout()
@@ -1769,7 +1786,8 @@ def get_theta_cycle_value(df, LFP_channel, trough_index, half_window, fs=10000):
     itermax = 15
     sig_base=fp.airPLS(df['sig_raw'],lambda_=lambd,porder=porder,itermax=itermax) 
     sig = (df['sig_raw'] - sig_base)  
-    dff_sig=100*sig / sig_base
+    dff_sig=sig / sig_base
+    #zscore_raw_smoothed=smooth_signal(dff_sig,fs,cutoff=100,window='flat')
     zscore_raw_smoothed=smooth_signal(df['zscore_raw'],fs,cutoff=50,window='flat')
     'use zscore'
     #zscore_raw_smoothed=smooth_signal(df['zscore_raw'],fs,cutoff=50,window='flat')
@@ -1813,7 +1831,7 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
         end = int(trough_index[i] + half_cycle_time*fs)
         cycle_zscore = df['zscore_raw'].loc[start:end]
         #print ('length of the cycle',len(cycle_zscore))
-        cycle_zscore=smooth_signal(cycle_zscore,fs,cutoff=250,window='flat')
+        cycle_zscore=smooth_signal(cycle_zscore,fs,cutoff=50,window='flat')
         cycle_lfp = df[LFP_channel].loc[start:end]
         #cycle_zscore_np = cycle_zscore.to_numpy()
         cycle_zscore_np = cycle_zscore

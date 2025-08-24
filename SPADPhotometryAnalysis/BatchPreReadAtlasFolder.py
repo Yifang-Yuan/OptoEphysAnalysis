@@ -225,38 +225,52 @@ def Calculate_dff (parent_folder,TargetfolderName='SyncRecording'):
         return int(folder_name.lstrip(TargetfolderName))
     # Sort the folders in numeric order
     sync_recording_folders.sort(key=numeric_sort_key)
-    lambd = 5e4 # Adjust lambda to get the best fit
+    lambd = 5e3 # Adjust lambda to get the best fit
     porder = 1
     itermax = 50
     # Iterate over each sync recording folder
     for SyncRecordingName in sync_recording_folders:
-        # Now you can perform operations on each folder, such as reading files inside it
         print("----Now processing folder:", SyncRecordingName)
-        current_folder=os.path.join(parent_folder, SyncRecordingName)
-        sig_csv_filename=os.path.join(current_folder,"Green_traceAll.csv")
-        # ref_csv_filename=os.path.join(current_folder, "Red_raw.csv")
-        # zscore_csv_filename=os.path.join(current_folder, "Zscore_raw.csv")
-        
+        current_folder = os.path.join(parent_folder, SyncRecordingName)
+    
+        sig_csv_filename = os.path.join(current_folder, "Green_traceAll.csv")
         sig_data = np.genfromtxt(sig_csv_filename, delimiter=',')
-        # ref_data = np.genfromtxt(ref_csv_filename, delimiter=',')
-        # z_data = np.genfromtxt(zscore_csv_filename, delimiter=',')
-        
-        sig_base=fp.airPLS(sig_data,lambda_=lambd,porder=porder,itermax=itermax) 
-        sig = (sig_data - sig_base)  
-        dff_sig=100*sig / sig_base
-        
-        # ref_base=fp.airPLS(ref_data,lambda_=lambd,porder=porder,itermax=itermax) 
-        # ref = (ref_data - ref_base)  
-        # dff_ref=100*ref / ref_base
-        
-        # z_base=fp.airPLS(z_data,lambda_=lambd,porder=porder,itermax=itermax) 
-        # z = (z_data - z_base)  
-        # dff_z=100*z / z_base
-        
-        np.savetxt(os.path.join(current_folder,'Zscore_traceAll.csv'), dff_sig, delimiter=',', comments='')
-        # np.savetxt(os.path.join(current_folder,'Green_traceAll.csv'), dff_sig, delimiter=',', comments='')
-        # np.savetxt(os.path.join(current_folder,'Red_traceAll.csv'), dff_ref, delimiter=',', comments='')
-        
+    
+        # Baseline (airPLS) and dF/F
+        sig_base = fp.airPLS(sig_data, lambda_=lambd, porder=porder, itermax=itermax)
+        sig = sig_data - sig_base
+        eps = 1e-12
+        dff_sig = 100.0 * sig / (sig_base + eps)
+    
+        # ---------- plotting ----------
+        fs=841.38
+        x = np.arange(sig_data.size) / fs
+        xlab = "Time (s)"
+     
+    
+        fig, axes = plt.subplots(2, 1, figsize=(12, 6), sharex=True)
+    
+        # Top: raw vs baseline
+        axes[0].plot(x, sig_data, linewidth=1, label='sig_data')
+        axes[0].plot(x, sig_base, linewidth=2, label='sig_base (airPLS)')
+        axes[0].set_title(f"{SyncRecordingName} — raw & baseline")
+        axes[0].set_ylabel("a.u.")
+        axes[0].legend(loc="upper right", frameon=False)
+    
+        # Bottom: dF/F
+        axes[1].plot(x, dff_sig, linewidth=1)
+        axes[1].set_title("dF/F (%)")
+        axes[1].set_ylabel("%")
+        axes[1].set_xlabel(xlab)
+    
+        plt.tight_layout()
+        out_png = os.path.join(current_folder, "sig_and_dff_preview.png")
+        plt.savefig(out_png, dpi=150)
+        plt.show()
+    
+        # Save your dF/F as before
+        np.savetxt(os.path.join(current_folder, 'Zscore_traceAll.csv'),
+                   dff_sig, delimiter=',', comments='')
     return -1       
 
 
@@ -275,15 +289,48 @@ def main():
     # read_multiple_Atlas_bin_folder(atlas_folder,day_folder,hotpixel_path,center_x, center_y,radius,new_folder_name='SyncRecording',photoncount_thre=500)
     
     'READ SINGLE ROI CODES--SMALL FOV'
-    center_x, center_y,radius=57, 29, 10
-    
-    day_folder=r'G:\2025_ATLAS_SPAD\ChirpSignal\Set3'
+
+    center_x, center_y,radius=52, 25, 12
+
+    center_x, center_y,radius=52, 24, 12
+
+    day_folder=r'G:\2025_ATLAS_SPAD\1881363_Jedi2p_CB\Day3'
     atlas_folder=os.path.join(day_folder,'Atlas')
     read_multiple_Atlas_bin_folder_smallFOV(
         atlas_folder,day_folder,hotpixel_path,center_x, center_y,radius,
-        new_folder_name='SyncRecording',photoncount_thre=15000)
+        new_folder_name='SyncRecording',photoncount_thre=50000)
+    day_folder=r'G:\2025_ATLAS_SPAD\1881363_Jedi2p_CB\Day4'
+    atlas_folder=os.path.join(day_folder,'Atlas')
+    read_multiple_Atlas_bin_folder_smallFOV(
+        atlas_folder,day_folder,hotpixel_path,center_x, center_y,radius,
+        new_folder_name='SyncRecording',photoncount_thre=50000)
     
+    day_folder=r'G:\2025_ATLAS_SPAD\1881365_Jedi2p_CB\Day1'
+    atlas_folder=os.path.join(day_folder,'Atlas')
+    read_multiple_Atlas_bin_folder_smallFOV(
+        atlas_folder,day_folder,hotpixel_path,center_x, center_y,radius,
+        new_folder_name='SyncRecording',photoncount_thre=50000)
     
+    day_folder=r'G:\2025_ATLAS_SPAD\1881365_Jedi2p_CB\Day2'
+    atlas_folder=os.path.join(day_folder,'Atlas')
+    read_multiple_Atlas_bin_folder_smallFOV(
+        atlas_folder,day_folder,hotpixel_path,center_x, center_y,radius,
+        new_folder_name='SyncRecording',photoncount_thre=50000)
+    
+    day_folder=r'G:\2025_ATLAS_SPAD\1881365_Jedi2p_CB\Day3'
+    atlas_folder=os.path.join(day_folder,'Atlas')
+    read_multiple_Atlas_bin_folder_smallFOV(
+        atlas_folder,day_folder,hotpixel_path,center_x, center_y,radius,
+        new_folder_name='SyncRecording',photoncount_thre=50000)
+    
+    day_folder=r'G:\2025_ATLAS_SPAD\1881365_Jedi2p_CB\Day4'
+    atlas_folder=os.path.join(day_folder,'Atlas')
+    read_multiple_Atlas_bin_folder_smallFOV(
+        atlas_folder,day_folder,hotpixel_path,center_x, center_y,radius,
+        new_folder_name='SyncRecording',photoncount_thre=50000)
+    
+
+
 
     'READ TWO ROIs CODES ---FULL FOV'
     # ROI_info = {
@@ -348,7 +395,7 @@ def main():
     '''
     CALCULATE DFF
     '''
-    # day_folder='H:/2024_OEC_Atlas_main/1732333_pyramidal_G8f_Atlas/Day1/'
+    # day_folder=r'G:\2025_ATLAS_SPAD\PVCre\1842516_PV_Jedi2p\Day1'
     # Calculate_dff (day_folder,TargetfolderName='SyncRecording')
     
     

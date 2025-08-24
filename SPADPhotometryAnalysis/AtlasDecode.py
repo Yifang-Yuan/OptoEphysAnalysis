@@ -324,9 +324,9 @@ def get_dff_from_atlas_continuous_circle_mask (dpath,hotpixel_path,center_x, cen
     fig, ax = plt.subplots(figsize=(8, 2))
     plot_trace(Trace_raw,ax, fs, label="raw_data")
     
-    lambd = 10e3 # Adjust lambda to get the best fit
+    lambd = 5e4 # Adjust lambda to get the best fit
     porder = 1
-    itermax = 15
+    itermax = 50
     sig_base=fp.airPLS(Trace_raw,lambda_=lambd,porder=porder,itermax=itermax) 
     signal = (Trace_raw - sig_base)  
     dff=100*signal / sig_base
@@ -538,6 +538,7 @@ def get_dff_from_atlas_snr_circle_mask_smallFOV (dpath,hotpixel_path,center_x, c
 
     fig, ax = plt.subplots(figsize=(8, 2))
     plot_trace(Trace_raw,ax, fs, label="raw_data")
+    'Adjust lambda to get the best fit, default, 5e3,1,50'
     lambd = 5e4 # Adjust lambda to get the best fit
     porder = 1
     itermax = 50

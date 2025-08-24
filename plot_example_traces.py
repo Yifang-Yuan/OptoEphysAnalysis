@@ -27,9 +27,9 @@ def plot_GEVI_theta_correlation(SyncRecordingObject):
 '''recordingMode: use py, Atlas, SPAD for different systems
 '''
 #dpath= 'F:/2025_ATLAS_SPAD/1887930_PV_mNeon_mCherry/Day4/'
-dpath=r'G:\2025_ATLAS_SPAD\PyramidalWT\1881365_Jedi2p_mCherry\Day9_TD'
-recordingName='SyncRecording3'
-LFP_channel='LFP_2'
+dpath= r'G:\2025_ATLAS_SPAD\PVCre\1842516_PV_Jedi2p\Day1'
+recordingName='SyncRecording2'
+LFP_channel='LFP_4'
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,
                                      recordingMode='Atlas',indicator='GEVI') 
 
@@ -48,7 +48,7 @@ for i in range(viewNum):
     'This is to plot two optical traces from two ROIs, i.e. one signal and one reference'
     #Recording1.plot_segment_feature_multiROI (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=500)
     #Recording1.plot_segment_band_feature_twoROIs (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=500)
-    Recording1.plot_segment_feature (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=100,lfp_cutoff=100)
+    Recording1.plot_segment_feature (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=100)
     #Recording1.plot_freq_power_coherence (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=200)
 
 #%%

@@ -74,11 +74,11 @@ def compare_PSDs_and_theta_peaks(
 
 
 Fs=10000
-dpath='F:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day3/'
-recordingName='SyncRecording4'
+dpath='G:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day3/'
+recordingName='SyncRecording1'
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,recordingMode='Atlas',indicator='GEVI') 
 LFP_channel='LFP_1'
-theta_part,non_theta_part=Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.5,High_thres=8,save=False,plot_theta=True)
+Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.5,High_thres=8,save=False,plot_theta=True)
 LFP_theta=Recording1.theta_part[LFP_channel]
 optical_theta=Recording1.theta_part['zscore_raw']
 

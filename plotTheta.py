@@ -85,9 +85,9 @@ def plot_theta_heatmap(theta_band_lfps, lfps, zscores, Fs=10000):
     axs[1].fill_between(time, lfps_CI[0], lfps_CI[1], color='dodgerblue', alpha=0.2)
     axs[1].set_ylabel('LFP (μV)', fontsize=16)
     # Plotting z-score mean
-    axs[2].plot(time, zscores_mean, color='tomato')
-    axs[2].fill_between(time, zscores_CI[0], zscores_CI[1], color='tomato', alpha=0.2)
-    axs[2].set_ylabel('ΔF/F', fontsize=16)
+    axs[2].plot(time, zscores_mean, color='limegreen')
+    axs[2].fill_between(time, zscores_CI[0], zscores_CI[1], color='limegreen', alpha=0.2)
+    axs[2].set_ylabel('Z-Score', fontsize=16)
     for i in range(3):
         axs[i].set_xlim(time[0], time[-1])
         axs[i].margins(x=0)
@@ -135,7 +135,7 @@ def plot_theta_heatmap(theta_band_lfps, lfps, zscores, Fs=10000):
     norm2 = plt.Normalize(np.min(zscores), np.max(zscores))
     sm2 = cm.ScalarMappable(cmap="viridis", norm=norm2)
     cbar2 = plt.colorbar(sm2, cax=cbar_ax2, orientation='vertical')
-    cbar2.set_label('ΔF/F', fontsize=16)
+    cbar2.set_label('Z-Score', fontsize=16)
     cbar2.ax.tick_params(labelsize=16)
     
     return fig
@@ -153,7 +153,7 @@ def plot_aligned_theta_phase (save_path,LFP_channel,recordingName,theta_triggere
     '''Align by phase'''
     theta_band_lfps_by_phase=np.zeros_like(theta_triggered_lfps)
     for i in range(theta_triggered_lfps.shape[0]):
-        LFP_theta_band_i=OE.band_pass_filter(theta_triggered_lfps[i], 5, 12, Fs)
+        LFP_theta_band_i=OE.band_pass_filter(theta_triggered_lfps[i], 5, 10, Fs)
         theta_band_lfps_by_phase[i]=LFP_theta_band_i
     
     save_file_path = os.path.join(save_path,'ailgned_theta_LFP.pkl')
@@ -314,11 +314,17 @@ def run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low
                                          recordingMode='Atlas',indicator='GEVI') 
     
     Recording1.pynacollada_label_theta (LFP_channel,Low_thres=theta_low_thres,High_thres=10,save=False,plot_theta=True)
-    trough_index,peak_index =Recording1.plot_theta_correlation(LFP_channel,save_path)
+
+    
+    #theta_part =  Recording1.Ephys_tracking_spad_aligned[Recording1.Ephys_tracking_spad_aligned['movement'] == 'moving']
     theta_part=Recording1.theta_part
-    #theta_part=Recording1.Ephys_tracking_spad_aligned
+    # theta_part=Recording1.Ephys_tracking_spad_aligned
+    
+    trough_index,peak_index =Recording1.plot_theta_correlation(theta_part,LFP_channel,save_path)
+
     theta_zscores_np,theta_lfps_np=OE.get_theta_cycle_value(theta_part, LFP_channel, trough_index, half_window=0.5, fs=Recording1.fs)
     plot_aligned_theta_phase (save_path,LFP_channel,recordingName,theta_lfps_np,theta_zscores_np,Fs=10000)
+   
     #plot_raster_histogram_theta_phase (save_path,theta_lfps_np,theta_zscores_np,Fs=10000)
     
     return -1
@@ -326,14 +332,14 @@ def run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low
 def run_theta_plot_main():
     'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
    
-    dpath=r'C:\SPAD\Data\OEC\1765508_Jedi2p_Atlas\Day3'
-    recordingName='SyncRecording13'
-
+    dpath=r'G:\2025_ATLAS_SPAD\PVCre\1887930_PV_mNeon_mCherry\Day5'
+    recordingName='SyncRecording4'
+    theta_low_thres=-0.3
 
     savename='ThetaSave_Move'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-    LFP_channel='LFP_1'
-    run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low_thres=-0.7) #-0.3
+    LFP_channel='LFP_4'
+    run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low_thres) #-0.3
 
 def main():    
     run_theta_plot_main()

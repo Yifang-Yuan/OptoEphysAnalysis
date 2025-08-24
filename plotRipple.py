@@ -651,12 +651,12 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,theta_cutoff=0.5):
 
 def run_ripple_plot_main():
     'This is to process a single or concatenated rial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
-    dpath=r'G:\2024_OEC_Atlas_main\1765010_PVGCaMP8f_Atlas\Day1'
+    dpath=r'G:\2025_ATLAS_SPAD\PVCre\1842516_PV_Jedi2p\Day4'
     
-    recordingName='SavedSleepTrials'
+    recordingName='SyncRecording4'
     savename='RippleSave'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-    LFP_channel='LFP_3'
+    LFP_channel='LFP_4'
     run_ripple_plot (dpath,LFP_channel,recordingName,savename,theta_cutoff=0.5)
 
 def main():    
@@ -664,34 +664,4 @@ def main():
     
 if __name__ == "__main__":
     main()
-#%%
-'concatenate ripple'
-# parent_path='F:/2024_OEC_Atlas/1765508_Jedi2p_Atlas/'
-# save_path='F:/2024_OEC_Atlas/1765508_Jedi2p_Atlas/RippleConcatenatedSave/'
-# pattern = os.path.join(parent_path, 'Day*/','RippleSave_*/')
-# Fs=10000
-# start_idx=1000
-# # Get a list of all matching files
-# file_list = glob.glob(pattern)
-# # Loop through the file list and read each file
-# aligned_ripple_bandpass_LFP_list = []
-# aligned_ripple_LFP_list= []
-# aligned_ripple_Zscore_list=[]
 
-# for path in file_list:
-#     try:
-#         ripple_bandpass_LFP = pd.read_pickle(os.path.join(path, 'ailgned_ripple_bandpass_LFP.pkl'))
-#         ripple_LFP=pd.read_pickle(os.path.join(path, 'ailgned_ripple_LFP.pkl'))
-#         ripple_zscore=pd.read_pickle(os.path.join(path, 'ailgned_ripple_Zscore.pkl'))
-#         # Append each DataFrame to the corresponding list
-#         aligned_ripple_bandpass_LFP_list.append(ripple_bandpass_LFP)
-#         aligned_ripple_LFP_list.append(ripple_LFP)
-#         aligned_ripple_Zscore_list.append(ripple_zscore)
-#     except Exception as e:
-#         print(f"Error reading {path}: {e}")
-        
-# concatenated_ripple_bandpass_LFP = np.vstack(aligned_ripple_bandpass_LFP_list) 
-# concatenated_ripple_LFP = np.vstack(aligned_ripple_LFP_list)
-# concatenated_ripple_Zscore = -np.vstack(aligned_ripple_Zscore_list)
-
-# plot_aligned_ripple_save (save_path,concatenated_ripple_LFP,concatenated_ripple_Zscore,Fs=10000)
