@@ -155,10 +155,10 @@ def readEphysChannel_withSessionInput (session,recordingNum,Fs=30000):
     LFP_clean2= butter_filter(LFP2, btype='low', cutoff=2000, fs=Fs, order=5)
     LFP_clean3= butter_filter(LFP3, btype='low', cutoff=2000, fs=Fs, order=5)
     LFP_clean4= butter_filter(LFP4, btype='low', cutoff=2000, fs=Fs, order=5)
-    # LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
-    # LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
-    # LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
-    # LFP_clean4= notchfilter (LFP_clean4,f0=50,bw=5)
+    LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
+    LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
+    LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
+    LFP_clean4= notchfilter (LFP_clean4,f0=50,bw=5)
     
     EphysData = pd.DataFrame({
         'timestamps': timestamps,
@@ -205,7 +205,7 @@ def Atlas_sync_mask (Atlas_Sync, start_lim, end_lim,recordingTime=30):
     
     Atlas_mask=np.zeros(len(Atlas_Sync),dtype=int)
     #peak_index = np.argmax(Atlas_Sync > 25000)
-    peak_indices = np.argwhere(Atlas_Sync > 25000).flatten()
+    peak_indices = np.argwhere(Atlas_Sync < -24000).flatten() #> 25000
     peak_index=peak_indices[-1]
     #print ('peak_indices', peak_indices)
     print ('peak_index', peak_index)
@@ -705,7 +705,7 @@ def plot_wavelet(ax, sst, frequency, power,
     CS = ax.contourf(time, frequency, power, levels)
 
     # Axis labels & ticks
-    ax.set_ylabel('Frequency (Hz)', fontsize=y_label_fs)   # <- larger y-axis label
+    ax.set_ylabel('Freq (Hz)', fontsize=y_label_fs)   # <- larger y-axis label
     ax.tick_params(axis='both', labelsize=tick_fs)
 
     if logbase:
@@ -1815,7 +1815,7 @@ def get_theta_cycle_value(df, LFP_channel, trough_index, half_window, fs=10000):
     cycle_data_values_lfp_np = np.vstack(cycle_data_values_lfp)
     return cycle_data_values_zscore_np,cycle_data_values_lfp_np
     
-def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmode='two'):
+def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,optical_channel='zscore_raw'):
     half_window = half_window  # second
     # Initialize lists to store cycle data
     cycle_data_values_zscore = []
@@ -1829,7 +1829,7 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
     for i in range(len(trough_index)):
         start = int(trough_index[i] - half_cycle_time*fs)
         end = int(trough_index[i] + half_cycle_time*fs)
-        cycle_zscore = df['zscore_raw'].loc[start:end]
+        cycle_zscore = df[optical_channel].loc[start:end]
         #print ('length of the cycle',len(cycle_zscore))
         cycle_zscore=smooth_signal(cycle_zscore,fs,cutoff=50,window='flat')
         cycle_lfp = df[LFP_channel].loc[start:end]
@@ -1847,36 +1847,35 @@ def plot_theta_cycle(df, LFP_channel, trough_index, half_window, fs=10000,plotmo
     mean_lfp,std_lfp, CI_LFP=calculateStatisticNumpy (cycle_data_values_lfp_np)
 
     x = np.linspace(-half_window, half_window, len(mean_zscore))
-    if plotmode == 'two':
-        fig, axs = plt.subplots(2, 1, figsize=(6, 5), sharex=True, dpi=300)
-        fig.patch.set_alpha(0)  # Transparent background
+    fig, axs = plt.subplots(2, 1, figsize=(6, 5), sharex=True, dpi=300)
+    fig.patch.set_alpha(0)  # Transparent background
+
+    # Plot z-score
+    axs[0].plot(x, mean_zscore, color=sns.color_palette("husl", 8)[3], linewidth=2)
+    axs[0].fill_between(x, CI_zscore[0], CI_zscore[1], color=sns.color_palette("husl", 8)[3], alpha=0.3)
+    axs[0].axvline(x=0, color='k', linestyle='--', linewidth=1)
+
+    # Plot LFP
+    axs[1].plot(x, mean_lfp, color=sns.color_palette("husl", 8)[5], linewidth=2)
+    axs[1].fill_between(x, CI_LFP[0], CI_LFP[1], color=sns.color_palette("husl", 8)[5], alpha=0.3)
+    axs[1].axvline(x=0, color='k', linestyle='--', linewidth=1)
+
+    # Formatting
+    axs[0].set_title('Mean -zscore and LFP in theta cycles', fontsize=14, fontweight='bold', pad=10)
+    axs[0].set_ylabel('Z-score', fontsize=12)
+    axs[1].set_ylabel('Amplitude (μV)', fontsize=12)
+    axs[1].set_xlabel('Time (s)', fontsize=12)
+
+    # Axis limits & clean styling
+    for ax in axs:
+        ax.spines[['top', 'right']].set_visible(False)  # Remove top and right spines
+        ax.tick_params(labelsize=10)
+        ax.set_xlim([-0.15, 0.15])  # Focus on main time window
+
+    axs[0].tick_params(labelbottom=False, bottom=False)  # Hide x-label on top plot
     
-        # Plot z-score
-        axs[0].plot(x, mean_zscore, color=sns.color_palette("husl", 8)[3], linewidth=2)
-        axs[0].fill_between(x, CI_zscore[0], CI_zscore[1], color=sns.color_palette("husl", 8)[3], alpha=0.3)
-        axs[0].axvline(x=0, color='k', linestyle='--', linewidth=1)
-    
-        # Plot LFP
-        axs[1].plot(x, mean_lfp, color=sns.color_palette("husl", 8)[5], linewidth=2)
-        axs[1].fill_between(x, CI_LFP[0], CI_LFP[1], color=sns.color_palette("husl", 8)[5], alpha=0.3)
-        axs[1].axvline(x=0, color='k', linestyle='--', linewidth=1)
-    
-        # Formatting
-        axs[0].set_title('Mean -zscore and LFP in theta cycles', fontsize=14, fontweight='bold', pad=10)
-        axs[0].set_ylabel('Z-score', fontsize=12)
-        axs[1].set_ylabel('Amplitude (μV)', fontsize=12)
-        axs[1].set_xlabel('Time (s)', fontsize=12)
-    
-        # Axis limits & clean styling
-        for ax in axs:
-            ax.spines[['top', 'right']].set_visible(False)  # Remove top and right spines
-            ax.tick_params(labelsize=10)
-            ax.set_xlim([-0.15, 0.15])  # Focus on main time window
-    
-        axs[0].tick_params(labelbottom=False, bottom=False)  # Hide x-label on top plot
-        
-        plt.tight_layout()
-        plt.show()
+    plt.tight_layout()
+    plt.show()
     return fig
 
 

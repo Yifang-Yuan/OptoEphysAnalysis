@@ -19,7 +19,6 @@ import os
 import pickle
 import matplotlib.pyplot as plt
 import seaborn as sns
-import glob
 from scipy.stats import sem
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib import cm

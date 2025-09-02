@@ -19,10 +19,10 @@ import matplotlib.pyplot as plt
 # dpath='E:/ATLAS_SPAD/1825507_mCherry/Day1/'
 # recordingName='SavedMovingTrials'
 
-dpath=r'G:\2024_OEC_Atlas_main\1825507_mCherry\Day1'
-recordingName='SyncRecording5'
+dpath=r'G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\Day2'
+recordingName='SyncRecording4_forPSD'
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-LFP_channel='LFP_4'
+LFP_channel='LFP_2'
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=True,
                                      read_aligned_data_from_file=False,
                                      recordingMode='Atlas',indicator='GEVI',

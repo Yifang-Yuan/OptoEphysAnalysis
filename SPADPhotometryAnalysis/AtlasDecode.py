@@ -125,6 +125,24 @@ def show_image_with_pixel_array(pixel_array_2d,showPixel_label=True):
     plt.show()
     return -1
 
+def show_image_with_pixel_array_samll (pixel_array_2d,showPixel_label=True):
+    # vmin = 0  # Minimum value
+    # vmax = 80  # Maximum value
+
+    #plt.imshow(pixel_array_2d, cmap='gray', vmin=vmin, vmax=vmax)
+    plt.imshow(pixel_array_2d, cmap='gray')
+    # Add color bar with photon count numbers
+    if showPixel_label:
+        # Add x and y axes with pixel IDs
+        plt.xticks(np.arange(0, 128, 10), labels=np.arange(0, 128, 10))
+        plt.yticks(np.arange(0, 64, 10), labels=np.arange(0, 64, 10))
+        cbar = plt.colorbar()
+        cbar.set_label('Photon Count')
+    else:
+        plt.axis('off')  # Turn off axis
+    plt.show()
+    return -1
+
 def find_circle_mask(pixel_array,radius=12,threh=0.5):
     shape = pixel_array.shape
     max_avg_photon_count = 0

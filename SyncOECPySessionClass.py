@@ -52,8 +52,8 @@ class SyncOEpyPhotometrySession:
         if self.recordingMode=='SPAD':
             self.Spad_fs = 9938.4
         if self.recordingMode=='Atlas':
-            self.Spad_fs = 841.68
-            #self.Spad_fs = 1682.92
+            #self.Spad_fs = 841.68
+            self.Spad_fs = 1682.92
             
         self.ephys_fs = 30000
         self.tracking_fs = 10
@@ -72,8 +72,8 @@ class SyncOEpyPhotometrySession:
         self.min_moving_duration_s = 0
         self.speed_bodypart_preference = ('shoulder', 'head', 'bottom')
         
-        if self.IsTracking:
-            self.ReadTrialAnimalState(SessionPath)
+        # if self.IsTracking:
+        #     self.ReadTrialAnimalState(SessionPath)
         
         if (read_aligned_data_from_file):
             filepath=os.path.join(self.dpath, "Ephys_tracking_photometry_aligned.pkl")
@@ -89,6 +89,7 @@ class SyncOEpyPhotometrySession:
                 if self.indicator == 'GEVI':
                     self.Ephys_tracking_spad_aligned['zscore_raw']=-self.Ephys_tracking_spad_aligned['zscore_raw']  
                     self.Ephys_tracking_spad_aligned['sig_raw']=-self.Ephys_tracking_spad_aligned['sig_raw'] 
+                    self.Ephys_tracking_spad_aligned['ref_raw']=-self.Ephys_tracking_spad_aligned['ref_raw'] 
             'Label REM and nonREM sleep'
             self.Label_REM_sleep ('LFP_1')
             'Speed calculation was done before resample'
@@ -1084,28 +1085,38 @@ class SyncOEpyPhotometrySession:
         return -1
     
     def plot_segment_feature_multiROI(self, LFP_channel, start_time, end_time,
-                                  SPAD_cutoff, lfp_cutoff,
-                                  # --- NEW: font controls ---
-                                  label_fs=18, tick_fs=16, text_fs=16,
-                                  five_xticks=False):
+                                      SPAD_cutoff, lfp_cutoff,
+                                      # --- NEW: font controls ---
+                                      label_fs=18, tick_fs=16, text_fs=16,
+                                      five_xticks=False):
         """Bigger labels/ticks; optional 5 x-ticks on the bottom axis."""
         # slice recording
         data = self.slicing_pd_data(self.Ephys_tracking_spad_aligned,
                                     start_time=start_time, end_time=end_time)
     
+        # --- Photometry smoothing (signal / control / z) -------------------------
         sig_smooth = OE.smooth_signal(data['sig_raw'], Fs=self.fs, cutoff=SPAD_cutoff)
         sig_smooth = OE.butter_filter(sig_smooth, btype='high', cutoff=2.5, fs=self.fs, order=3)
+    
         ref_smooth = OE.smooth_signal(data['ref_raw'], Fs=self.fs, cutoff=SPAD_cutoff)
         ref_smooth = OE.butter_filter(ref_smooth, btype='high', cutoff=2.5, fs=self.fs, order=3)
     
+        # FIXED: create z_smooth from z-score channel (not ref_raw), then high-pass
+        z_smooth = OE.smooth_signal(data['zscore_raw'], Fs=self.fs, cutoff=SPAD_cutoff)
+        z_smooth = OE.butter_filter(z_smooth, btype='high', cutoff=2.5, fs=self.fs, order=3)
+    
+        # --- LFP smoothing -------------------------------------------------------
         lfp_lowpass = OE.butter_filter(data[LFP_channel], btype='low', cutoff=lfp_cutoff, fs=self.fs, order=5)
         lfp_lowpass = OE.butter_filter(lfp_lowpass, btype='high', cutoff=2.5, fs=self.fs, order=3)
     
+        # --- Wrap into Series to keep time index --------------------------------
         signal_data = pd.Series(sig_smooth, index=data['sig_raw'].index)
         ref_data    = pd.Series(ref_smooth, index=data['ref_raw'].index)
+        z_data      = pd.Series(z_smooth,   index=data['zscore_raw'].index)
         lfp_data    = pd.Series(lfp_lowpass, index=data[LFP_channel].index)
     
-        fig, ax = plt.subplots(6, 1, figsize=(12, 14))  # a bit bigger
+        # --- Figure: now 8 rows (sig, sig-WT, ref, ref-WT, z, z-WT, LFP, LFP-WT) -
+        fig, ax = plt.subplots(8, 1, figsize=(12, 17))
     
         # signal trace + wavelet
         OE.plot_trace_in_seconds_ax(ax[0], signal_data, self.fs, label='signal',
@@ -1121,52 +1132,58 @@ class SyncOEpyPhotometrySession:
         sst, frequency, power, global_ws = OE.Calculate_wavelet(ref_data, lowpassCutoff=100, Fs=self.fs, scale=40)
         OE.plot_wavelet(ax[3], sst, frequency, power, Fs=self.fs, colorBar=False, logbase=False)
     
-        # LFP (to mV) + wavelet
-        lfp_data = lfp_data / 1000
-        OE.plot_trace_in_seconds_ax(ax[4], lfp_data, self.fs, label='LFP',
-                                    color=sns.color_palette("husl", 8)[5],
-                                    ylabel='mV', xlabel=False)
-        sst, frequency, power, global_ws = OE.Calculate_wavelet(lfp_data, lowpassCutoff=500, Fs=self.fs, scale=40)
+        # NEW: z_smooth trace + wavelet
+        OE.plot_trace_in_seconds_ax(ax[4], z_data, self.fs, label='z_smooth',
+                                    color=sns.color_palette("husl", 8)[2],
+                                    ylabel='z-score', xlabel=False)
+        sst, frequency, power, global_ws = OE.Calculate_wavelet(z_data, lowpassCutoff=100, Fs=self.fs, scale=40)
         OE.plot_wavelet(ax[5], sst, frequency, power, Fs=self.fs, colorBar=False, logbase=False)
     
+        # LFP (to mV) + wavelet
+        lfp_mv = lfp_data / 1000.0
+        OE.plot_trace_in_seconds_ax(ax[6], lfp_mv, self.fs, label='LFP',
+                                    color=sns.color_palette("husl", 8)[5],
+                                    ylabel='mV', xlabel=False)
+        sst, frequency, power, global_ws = OE.Calculate_wavelet(lfp_mv, lowpassCutoff=500, Fs=self.fs, scale=40)
+        OE.plot_wavelet(ax[7], sst, frequency, power, Fs=self.fs, colorBar=False, logbase=False)
+    
         # wavelet y-lims
-        ax[1].set_ylim(0, 20)
-        ax[3].set_ylim(0, 20)
-        ax[5].set_ylim(0, 20)
+        for wl_ax in (ax[1], ax[3], ax[5], ax[7]):
+            wl_ax.set_ylim(0, 20)
     
         # axis cosmetics
-        ax[5].set_xlabel('Time (seconds)', fontsize=label_fs)
+        ax[7].set_xlabel('Time (seconds)', fontsize=label_fs)
     
         # legends off (keep, but scale if you ever show them)
-        leg = ax[0].legend();  leg.set_visible(False)
-        leg = ax[2].legend();  leg.set_visible(False)
+        for i in (0, 2, 4, 6):
+            leg = ax[i].legend()
+            leg.set_visible(False)
     
         # remove spines on wavelets
-        for a in (ax[1], ax[3]):
-            a.spines['top'].set_visible(False)
-            a.spines['right'].set_visible(False)
-            a.spines['bottom'].set_visible(False)
-            a.spines['left'].set_visible(False)
+        for wl_ax in (ax[1], ax[3], ax[5], ax[7]):
+            wl_ax.spines['top'].set_visible(False)
+            wl_ax.spines['right'].set_visible(False)
+            wl_ax.spines['bottom'].set_visible(False)
+            wl_ax.spines['left'].set_visible(False)
     
-        # hide x-ticks/labels where requested
-        ax[2].spines['bottom'].set_visible(False)
-        ax[1].set_xticks([]); ax[1].set_xlabel('')
-        ax[2].set_xticks([]); ax[2].set_xlabel('')
+        # hide x-ticks/labels where requested (all but bottom-most wavelet)
+        for a in (ax[1], ax[2], ax[3], ax[4], ax[5], ax[6]):
+            a.set_xticks([])
+            a.set_xlabel('')
     
-        # --- NEW: scale fonts everywhere ---------------------------------------
+        # --- scale fonts everywhere ----------------------------------------------
         for a in ax:
-            # keep existing labels but enlarge
             if a.get_ylabel():
                 a.set_ylabel(a.get_ylabel(), fontsize=label_fs)
             a.tick_params(axis='both', labelsize=tick_fs, width=1.2)
     
-        # --- OPTIONAL: exactly five x-ticks on bottom axis ---------------------
+        # --- OPTIONAL: exactly five x-ticks on bottom axis -----------------------
         if five_xticks:
-            lo, hi = ax[5].get_xlim()
+            lo, hi = ax[7].get_xlim()
             ticks = np.linspace(lo, hi, 5)
             ticks[np.isclose(ticks, 0.0)] = 0.0  # avoid -0.00
-            ax[5].set_xticks(ticks)
-            ax[5].set_xticklabels([f"{t:.2f}" for t in ticks], fontsize=tick_fs)
+            ax[7].set_xticks(ticks)
+            ax[7].set_xticklabels([f"{t:.2f}" for t in ticks], fontsize=tick_fs)
     
         # save
         makefigure_path = os.path.join(self.savepath, 'makefigure')
@@ -1175,7 +1192,7 @@ class SyncOEpyPhotometrySession:
         fig.savefig(output_path, bbox_inches='tight', pad_inches=0, transparent=True, dpi=300)
         plt.show()
         return -1
-    
+
     def Label_REM_sleep (self,LFP_channel):
         lfp_data=self.Ephys_tracking_spad_aligned[LFP_channel]/1000
         timestamps=self.Ephys_tracking_spad_aligned['timestamps'].copy()
@@ -1263,23 +1280,23 @@ class SyncOEpyPhotometrySession:
             #self.plot_lowpass_two_trace (self.non_theta_part, LFP_channel,SPAD_cutoff=20,lfp_cutoff=20)
         return -1
     
-    def plot_theta_correlation(self,theta_part,LFP_channel,save_path=None):
+    def plot_theta_correlation(self,theta_part,LFP_channel,save_path=None,optical_channel='zscore_raw'):
         silced_recording=theta_part
         #silced_recording=self.Ephys_tracking_spad_aligned
         silced_recording=silced_recording.reset_index(drop=True)
         #print (silced_recording.index)
-        silced_recording['theta_angle']=OE.calculate_theta_phase_angle(silced_recording[LFP_channel], theta_low=5, theta_high=12) #range 5 to 9
+        silced_recording['theta_angle']=OE.calculate_theta_phase_angle(silced_recording[LFP_channel], theta_low=4, theta_high=12) #range 5 to 9
         OE.plot_trace_in_seconds(silced_recording['theta_angle'],Fs=10000,title='theta angle')
         trough_index,peak_index = OE.calculate_theta_trough_index(silced_recording,Fs=10000)
         #print (trough_index)
-        fig=OE.plot_theta_cycle (silced_recording, LFP_channel,trough_index,half_window=0.15,fs=10000,plotmode='two')
-        fig1,fig2=OE.plot_zscore_to_theta_phase (silced_recording['theta_angle'],silced_recording['zscore_raw'])
+        fig=OE.plot_theta_cycle (silced_recording, LFP_channel,trough_index,half_window=0.15,fs=10000,optical_channel=optical_channel)
+        #fig1,fig2=OE.plot_zscore_to_theta_phase (silced_recording['theta_angle'],silced_recording['zscore_raw'])
         #OE.calculate_perferred_phase(silced_recording['theta_angle'],silced_recording['zscore_raw'])
         
         fig4,MI, bin_centers, prop=OE.compute_optical_event_on_phase(silced_recording['theta_angle'], 
-                                    silced_recording['zscore_raw'], bins=30, distance=10,plot=True)
+                                    silced_recording[optical_channel], bins=30, distance=10,plot=True)
         OE.compute_optical_phase_preference(silced_recording['theta_angle'],
-                                     silced_recording['zscore_raw'],bins=30,
+                                     silced_recording[optical_channel],bins=30,
                                      height_factor=3.0,
                                      distance=20,
                                      prominence=None,
@@ -1287,18 +1304,15 @@ class SyncOEpyPhotometrySession:
                                      alpha=0.01,
                                      use_event_indices=None,
                                      plot=True)
-        
 
-        OE.run_phase_modulation_analysis(silced_recording['theta_angle'],
-                                         silced_recording['zscore_raw'], bins=30, n_perm=2000)
+        # OE.run_phase_modulation_analysis(silced_recording['theta_angle'],
+        #                                  silced_recording[optical_channel], bins=30, n_perm=2000)
         
         if save_path:
             fig_path = os.path.join(save_path,'LFP_GEVI_average.png')
             fig.savefig(fig_path, transparent=True)
-            
-            fig_path = os.path.join(save_path,'zscore_theta_phase.png')
-            fig2.savefig(fig_path, transparent=True)
-            
+            # fig_path = os.path.join(save_path,'zscore_theta_phase.png')
+            # fig2.savefig(fig_path, transparent=True)
             fig_path = os.path.join(save_path,'Phase modulation depth.png')
             fig4.savefig(fig_path, transparent=True)
             

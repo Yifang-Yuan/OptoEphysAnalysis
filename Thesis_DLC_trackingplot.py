@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 
 # --------- Config ---------
 csv_path = r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\Day1\BehaviourDLC/AnimalVideo_4DLC_Resnet50_OpenfieldAug9shuffle1_detector_150_snapshot_100_filtered.csv"
+#csv_path = r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\Day1\BehaviourDLC/AnimalVideo_4DLC_Resnet50_OpenfieldAug9shuffle1_detector_150_snapshot_100.csv"
 bodypart = "shoulder"  # case-insensitive
 bodypartname = "neck" 
 # --------------

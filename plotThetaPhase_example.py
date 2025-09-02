@@ -188,20 +188,20 @@ def run_theta_cycle_plot (dpath,LFP_channel,recordingName,savename,theta_low_thr
     trough_index_LFP,peak_index_LFP = calculate_theta_trough_index(theta_part,LFP_channel,Fs=10000)
     trough_index_optical,peak_index_optical = calculate_theta_trough_index(theta_part,'zscore_raw',Fs=10000)
     
-    for i in range(9):
-        plot_theta_traces(theta_part, LFP_channel, start_time=i*3, end_time=i*3+3, fs=10000)
-        
+    # for i in range(7):
+    #     plot_theta_traces(theta_part, LFP_channel, start_time=i*3, end_time=i*3+3, fs=10000)
+    plot_theta_traces(theta_part, LFP_channel, start_time=15, end_time=18, fs=10000)  
     plot_zscore_peaks_on_LFP_phase(theta_part, fs=10000, wrap_cycles=2)
     return theta_part
 
 #%%
 'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
    
-dpath=r'G:\2025_ATLAS_SPAD\PVCre\1842515_PV_mNeon\Day7'
+dpath=r'G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\Day2'
 
-recordingName='SyncRecording3'
+recordingName='SyncRecording4'
 
 savename='ThetaSave_Move'
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-LFP_channel='LFP_1'
+LFP_channel='LFP_2'
 theta_part=run_theta_cycle_plot (dpath,LFP_channel,recordingName,savename,theta_low_thres=-0.7) #-0.3

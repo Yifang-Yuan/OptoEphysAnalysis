@@ -4,8 +4,6 @@ Created on Wed Oct 23 12:16:51 2024
 
 @author: Yifang
 """
-
-import pandas as pd
 from SyncOECPySessionClass import SyncOEpyPhotometrySession
 import OpenEphysTools as OE
 import numpy as np
@@ -13,7 +11,6 @@ import os
 import pickle
 import matplotlib.pyplot as plt
 import seaborn as sns
-import glob
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib import cm
 
@@ -332,13 +329,13 @@ def run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low
 def run_theta_plot_main():
     'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
    
-    dpath=r'G:\2025_ATLAS_SPAD\PVCre\1887930_PV_mNeon_mCherry\Day5'
+    dpath=r'G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\Day2'
     recordingName='SyncRecording4'
     theta_low_thres=-0.3
 
     savename='ThetaSave_Move'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-    LFP_channel='LFP_4'
+    LFP_channel='LFP_2'
     run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low_thres) #-0.3
 
 def main():    

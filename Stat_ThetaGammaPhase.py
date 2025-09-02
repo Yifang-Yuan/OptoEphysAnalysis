@@ -246,7 +246,7 @@ def plot_with_no_stat_bars():
     plt.tight_layout()
     
     plt.show()
-#%%
+
 from scipy.stats import mannwhitneyu
 
 def p_to_asterisks(p):
@@ -274,7 +274,7 @@ def add_all_pairwise_bars(ax, positions, data_list, pairs, pvals,
     ax.set_ylim(y0, base + len(pairs) * gap + h + span * 0.02)
 
 
-#%%
+
 # --- helpers for plotting circular data on a linear axis ---
 def wrap_angles_for_plot(phi_rad, ref_rad=0.0, deg_range=(-180.0, 180.0)):
     """

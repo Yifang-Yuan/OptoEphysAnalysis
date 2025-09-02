@@ -3,14 +3,9 @@
 Created on Mon Aug 26 19:36:48 2024
 @author: Yifang
 """
-import pandas as pd
 from SyncOECPySessionClass import SyncOEpyPhotometrySession
 import OpenEphysTools as OE
-import numpy as np
-import os
-import pickle
-from SPADPhotometryAnalysis import SPADAnalysisTools as OpticalAnlaysis
-import matplotlib.pyplot as plt
+
 
 def plot_GEVI_theta_correlation(SyncRecordingObject):
     df=SyncRecordingObject.Ephys_tracking_spad_aligned
@@ -27,9 +22,9 @@ def plot_GEVI_theta_correlation(SyncRecordingObject):
 '''recordingMode: use py, Atlas, SPAD for different systems
 '''
 #dpath= 'F:/2025_ATLAS_SPAD/1887930_PV_mNeon_mCherry/Day4/'
-dpath= r'G:\2025_ATLAS_SPAD\PVCre\1842516_PV_Jedi2p\Day1'
-recordingName='SyncRecording2'
-LFP_channel='LFP_4'
+dpath= r'G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\Day2'
+recordingName='SyncRecording5'
+LFP_channel='LFP_3'
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,
                                      recordingMode='Atlas',indicator='GEVI') 
 
@@ -46,9 +41,9 @@ viewNum=9 #the number of segments
 for i in range(viewNum):
     #Recording1.plot_segment_feature (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=100,lfp_cutoff=500)
     'This is to plot two optical traces from two ROIs, i.e. one signal and one reference'
-    #Recording1.plot_segment_feature_multiROI (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=500)
+    Recording1.plot_segment_feature_multiROI (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=100,lfp_cutoff=500)
     #Recording1.plot_segment_band_feature_twoROIs (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=500)
-    Recording1.plot_segment_feature (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=100)
+    #Recording1.plot_segment_feature (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=100)
     #Recording1.plot_freq_power_coherence (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=200)
 
 #%%
