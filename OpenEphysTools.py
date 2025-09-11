@@ -205,7 +205,7 @@ def Atlas_sync_mask (Atlas_Sync, start_lim, end_lim,recordingTime=30):
     
     Atlas_mask=np.zeros(len(Atlas_Sync),dtype=int)
     #peak_index = np.argmax(Atlas_Sync > 25000)
-    peak_indices = np.argwhere(Atlas_Sync < -24000).flatten() #> 25000
+    peak_indices = np.argwhere(Atlas_Sync > 25000).flatten() #> 25000
     peak_index=peak_indices[-1]
     #print ('peak_indices', peak_indices)
     print ('peak_index', peak_index)
@@ -267,6 +267,8 @@ def save_open_ephys_data (dpath, data):
     filepath=os.path.join(dpath, "open_ephys_read_pd.pkl")
     data.to_pickle(filepath)
     return -1
+
+from fractions import Fraction
 
 def resample_signal(signal_df, original_fs, target_fs, *, start_at_zero=True, max_den=1_000_000):
     """

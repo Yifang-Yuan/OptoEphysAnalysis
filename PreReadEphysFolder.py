@@ -138,7 +138,7 @@ def main():
     Fs_atlas=1682.92
     recordingTime=Frame_num/Fs_atlas
     
-    save_parent_folder=r'G:\2025_ATLAS_SPAD\CB\1910567_Jedi2p_CB\Day2'
+    save_parent_folder=r'G:\2025_ATLAS_SPAD\CB\1881363_Jedi2p_CB\Day1Test'
     read_multiple_Ephys_data_in_folder(save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
 
     

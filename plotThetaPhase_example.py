@@ -84,7 +84,7 @@ def plot_theta_traces(theta_part, LFP_channel, start_time, end_time, fs=10000):
     peak_t_optical = peak_idx_optical / fs
 
     # Start plotting
-    fig, axes = plt.subplots(4, 1, figsize=(12, 8), sharex=True)
+    fig, axes = plt.subplots(4, 1, figsize=(22, 8), sharex=True)
 
     # Remove all subplot frames & set tick label size
     for ax in axes:
@@ -92,18 +92,18 @@ def plot_theta_traces(theta_part, LFP_channel, start_time, end_time, fs=10000):
         ax.spines['right'].set_visible(False)
         ax.spines['left'].set_visible(False)
         ax.spines['bottom'].set_visible(False)
-        ax.tick_params(axis='both', which='both', labelsize=14)  # enlarge tick labels
+        ax.tick_params(axis='both', which='both', labelsize=18)  # enlarge tick labels
 
     # 1. Raw LFP trace
     axes[0].plot(t, segment[LFP_channel], color='black')
-    axes[0].set_ylabel(LFP_channel, fontsize=16)
-    axes[0].set_title('LFP trace', fontsize=18)
+    axes[0].set_ylabel(LFP_channel, fontsize=20)
+    axes[0].set_title('LFP trace', fontsize=20)
 
     # 2. zscore_raw
     zscore_lowpass = OE.smooth_signal(segment['zscore_raw'], fs, 100, window='flat')
     axes[1].plot(t, zscore_lowpass, color='green')
-    axes[1].set_ylabel('zscore', fontsize=16)
-    axes[1].set_title('GEVI Signal', fontsize=18)
+    axes[1].set_ylabel('zscore', fontsize=20)
+    axes[1].set_title('GEVI Signal', fontsize=20)
 
     # 3. Filtered LFP + LFP peaks + zscore peaks as dots
     axes[2].plot(t, filtered_LFP, color='black', label='Filtered LFP')
@@ -113,17 +113,17 @@ def plot_theta_traces(theta_part, LFP_channel, start_time, end_time, fs=10000):
     # Overlay optical theta peaks as dots
     dot_y = np.interp(peak_t_optical, t, filtered_LFP)
     axes[2].scatter(peak_t_optical, dot_y, color='green', marker='o', s=40, label='zscore peaks')
-    axes[2].set_ylabel('LFP theta', fontsize=16)
-    axes[2].set_title('LFP Theta band + Optical Peaks', fontsize=18)
+    axes[2].set_ylabel('LFP theta', fontsize=20)
+    axes[2].set_title('LFP Theta band + Optical Peaks', fontsize=20)
 
     # 4. Filtered zscore + optical peaks
     axes[3].plot(t, filtered_zscore, color='green')
     for pt in peak_t_optical:
         if start_time <= pt <= end_time:
             axes[3].axvline(x=pt, color='red', linestyle='--', alpha=0.6)
-    axes[3].set_ylabel('zscore theta', fontsize=16)
-    axes[3].set_title('GEVI theta band', fontsize=18)
-    axes[3].set_xlabel('Time (s)', fontsize=16)
+    axes[3].set_ylabel('zscore theta', fontsize=20)
+    axes[3].set_title('GEVI theta band', fontsize=20)
+    axes[3].set_xlabel('Time (s)', fontsize=20)
 
     plt.tight_layout()
     plt.show()
@@ -190,18 +190,18 @@ def run_theta_cycle_plot (dpath,LFP_channel,recordingName,savename,theta_low_thr
     
     # for i in range(7):
     #     plot_theta_traces(theta_part, LFP_channel, start_time=i*3, end_time=i*3+3, fs=10000)
-    plot_theta_traces(theta_part, LFP_channel, start_time=15, end_time=18, fs=10000)  
+    plot_theta_traces(theta_part, LFP_channel, start_time=6, end_time=12, fs=10000)  
     plot_zscore_peaks_on_LFP_phase(theta_part, fs=10000, wrap_cycles=2)
     return theta_part
 
 #%%
 'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
    
-dpath=r'G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\Day2'
+dpath=r'G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ALocomotion'
+recordingName='SyncRecording7'
 
-recordingName='SyncRecording4'
 
 savename='ThetaSave_Move'
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-LFP_channel='LFP_2'
+LFP_channel='LFP_1'
 theta_part=run_theta_cycle_plot (dpath,LFP_channel,recordingName,savename,theta_low_thres=-0.7) #-0.3

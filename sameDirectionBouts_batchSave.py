@@ -22,8 +22,8 @@ import matplotlib.pyplot as plt
 #====================
 # USER CONFIG
 #====================
-PARENT_DIR = r"G:\2025_ATLAS_SPAD\PVCre\1842515_PV_mNeon\aLocomotion2"
-SAVE_ROOT  = r"G:\2025_ATLAS_SPAD\PVCre\1842515_PV_mNeon\aLocomotion2\same_direction_outputs"
+PARENT_DIR = r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ALocomotion"
+SAVE_ROOT  = r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ALocomotion\same_direction_outputs"
 
 LFP_CHANNEL = "LFP_1"
 HEAD_X, HEAD_Y = "head_x", "head_y"

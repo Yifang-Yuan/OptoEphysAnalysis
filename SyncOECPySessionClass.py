@@ -362,17 +362,17 @@ class SyncOEpyPhotometrySession:
         self.ephys_resampled = OE.resample_signal(self.Ephys_sync_data, original_fs, self.fs)
         return self.ephys_resampled
 
-    def resample_photometry (self):
-        time_interval_common = 1.0 / self.fs
-        self.py_resampled = self.photometry_sync_data.resample(f'{time_interval_common:.9f}S').mean()
-        self.py_resampled = self.py_resampled.fillna(method='bfill')
-        return self.py_resampled
+    # def resample_photometry (self):
+    #     time_interval_common = 1.0 / self.fs
+    #     self.py_resampled = self.photometry_sync_data.resample(f'{time_interval_common:.9f}S').mean()
+    #     self.py_resampled = self.py_resampled.fillna(method='bfill')
+    #     return self.py_resampled
     
-    def resample_ephys (self):
-        time_interval_common = 1.0 / self.fs
-        self.ephys_resampled = self.Ephys_sync_data.resample(f'{time_interval_common:.9f}S').mean()
-        self.ephys_resampled = self.ephys_resampled.interpolate()
-        return self.ephys_resampled                     
+    # def resample_ephys (self):
+    #     time_interval_common = 1.0 / self.fs
+    #     self.ephys_resampled = self.Ephys_sync_data.resample(f'{time_interval_common:.9f}S').mean()
+    #     self.ephys_resampled = self.ephys_resampled.interpolate()
+    #     return self.ephys_resampled                     
     
     def slice_to_align_with_min_len (self):
         'This is important with different sampling rate, the calculated durations might have a ~10ms difference.'

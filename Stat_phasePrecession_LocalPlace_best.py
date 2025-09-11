@@ -33,7 +33,7 @@ from scipy.stats import linregress
 # =========================
 # CONFIG (adjust if needed)
 # =========================
-SAVE_ROOT = r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\OpenField_DLCtracking\same_direction_outputs"
+SAVE_ROOT = r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ALocomotion\same_direction_outputs"
 LFP_CHANNEL = "LFP_1"
 THETA_LOW, THETA_HIGH = 4, 9
 FS = 10_000

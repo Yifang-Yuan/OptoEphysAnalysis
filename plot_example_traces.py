@@ -43,7 +43,7 @@ for i in range(viewNum):
     'This is to plot two optical traces from two ROIs, i.e. one signal and one reference'
     Recording1.plot_segment_feature_multiROI (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=100,lfp_cutoff=500)
     #Recording1.plot_segment_band_feature_twoROIs (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=500)
-    #Recording1.plot_segment_feature (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=100)
+    Recording1.plot_segment_feature (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=100)
     #Recording1.plot_freq_power_coherence (LFP_channel,start_time=timewindow*i,end_time=timewindow*(i+1),SPAD_cutoff=50,lfp_cutoff=200)
 
 #%%
