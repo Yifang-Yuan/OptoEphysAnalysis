@@ -14,12 +14,12 @@ from scipy.stats import kruskal, mannwhitneyu
 
 # =============== CONFIG: set your three folders =================
 'THETA modulation'
-locomotion_dir = Path(r"G:\2025_ATLAS_SPAD\PVCre\1842515_PV_mNeon\aLocomotion2\ThetaPhase_Save")
-awake_dir      = Path(r"G:\2025_ATLAS_SPAD\PVCre\1842515_PV_mNeon\AwakeStationary\ThetaPhase_Save")  # e.g. folder containing AwakeStationary_trial*.pkl.gz
-rem_dir        = Path(r"G:\2025_ATLAS_SPAD\PVCre\1842515_PV_mNeon\Asleep\ThetaPhase_Save")
+locomotion_dir = Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\ALocomotion\ThetaPhase_Save")
+awake_dir      = Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\AwakeStationaryTheta\ThetaPhase_Save")  # e.g. folder containing AwakeStationary_trial*.pkl.gz
+rem_dir        = Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\ASleepREM\ThetaPhase_Save")
 
 'GAMMA modulation'
-# locomotion_dir = Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\OpenField_DLCtracking\GammaPhase_Save")
+# locomotion_dir = Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ALocomotion\GammaPhase_Save")
 # awake_dir      = Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\AwakeStationary\GammaPhase_Save")  # e.g. folder containing AwakeStationary_trial*.pkl.gz
 # rem_dir        = Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ASleep\GammaPhase_Save")
 

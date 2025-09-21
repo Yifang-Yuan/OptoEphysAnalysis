@@ -4,94 +4,88 @@ Created on Tue Aug 19 16:28:18 2025
 
 @author: yifan
 """
-import numpy as np
+
 import pandas as pd
 import gzip, pickle
 from pathlib import Path
 import matplotlib.pyplot as plt
 from scipy.stats import kruskal, mannwhitneyu
-
-'THETA modulation'
-# ====== Multi-animal, multi-state phase/R aggregation & stats ======
 import numpy as np, pandas as pd, gzip, pickle, os
-from pathlib import Path
-import matplotlib.pyplot as plt
-from scipy.stats import kruskal, mannwhitneyu
+# ====== Multi-animal, multi-state phase/R aggregation & stats ======
 
 # ---------- 1) Tell us where each animal's state folders are ----------
 # Use ANY subset you have; missing states are ok (they'll be skipped).
 'THETA ANALYSIS'
-# ANIMALS = {
-#     # animal_id : { "Locomotion": Path(...), "Awake-stationary": Path(...), "REM": Path(...)}
-#     "1765508": {
-#         "Locomotion": Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ALocomotion\ThetaPhase_Save"),
-#         "Awake-stationary": Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\AwakeStationary\ThetaPhase_Save"),
-#         "REM": Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ASleepREM\ThetaPhase_Save"),
-#     },
-#     "1844609": {
-#         "Locomotion": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\ALocomotion\ThetaPhase_Save"),
-#         "Awake-stationary": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\AwakeStationaryTheta\ThetaPhase_Save"),
-#         "REM": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\ASleepREM\ThetaPhase_Save"),
-#     },
-#     "1881363": {
-#         "Locomotion": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\ALocomotion\ThetaPhase_Save"),
-#         "Awake-stationary": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\AwakeStationaryTheta\ThetaPhase_Save"),
-#         "REM": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\ASleepREM\ThetaPhase_Save"),
-#     },
-#     "1851545": {
-#         "Locomotion": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1851545_WT_Jedi2p_dis\ALocomotion\ThetaPhase_Save"),
-#         # no Awake-stationary listed
-#         # no REM listed
-#     },
-#     "1881365": {
-#         # note: your pasted path had a trailing 'e' in 'Savee'; fix if needed
-#         "Awake-stationary": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881365_Jedi2p_mCherry\AwakeStationaryTheta\ThetaPhase_Save"),
-#         "REM": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881365_Jedi2p_mCherry\ASleepREM\ThetaPhase_Save"),
-#     },
-#     "1887933": {
-#         # You listed a REM path that points to AwakeStationaryTheta; fix here if needed.
-#         "Awake-stationary": Path(r"G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\AwakeStationaryTheta\ThetaPhase_Save"),
-#         "REM": Path(r"G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\ASleepREM\ThetaPhase_Save"),
-#         "Locomotion": Path(r"G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\ALocomotion\ThetaPhase_Save")
-#         # "REM": Path(r"...\ASleepREM\ThetaPhase_Save")  # add if present
-#     },
-# }
-
 ANIMALS = {
     # animal_id : { "Locomotion": Path(...), "Awake-stationary": Path(...), "REM": Path(...)}
     "1765508": {
-        "Locomotion": Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ALocomotion\GammaPhase_Save"),
-        "Awake-stationary": Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\AwakeStationary\GammaPhase_Save"),
-        "REM": Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ASleepREM\GammaPhase_Save"),
+        "Locomotion": Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ALocomotion\ThetaPhase_Save"),
+        "Awake-stationary": Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\AwakeStationary\ThetaPhase_Save"),
+        "REM": Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ASleepREM\ThetaPhase_Save"),
     },
     "1844609": {
-        "Locomotion": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\ALocomotion\GammaPhase_Save"),
-        "Awake-stationary": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\AwakeStationaryTheta\GammaPhase_Save"),
-        "REM": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\ASleepREM\GammaPhase_Save"),
+        "Locomotion": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\ALocomotion\ThetaPhase_Save"),
+        "Awake-stationary": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\AwakeStationaryTheta\ThetaPhase_Save"),
+        "REM": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\ASleepREM\ThetaPhase_Save"),
     },
     "1881363": {
-        "Locomotion": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\ALocomotion\GammaPhase_Save"),
-        "Awake-stationary": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\AwakeStationaryTheta\GammaPhase_Save"),
-        "REM": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\ASleepREM\GammaPhase_Save"),
+        "Locomotion": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\ALocomotion\ThetaPhase_Save"),
+        "Awake-stationary": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\AwakeStationaryTheta\ThetaPhase_Save"),
+        "REM": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\ASleepREM\ThetaPhase_Save"),
     },
     "1851545": {
-        "Locomotion": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1851545_WT_Jedi2p_dis\ALocomotion\GammaPhase_Save"),
+        "Locomotion": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1851545_WT_Jedi2p_dis\ALocomotion\ThetaPhase_Save"),
         # no Awake-stationary listed
         # no REM listed
     },
     "1881365": {
         # note: your pasted path had a trailing 'e' in 'Savee'; fix if needed
-        "Awake-stationary": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881365_Jedi2p_mCherry\AwakeStationaryTheta\GammaPhase_Save"),
-        "REM": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881365_Jedi2p_mCherry\ASleepREM\GammaPhase_Save"),
+        "Awake-stationary": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881365_Jedi2p_mCherry\AwakeStationaryTheta\ThetaPhase_Save"),
+        "REM": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881365_Jedi2p_mCherry\ASleepREM\ThetaPhase_Save"),
     },
     "1887933": {
         # You listed a REM path that points to AwakeStationaryTheta; fix here if needed.
-        "Awake-stationary": Path(r"G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\AwakeStationaryTheta\GammaPhase_Save"),
-        "REM": Path(r"G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\ASleepREM\GammaPhase_Save"),
-        "Locomotion": Path(r"G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\ALocomotion\GammaPhase_Save")
-        # "REM": Path(r"...\ASleepREM\ThetaPhase_Save")  # add if present
+        "Awake-stationary": Path(r"G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\AwakeStationaryTheta\ThetaPhase_Save"),
+        "REM": Path(r"G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\ASleepREM\ThetaPhase_Save"),
+        "Locomotion": Path(r"G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\ALocomotion\ThetaPhase_Save")
     },
 }
+
+# ANIMALS = {
+#     # animal_id : { "Locomotion": Path(...), "Awake-stationary": Path(...), "REM": Path(...)}
+#     "1765508": {
+#         "Locomotion": Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ALocomotion\GammaPhase_Save"),
+#         "Awake-stationary": Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\AwakeStationary\GammaPhase_Save"),
+#         "REM": Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ASleepREM\GammaPhase_Save"),
+#     },
+#     "1844609": {
+#         "Locomotion": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\ALocomotion\GammaPhase_Save"),
+#         "Awake-stationary": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\AwakeStationaryTheta\GammaPhase_Save"),
+#         "REM": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\ASleepREM\GammaPhase_Save"),
+#     },
+#     "1881363": {
+#         "Locomotion": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\ALocomotion\GammaPhase_Save"),
+#         "Awake-stationary": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\AwakeStationaryTheta\GammaPhase_Save"),
+#         "REM": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\ASleepREM\GammaPhase_Save"),
+#     },
+#     "1851545": {
+#         "Locomotion": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1851545_WT_Jedi2p_dis\ALocomotion\GammaPhase_Save"),
+#         # no Awake-stationary listed
+#         # no REM listed
+#     },
+#     "1881365": {
+#         # note: your pasted path had a trailing 'e' in 'Savee'; fix if needed
+#         "Awake-stationary": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881365_Jedi2p_mCherry\AwakeStationaryTheta\GammaPhase_Save"),
+#         "REM": Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881365_Jedi2p_mCherry\ASleepREM\GammaPhase_Save"),
+#     },
+#     "1887933": {
+#         # You listed a REM path that points to AwakeStationaryTheta; fix here if needed.
+#         "Awake-stationary": Path(r"G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\AwakeStationaryTheta\GammaPhase_Save"),
+#         "REM": Path(r"G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\ASleepREM\GammaPhase_Save"),
+#         "Locomotion": Path(r"G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\ALocomotion\GammaPhase_Save")
+#         # "REM": Path(r"...\ASleepREM\ThetaPhase_Save")  # add if present
+#     },
+# }
 
 
 # ---------- 2) Helpers ----------

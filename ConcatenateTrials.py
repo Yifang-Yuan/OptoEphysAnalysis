@@ -46,10 +46,10 @@ def ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile
 
 def main():
     'Specify the session and trial indice you want to concatenate'
-    parent_folder=r'G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\Day2'
+    parent_folder=r'G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ASleepNonREM'
     
     ConcatenateTrial (parent_folder,TargetfolderName='SyncRecording', targetFile='Ephys_tracking_photometry_aligned.pkl',
-                                                        StartTrialIdx=2, EndTrialIdx=4, trialTag='2to4')
+                                                        StartTrialIdx=1, EndTrialIdx=9, trialTag='1to9')
     
 
 if __name__ == "__main__":

@@ -131,6 +131,7 @@ def plot_ripple_heatmap(ripple_band_lfps, lfps, zscores, Fs=10000):
     # Heatmap of LFPs
     sns.heatmap(lfps, cmap="viridis", ax=axs[3], cbar=False)
     axs[3].set_ylabel('Epoch Number', fontsize=16)
+    axs[2].tick_params(axis='x', labelsize=14)
     axs[3].tick_params(axis='both', labelsize=12)
     axs[3].tick_params(labelbottom=False, bottom=False)
     axs[3].tick_params(axis='y', labelrotation=0)        # <- keep y-labels horizontal
@@ -606,7 +607,7 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,theta_cutoff=0.5):
     For a rigid threshold to get larger amplitude ripple events: Low_thres=3, for more ripple events, Low_thres=1'''
     rip_ep,rip_tsd=Recording1.pynappleAnalysis (lfp_channel=LFP_channel,
                                                 ep_start=0,ep_end=20,
-                                                Low_thres=1.2,High_thres=10,
+                                                Low_thres=1.5,High_thres=10,
                                                 plot_segment=False,plot_ripple_ep=False,excludeTheta=True)
     'GEVI has a negative'
     index = LFP_channel.split('_')[-1] 
@@ -651,13 +652,13 @@ def run_ripple_plot (dpath,LFP_channel,recordingName,savename,theta_cutoff=0.5):
 
 def run_ripple_plot_main():
     'This is to process a single or concatenated rial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
-    dpath=r'G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\Day5'
-    recordingName='SyncRecording11'
+    dpath=r'G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ASleepNonREM'
+    recordingName='Saved1to9Trials'
 
     savename='RippleSave'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-    LFP_channel='LFP_2'
-    run_ripple_plot (dpath,LFP_channel,recordingName,savename,theta_cutoff=0.5)
+    LFP_channel='LFP_1'
+    run_ripple_plot (dpath,LFP_channel,recordingName,savename,theta_cutoff=0.1) 
 
 def main():    
     run_ripple_plot_main()

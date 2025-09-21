@@ -40,7 +40,7 @@ SPEED_SCALE_TO_CM_S = 1.0      # set 0.1 if your column is mm/s
 SPEED_SMOOTH_WINDOW_S = 0.20
 
 # theta band
-THETA_LOW, THETA_HIGH = 4, 9
+THETA_LOW, THETA_HIGH = 4, 12
 
 SMOOTH_WINDOW_S = 0.2
 

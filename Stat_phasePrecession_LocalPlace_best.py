@@ -35,7 +35,7 @@ from scipy.stats import linregress
 # =========================
 SAVE_ROOT = r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ALocomotion\same_direction_outputs"
 LFP_CHANNEL = "LFP_1"
-THETA_LOW, THETA_HIGH = 4, 9
+THETA_LOW, THETA_HIGH = 4, 12
 FS = 10_000
 
 # tracking columns for position (shoulder as requested)
@@ -44,16 +44,16 @@ POS_SCALE_TO_CM = 1.0   # set to 0.1 if your x/y are mm; set to px->cm if pixels
 
 # Local-heading segmentation
 HEADING_SMOOTH_S   = 0.15    # SavGol smoothing of heading (s)
-TURN_THRESH_DEG    = 20.0    # start a new local axis when |heading - segment_mean| > this
-MIN_SEG_DUR_S      = 0.30    # drop tiny local segments (< this duration)
+TURN_THRESH_DEG    = 60.0    # start a new local axis when |heading - segment_mean| > this
+MIN_SEG_DUR_S      = 0.50    # drop tiny local segments (< this duration)
 
 # Optical-peak detection around π with a refractory
 OPT_PEAK_HALFWIDTH = 0.30    # rad (≈17°)
 OPT_PEAK_REFRACT_S = 0.08    # 80 ms
 
 # Statistics
-MIN_PEAKS          = 5       # skip bouts with too few peaks
-N_EXAMPLES         = 8       # per-bout example scatters
+MIN_PEAKS          = 3       # skip bouts with too few peaks
+N_EXAMPLES         = 20       # per-bout example scatters
 N_PERM             = 2000    # permutations for slope p-value
 
 # =========================
@@ -153,6 +153,40 @@ def projected_distance_cm_in_segments(seg_df, fs=FS,
         proj[s:e] = seg_proj - seg_proj[0]  # start at 0 for each local segment
     return proj, spans
 
+def plot_bout_scatter_with_fit(seg_id, rec_name, x_cm, phase_rad, slope_deg_cm, p_perm, save_path):
+    # wrap → degrees for display
+    y_deg = (np.degrees(phase_rad) % 360.0)
+    # fit line is computed on UNWRAPPED radians; reconstruct a straight line that matches the cloud:
+    # 1) unwrap for a consistent linear relation
+    y_unw = np.unwrap(phase_rad)
+    m = slope_deg_cm * np.pi/180.0  # back to rad/cm for plotting against unwrapped data
+    # do least-squares intercept on unwrapped data with fixed slope m
+    b = y_unw.mean() - m * x_cm.mean()
+    yfit_unw = m * x_cm + b
+    # fold the fitted line back to [0, 360) so it overlays the cloud nicely
+    yfit_deg = (np.degrees(yfit_unw) % 360.0)
+
+    plt.figure(figsize=(6,4))
+    plt.scatter(x_cm, y_deg, s=22, alpha=0.85, label="peaks")
+    # draw line as a sorted polyline so it’s monotone in x
+    order = np.argsort(x_cm)
+    plt.plot(x_cm[order], yfit_deg[order], lw=2, alpha=0.9, label="fit (unwrapped)")
+    plt.ylim(0, 360)
+    plt.yticks([0,90,180,270,360], fontsize=14)
+    plt.xticks(fontsize=12)
+    plt.xlabel("Projected distance along local axis (mm)", fontsize=14)
+    plt.ylabel("LFP phase at optical peaks (deg)", fontsize=14)
+    #ttl = f"{rec_name} | Bout {seg_id} | slope={slope_deg_cm:.2f}°/cm, p_perm={p_perm:.3g}"
+    rec_id=rec_name[-1]
+    ttl = f"Sweep {rec_id} | Bout {seg_id} | slope={slope_deg_cm:.2f}°/cm, p_perm={p_perm:.3g}"
+    plt.title(ttl, fontsize=14)
+    plt.grid(True, linestyle="--", alpha=0.3)
+    plt.legend(frameon=False, fontsize=14)
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=220, bbox_inches="tight")
+    plt.close()
+
+
 # =========================
 # Statistics
 # =========================
@@ -232,17 +266,22 @@ def slope_perm_p_with_labels(alpha_at_peaks, x_at_peaks, seg_labels, n_perm=N_PE
 def plot_bout_scatter_pos(seg_id, rec_name, x_cm, phase_rad, save_path):
     plt.figure(figsize=(6,4))
     plt.scatter(x_cm, (np.degrees(phase_rad) % 360), s=22, alpha=0.85)
-    plt.ylim(0, 360); plt.yticks([0,90,180,270,360])
-    plt.xlabel("Projected distance along local axis (cm)")
-    plt.ylabel("LFP phase at optical peaks (deg)")
-    plt.title(f"{rec_name} | Bout {seg_id}")
+    plt.ylim(0, 360)
+    plt.yticks([0,90,180,270,360], fontsize=12)
+    plt.xticks(fontsize=14)
+    plt.xlabel("Projected distance along local axis (mm)", fontsize=14)
+    plt.ylabel("LFP phase at optical peaks (deg)", fontsize=14)
+    plt.title(f"{rec_name} | Bout {seg_id}", fontsize=16)
     plt.grid(True, linestyle="--", alpha=0.3)
-    plt.tight_layout(); plt.savefig(save_path, dpi=200, bbox_inches="tight"); plt.close()
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=200, bbox_inches="tight")
+    plt.close()
 
 def plot_pooled_scatter_two_cycles_pos(all_points, save_path, fit_line=True):
     if not all_points: return
     d_norm = np.array([p["d_norm"] for p in all_points])
     phase_deg = np.array([p["phase_deg"] for p in all_points]) % 360.0
+    print(f"Pooled regression sample size n = {len(d_norm)} optical peaks")
 
     # duplicate to two cycles
     d_all = np.concatenate([d_norm, d_norm])
@@ -255,14 +294,22 @@ def plot_pooled_scatter_two_cycles_pos(all_points, save_path, fit_line=True):
         slope_txt = f"{s*180/np.pi:.1f}"; r_txt = f"{r:.2f}"; p_txt = f"{p:.3g}"
 
     plt.figure(figsize=(6,5))
-    plt.scatter(d_all, phase_two, s=10, alpha=0.5)
+    plt.scatter(d_all, phase_two, s=12, alpha=0.5)
     plt.ylim(0, 720)
-    plt.yticks([0,90,180,270,360,450,540,630,720])
-    plt.xlabel("Normalised projected distance (0→1)")
-    plt.ylabel("LFP phase at optical peaks (deg)")
-    plt.title(f"Pooled precession (two cycles) | slope={slope_txt}°/norm, r={r_txt}, p={p_txt}")
+    plt.yticks([0,90,180,270,360,450,540,630,720], fontsize=14)
+    plt.xticks(fontsize=12)
+    plt.xlabel("Normalised projected distance (0→1)", fontsize=14)
+    plt.ylabel("LFP phase at optical peaks (deg)", fontsize=14)
+    plt.title(
+        f"Pooled precession (two cycles)\n"
+        f"slope={slope_txt}°/norm, r={r_txt}, p={p_txt}, n={len(d_norm)}",
+        fontsize=16
+    )
     plt.grid(True, linestyle="--", alpha=0.3)
-    plt.tight_layout(); plt.savefig(save_path, dpi=200, bbox_inches="tight"); plt.close()
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=200, bbox_inches="tight")
+    plt.close()
+
 
 def plot_rho_hist(rhos, save_path):
     plt.figure(figsize=(6,4))
@@ -277,6 +324,10 @@ if __name__ == "__main__":
     stats_dir = os.path.join(SAVE_ROOT, "stats_phase_precession_localaxis")
     os.makedirs(stats_dir, exist_ok=True)
     examples_dir = os.path.join(stats_dir, "examples"); os.makedirs(examples_dir, exist_ok=True)
+    
+    sig_dir = os.path.join(stats_dir, "significant_examples")
+    os.makedirs(sig_dir, exist_ok=True)
+
 
     seg_pkls = glob.glob(os.path.join(SAVE_ROOT, "SyncRecording*", "same_direction_segments.pkl"))
     print(f"Found {len(seg_pkls)} recordings with saved bouts.")
@@ -321,6 +372,13 @@ if __name__ == "__main__":
             slope_deg_cm, r_lin, p_lin = unwrap_slope(lfp_phase_at_peaks, x_proj_at_peaks)
             slope_deg_cm_obs, p_perm = slope_perm_p_with_labels(lfp_phase_at_peaks, x_proj_at_peaks,
                                                                 seg_labels, n_perm=N_PERM)
+            
+            # Save significant bouts with a fit line (default: permutation p<0.05)
+            if p_perm < 0.05:
+                sig_png = os.path.join(sig_dir, f"{rec_name}_bout{seg_id:03d}_SIG.png")
+                plot_bout_scatter_with_fit(seg_id, rec_name,
+                                           x_proj_at_peaks, lfp_phase_at_peaks,
+                                           slope_deg_cm_obs, p_perm, sig_png)
 
             row = {
                 "recording": rec_name,
@@ -373,5 +431,38 @@ if __name__ == "__main__":
 
         sig_perm = (master_df["p_perm_slope_local"] < 0.05).sum()
         print(f"\nPermutation‑significant slopes in {sig_perm}/{len(master_df)} bouts (p_perm<0.05).")
+        sig_perm_mask = master_df["p_perm_slope_local"] < 0.05
+        sig_circ_mask = master_df["p_circ_lin_local"]   < 0.05
+        sig_lin_mask  = master_df["p_linear_unwrapped"] < 0.05
+        
+        n_total = len(master_df)
+        n_sig_perm = int(sig_perm_mask.sum())
+        n_sig_circ = int(sig_circ_mask.sum())
+        n_sig_lin  = int(sig_lin_mask.sum())
+        
+        rho_mean = float(master_df["rho_circ_lin_local"].mean())
+        rho_median = float(master_df["rho_circ_lin_local"].median())
+        
+        print("\n=== Phase–position summary (local axes) ===")
+        print(f"Bouts analysed: {n_total}")
+        print(f"ρ (circ–lin): mean={rho_mean:.3f}, median={rho_median:.3f}")
+        print(f"Permutation-significant slopes (p_perm<0.05): {n_sig_perm}/{n_total} ({100*n_sig_perm/n_total:.1f}%)")
+        print(f"Circular–linear test p<0.05:                {n_sig_circ}/{n_total} ({100*n_sig_circ/n_total:.1f}%)")
+        print(f"Linear (unwrapped) fit p<0.05:               {n_sig_lin}/{n_total} ({100*n_sig_lin/n_total:.1f}%)")
+        
+        # Top 5 strongest negative slopes (precession-like)
+        neg_slopes = master_df.sort_values("slope_deg_per_cm_local").head(5)
+        cols = ["recording","segment_id","n_peaks",
+                "slope_deg_per_cm_local","p_perm_slope_local",
+                "rho_circ_lin_local","p_circ_lin_local",
+                "r_linear_unwrapped","p_linear_unwrapped"]
+        print("\nTop 5 most negative slopes (precession-like):")
+        for _, r in neg_slopes[cols].iterrows():
+            print(f"  {r['recording']} bout {int(r['segment_id'])}: "
+                  f"slope={r['slope_deg_per_cm_local']:.2f}°/cm, "
+                  f"p_perm={r['p_perm_slope_local']:.3g}, "
+                  f"ρ={r['rho_circ_lin_local']:.2f}, p_circ={r['p_circ_lin_local']:.3g}, "
+                  f"r_lin={r['r_linear_unwrapped']:.2f}, p_lin={r['p_linear_unwrapped']:.3g}")
+
     else:
         print("No bouts with sufficient peaks. Consider loosening MIN_PEAKS or detection params.")

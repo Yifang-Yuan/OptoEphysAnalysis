@@ -14,9 +14,18 @@ import matplotlib.pyplot as plt
 import pickle, gzip
 
 # =================== USER PATHS ===================
-LOCOMOTION_DIR = Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\OpenField_DLCtracking\GammaPowerOnTheta")
+LOCOMOTION_DIR = Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ALocomotion\GammaPowerOnTheta")
 AWAKE_DIR      = Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\AwakeStationary\GammaPowerOnTheta")
-REM_DIR        = Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ASleep\GammaPowerOnTheta")
+REM_DIR        = Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ASleepREM\GammaPowerOnTheta")
+
+# LOCOMOTION_DIR = Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\ALocomotion\GammaPowerOnTheta")
+# AWAKE_DIR      = Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\AwakeStationaryTheta\GammaPowerOnTheta")
+# REM_DIR        = Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\ASleepREM\GammaPowerOnTheta")
+
+# LOCOMOTION_DIR = Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\ALocomotion\GammaPowerOnTheta")
+# AWAKE_DIR      = Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\AwakeStationaryTheta\GammaPowerOnTheta")
+# REM_DIR        = Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\ASleepREM\GammaPowerOnTheta")
+
 
 PATTERN        = "GammaPowerOnTheta_trial*.pkl.gz"
 OUT_DIR        = Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\GammaPhase_Paired_LFP_vs_Opt")

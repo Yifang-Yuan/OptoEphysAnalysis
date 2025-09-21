@@ -14,6 +14,10 @@ import numpy as np
 import pickle, gzip, time, uuid
 from pathlib import Path
 import matplotlib.pyplot as plt
+import math
+from dataclasses import dataclass
+from typing import Optional
+
 # --- assumes your compute_optical_phase_preference is already defined in scope ---
 
 def _normalised_contour(bin_centers, counts):
@@ -165,6 +169,130 @@ def aggregate_phase_pickles_plot_simple(paths):
         }
     }
     return agg
+# --------- Group circular stats helpers (events-weighted) ---------
+@dataclass
+class RayleighResult:
+    n: int
+    R_bar: float
+    Z: float
+    p: float
+    note: str
+
+@dataclass
+class VTestResult:
+    n: int
+    mu_rad: float
+    u: float
+    p_one_sided: float
+    note: str
+
+def _rayleigh_from_summary(phi, R, n, mode: str) -> RayleighResult:
+    """
+    Rayleigh test from per-sweep summaries.
+    mode='events' -> uses grand resultant from (n_i * R_i) vectors (correct).
+    mode='equal'  -> treats sweep means as unit vectors (approx.).
+    """
+    phi = np.asarray(phi, float)
+    R   = np.asarray(R, float)
+    n   = np.asarray(n,  int)
+
+    if mode == "events":
+        C = np.sum(n * R * np.cos(phi))
+        S = np.sum(n * R * np.sin(phi))
+        n_tot = int(np.sum(n))
+        R_bar = (np.hypot(C, S) / n_tot) if n_tot > 0 else 0.0
+        note  = "events-weighted Rayleigh (uses total events)"
+    else:
+        C = np.sum(np.cos(phi))
+        S = np.sum(np.sin(phi))
+        n_tot = len(phi)
+        R_bar = (np.hypot(C, S) / n_tot) if n_tot > 0 else 0.0
+        note  = "approximate Rayleigh on sweep means (equal-weighted)"
+
+    Z = n_tot * (R_bar ** 2)
+    # Berens (2009) first-order p approximation
+    p = math.exp(-Z) * (1 + (2*Z - Z*Z) / (4*max(n_tot,1))) if n_tot > 0 else 1.0
+    p = float(np.clip(p, 0.0, 1.0))
+    return RayleighResult(n=n_tot, R_bar=float(R_bar), Z=float(Z), p=p, note=note)
+
+def _vtest_from_summary(phi, R, n, mu_rad: float, mode: str) -> VTestResult:
+    """
+    V-test toward specified mean direction mu_rad.
+    mode='events' -> grand resultant from (n_i * R_i) vectors.
+    mode='equal'  -> unit vectors at sweep means (approx.).
+    """
+    phi = np.asarray(phi, float)
+    R   = np.asarray(R, float)
+    n   = np.asarray(n,  int)
+
+    if mode == "events":
+        C = np.sum(n * R * np.cos(phi))
+        S = np.sum(n * R * np.sin(phi))
+        n_tot = int(np.sum(n))
+        note  = "events-weighted V-test (uses total events)"
+    else:
+        C = np.sum(np.cos(phi))
+        S = np.sum(np.sin(phi))
+        n_tot = len(phi)
+        note  = "approximate V-test on sweep means (equal-weighted)"
+
+    if n_tot == 0:
+        return VTestResult(n=0, mu_rad=float(mu_rad), u=float("nan"), p_one_sided=1.0, note=note)
+
+    psi   = math.atan2(S, C) % (2*np.pi)
+    R_bar = math.hypot(C, S) / n_tot
+    m     = R_bar * math.cos((psi - mu_rad) % (2*np.pi))  # component toward mu
+    u     = math.sqrt(2 * n_tot) * m
+
+    try:
+        from scipy.stats import norm
+        p_one = float(norm.sf(u))  # one-sided
+    except Exception:
+        p_one = 0.5 * math.erfc(u / math.sqrt(2))
+    return VTestResult(n=n_tot, mu_rad=float(mu_rad), u=float(u), p_one_sided=p_one, note=note)
+
+def add_rayleigh_to_agg(agg, overwrite: bool = True):
+    phi = agg['per_trial']['preferred_phase_rad']
+    R   = agg['per_trial']['R']
+    n   = agg['per_trial']['n_events']
+    mode = "events" if agg.get('weight_mode', 'events') == 'events' else "equal"
+    res  = _rayleigh_from_summary(phi, R, n, mode)
+    agg.setdefault('group_stats', {})
+    if overwrite or ('rayleigh' not in agg['group_stats']):
+        agg['group_stats']['rayleigh'] = res
+    return agg
+
+def add_vtest_to_agg(agg, mu_deg: float, overwrite: bool = True):
+    mu_rad = np.deg2rad(mu_deg % 360.0)
+    phi = agg['per_trial']['preferred_phase_rad']
+    R   = agg['per_trial']['R']
+    n   = agg['per_trial']['n_events']
+    mode = "events" if agg.get('weight_mode', 'events') == 'events' else "equal"
+    vres = _vtest_from_summary(phi, R, n, mu_rad, mode)
+    agg.setdefault('group_stats', {})
+    if overwrite or ('vtest' not in agg['group_stats']):
+        agg['group_stats']['vtest'] = vres
+    agg['target_mu_rad'] = float(mu_rad)
+    agg['target_mu_deg'] = float(mu_deg % 360.0)
+    return agg
+
+def print_group_phase_stats(agg, mu_deg: Optional[float] = None):
+    """Pretty print group μ, R plus Rayleigh; optionally V-test toward μ."""
+    print("=== Group Circular Statistics ===")
+    print(f"n_trials: {agg['n_trials']}")
+    print(f"group preferred phase: {agg['group_pref_phase_deg']:.1f}°")
+    print(f"group resultant length R: {agg['group_R']:.3f}")
+
+    ray = agg.get('group_stats', {}).get('rayleigh', None)
+    if ray is not None:
+        print(f"\nRayleigh test [{ray.note}]")
+        print(f"  n = {ray.n}, R̄ = {ray.R_bar:.4f}, Z = {ray.Z:.3f}, p = {ray.p:.3g}")
+
+    if mu_deg is not None:
+        vts = agg.get('group_stats', {}).get('vtest', None)
+        if vts is not None:
+            print(f"\nV-test toward μ = {mu_deg:.1f}° [{vts.note}]")
+            print(f"  n = {vts.n}, u = {vts.u:.3f}, one-sided p = {vts.p_one_sided:.3g}")
 
 def aggregate_phase_pickles(paths, ci_method="bootstrap", n_boot=2000, ci_alpha=0.05, weight_mode="events"):
     """
@@ -254,6 +382,7 @@ def aggregate_phase_pickles(paths, ci_method="bootstrap", n_boot=2000, ci_alpha=
         'group_pref_phase_deg' : float(np.degrees(group_pref_phase) % 360.0),
         'group_R'              : float(group_R),
         'n_trials'             : int(T),
+        'weight_mode'          : weight_mode,   # <— ADD THIS LINE
         'per_trial'            : {
             'preferred_phase_rad': phi,
             'preferred_phase_deg': np.degrees(phi) % 360.0,
@@ -261,6 +390,7 @@ def aggregate_phase_pickles(paths, ci_method="bootstrap", n_boot=2000, ci_alpha=
             'n_events'           : n
         }
     }
+
 
 def plot_group_contour_with_ci(agg, title=None):
     """
@@ -377,13 +507,30 @@ def calculate_theta_phase_session_all(dpath,savename,LFP_channel,theta_low_thres
 
         print(f"✅ Saved {pickle_save_path}")
 
-def average_all_tehta_phase_results(dpath):
-    # Path to your folder
+def average_all_theta_phase_results(dpath, *, weight_mode="events", mu_deg=0.0, do_print=True):
+    """
+    Load all *.pkl.gz in dpath, aggregate, compute group Rayleigh and V-test (toward mu_deg),
+    plot the group contour, and optionally print stats. Returns (agg, (fig, ax)).
+    """
     folder = Path(dpath)
     paths = sorted(folder.glob("*.pkl.gz"))
-    
-    agg = aggregate_phase_pickles(paths, ci_method="bootstrap", n_boot=2000, ci_alpha=0.05, weight_mode="events")
+    if len(paths) == 0:
+        raise ValueError(f"No *.pkl.gz files found in {folder}")
+
+    agg = aggregate_phase_pickles(paths, ci_method="bootstrap",
+                                  n_boot=2000, ci_alpha=0.05,
+                                  weight_mode=weight_mode)
+
+    # attach stats
+    agg = add_rayleigh_to_agg(agg)
+    agg = add_vtest_to_agg(agg, mu_deg=mu_deg)
+
+    if do_print:
+        print_group_phase_stats(agg, mu_deg=mu_deg)
+
     fig, ax = plot_group_contour_with_ci(agg)
+    return agg, (fig, ax)
+
 
 '''recordingMode: use py, Atlas, SPAD for different systems'''
 def run_theta_plot_cycle_singleTrial (dpath,LFP_channel,recordingName,savename,theta_low_thres=0.5):
@@ -417,21 +564,21 @@ def run_theta_plot_cycle_singleTrial (dpath,LFP_channel,recordingName,savename,t
 def calculate_theta_phase_session(dpath):
     '''This is to process a single or concatenated trial, 
     with a Ephys_tracking_photometry_aligned.pkl in the recording folder'''
-    recordingName='SyncRecording10'
     savename='GammaPhase_Save'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
     LFP_channel='LFP_1'
     theta_low_thres=-0.5
     behaviour='Moving'
-    #run_theta_plot_cycle_singleTrial (dpath,LFP_channel,recordingName,savename,theta_low_thres) #-0.3
     calculate_theta_phase_session_all(dpath,savename,LFP_channel,theta_low_thres,behaviour)
+    #recordingName='SyncRecording10'
+    #run_theta_plot_cycle_singleTrial (dpath,LFP_channel,recordingName,savename,theta_low_thres) #-0.3
 
     
 def main():    
-    dpath=r'G:\2025_ATLAS_SPAD\PVCre\1842515_PV_mNeon\aLocomotion_day7'
-    calculate_theta_phase_session(dpath)
+    # dpath=r'G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\ALocomotion'
+    # calculate_theta_phase_session(dpath)
     
-    spath=r'G:\2025_ATLAS_SPAD\PVCre\1842515_PV_mNeon\aLocomotion_day7\GammaPhase_Save'
-    average_all_tehta_phase_results(spath)
+    spath = r"G:\2025_ATLAS_SPAD\PyramidalWT\1881365_Jedi2p_mCherry\ASleepREM\GammaPhase_Save"
+    agg, _ = average_all_theta_phase_results(spath, weight_mode="events", mu_deg=0.0)
 if __name__ == "__main__":
     main()

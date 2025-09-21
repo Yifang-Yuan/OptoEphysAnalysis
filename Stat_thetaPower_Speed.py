@@ -29,15 +29,15 @@ from scipy import stats
 # ==========================
 # === USER CONFIGURATION ===
 # ==========================
-PARENT_DIR = r'G:\2025_ATLAS_SPAD\PVCre\1842515_PV_mNeon\aLocomotion_day7'
+PARENT_DIR = r'G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ALocomotion'
 OUTPUT_DIR = os.path.join(PARENT_DIR, "theta_speed_analysis_outputs")
 Fs_raw = 10_000
 TARGET_FS = 100
-THETA_BAND = (6, 10.0)     # you can change to (6.0, 12.0) etc.
+THETA_BAND = (4, 12.0)     # you can change to (6.0, 12.0) etc.
 DELTA_BAND = (1.0, 4.0)
 TOTAL_BAND = (1.0, 40.0)
 LFP_CHANNEL = "LFP_1"
-SPEED_MIN_CM_S = 2
+SPEED_MIN_CM_S = 0
 SPEED_MAX_CM_S = 50.0   # <-- NEW: exclude windows with speed > 100 cm/s
 USE_THETA_DELTA_GATE = True
 WINDOW_SEC = 1
@@ -79,7 +79,15 @@ def bin_average(x: np.ndarray, bin_sz: int) -> np.ndarray:
     return np.nanmean(np.asarray(x[:n], dtype=float).reshape(-1, bin_sz), axis=1)
 
 
-def regress_and_plot_ls(x: np.ndarray, y: np.ndarray, title: str, xlabel: str, ylabel: str, out_path: str) -> dict:
+def regress_and_plot_ls(
+    x: np.ndarray,
+    y: np.ndarray,
+    title: str,
+    xlabel: str,
+    ylabel: str,
+    out_path: str,
+    dot_color: str = "k"   # <-- new input for scatter dot color
+) -> dict:
     mask = np.isfinite(x) & np.isfinite(y)
     x = x[mask]
     y = y[mask]
@@ -89,8 +97,8 @@ def regress_and_plot_ls(x: np.ndarray, y: np.ndarray, title: str, xlabel: str, y
 
     slope, intercept, r, p, stderr = stats.linregress(x, y)
 
-    plt.figure(figsize=(6, 4), dpi=140)
-    plt.scatter(x, y, s=8, alpha=0.5)
+    plt.figure(figsize=(7, 5), dpi=140)
+    plt.scatter(x, y, s=8, alpha=0.5, color=dot_color)  # <-- use custom color
     xx = np.linspace(x.min(), x.max(), 200)
     plt.plot(xx, slope * xx + intercept, 'r', lw=2)
 
@@ -112,6 +120,7 @@ def regress_and_plot_ls(x: np.ndarray, y: np.ndarray, title: str, xlabel: str, y
         "slope": float(slope),
         "intercept": float(intercept)
     }
+
 
 
 
@@ -456,19 +465,19 @@ def main():
     results = {}
     results['lfp_freq_vs_speed'] = regress_and_plot_ls(
         all_speed, all_lfp_f, "LFP theta frequency vs speed", "Speed (cm/s)", "Theta freq (Hz)",
-        os.path.join(OUTPUT_DIR, "pooled_lfp_theta_freq_vs_speed.png")
+        os.path.join(OUTPUT_DIR, "pooled_lfp_theta_freq_vs_speed.png"), dot_color="grey"
     )
     results['lfp_power_vs_speed'] = regress_and_plot_ls(
         all_speed, all_lfp_pr, "LFP theta relative power vs speed", "Speed (cm/s)", "Theta rel. power",
-        os.path.join(OUTPUT_DIR, "pooled_lfp_theta_relpower_vs_speed.png")
+        os.path.join(OUTPUT_DIR, "pooled_lfp_theta_relpower_vs_speed.png"), dot_color="grey"
     )
     results['opt_freq_vs_speed'] = regress_and_plot_ls(
         all_speed, all_opt_f, "Optical theta frequency vs speed", "Speed (cm/s)", "Theta freq (Hz)",
-        os.path.join(OUTPUT_DIR, "pooled_opt_theta_freq_vs_speed.png")
+        os.path.join(OUTPUT_DIR, "pooled_opt_theta_freq_vs_speed.png"), dot_color="green"
     )
     results['opt_power_vs_speed'] = regress_and_plot_ls(
         all_speed, all_opt_pr, "Optical theta relative power vs speed", "Speed (cm/s)", "Theta rel. power",
-        os.path.join(OUTPUT_DIR, "pooled_opt_theta_relpower_vs_speed.png")
+        os.path.join(OUTPUT_DIR, "pooled_opt_theta_relpower_vs_speed.png"), dot_color="green"
     )
     results['lfp_vs_opt_freq'] = regress_and_plot_density_ols(
     all_lfp_f, all_opt_f,
@@ -480,7 +489,7 @@ def main():
 
     results['lfp_vs_opt_power'] = regress_and_plot_ls(
         all_lfp_pr, all_opt_pr, "LFP vs Optical theta relative power", "LFP theta rel. power", "Optical theta rel. power",
-        os.path.join(OUTPUT_DIR, "pooled_lfp_vs_opt_theta_relpower.png")
+        os.path.join(OUTPUT_DIR, "pooled_lfp_vs_opt_theta_relpower.png"), dot_color="tab:blue"
     )
 
     with open(os.path.join(OUTPUT_DIR, "pooled_results.json"), "w") as jf, \

@@ -31,9 +31,9 @@ def compare_PSDs_and_theta_peaks(
 
     def compute_psd(data, label, color):
         if method == "welch":
-            f, Pxx_den = signal.welch(data, fs=fs, nperseg=8192)
+            f, Pxx_den = signal.welch(data, fs=fs, nperseg=32768)
         elif method == "periodogram":
-            f, Pxx_den = signal.periodogram(data, fs=fs, nfft=8192, window='hann')
+            f, Pxx_den = signal.periodogram(data, fs=fs, nfft=16384, window='hann')
         else:
             raise ValueError("Unsupported method. Use 'welch' or 'periodogram'.")
         
@@ -74,10 +74,11 @@ def compare_PSDs_and_theta_peaks(
 
 
 Fs=10000
-dpath='G:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day3/'
+dpath=r'G:\2025_ATLAS_SPAD\PVCre\1842516_PV_Jedi2p\Day1'
+
 recordingName='SyncRecording1'
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,recordingMode='Atlas',indicator='GEVI') 
-LFP_channel='LFP_1'
+LFP_channel='LFP_4'
 Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-0.5,High_thres=8,save=False,plot_theta=True)
 LFP_theta=Recording1.theta_part[LFP_channel]
 optical_theta=Recording1.theta_part['zscore_raw']
@@ -91,6 +92,6 @@ fig, ax, peak_lfp, peak_opt, freq_diff = compare_PSDs_and_theta_peaks(
     optical_theta,
     fs=Fs,
     method="welch",
-    xlim=[0, 100],
-    theta_band=(4, 12)
+    xlim=[0, 40],
+    theta_band=(4, 20)
 )

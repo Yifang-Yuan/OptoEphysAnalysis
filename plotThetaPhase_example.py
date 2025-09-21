@@ -84,7 +84,7 @@ def plot_theta_traces(theta_part, LFP_channel, start_time, end_time, fs=10000):
     peak_t_optical = peak_idx_optical / fs
 
     # Start plotting
-    fig, axes = plt.subplots(4, 1, figsize=(22, 8), sharex=True)
+    fig, axes = plt.subplots(4, 1, figsize=(16, 6), sharex=True)
 
     # Remove all subplot frames & set tick label size
     for ax in axes:
@@ -92,18 +92,20 @@ def plot_theta_traces(theta_part, LFP_channel, start_time, end_time, fs=10000):
         ax.spines['right'].set_visible(False)
         ax.spines['left'].set_visible(False)
         ax.spines['bottom'].set_visible(False)
-        ax.tick_params(axis='both', which='both', labelsize=18)  # enlarge tick labels
+        ax.margins(x=0)
+        ax.margins(y=0)
+        ax.tick_params(axis='both', which='both', labelsize=20)  # enlarge tick labels
 
     # 1. Raw LFP trace
     axes[0].plot(t, segment[LFP_channel], color='black')
     axes[0].set_ylabel(LFP_channel, fontsize=20)
-    axes[0].set_title('LFP trace', fontsize=20)
+    #axes[0].set_title('LFP trace', fontsize=20)
 
     # 2. zscore_raw
     zscore_lowpass = OE.smooth_signal(segment['zscore_raw'], fs, 100, window='flat')
     axes[1].plot(t, zscore_lowpass, color='green')
     axes[1].set_ylabel('zscore', fontsize=20)
-    axes[1].set_title('GEVI Signal', fontsize=20)
+    #axes[1].set_title('GEVI Signal', fontsize=20)
 
     # 3. Filtered LFP + LFP peaks + zscore peaks as dots
     axes[2].plot(t, filtered_LFP, color='black', label='Filtered LFP')
@@ -114,7 +116,7 @@ def plot_theta_traces(theta_part, LFP_channel, start_time, end_time, fs=10000):
     dot_y = np.interp(peak_t_optical, t, filtered_LFP)
     axes[2].scatter(peak_t_optical, dot_y, color='green', marker='o', s=40, label='zscore peaks')
     axes[2].set_ylabel('LFP theta', fontsize=20)
-    axes[2].set_title('LFP Theta band + Optical Peaks', fontsize=20)
+    #axes[2].set_title('LFP Theta band + Optical Peaks', fontsize=20)
 
     # 4. Filtered zscore + optical peaks
     axes[3].plot(t, filtered_zscore, color='green')
@@ -122,8 +124,9 @@ def plot_theta_traces(theta_part, LFP_channel, start_time, end_time, fs=10000):
         if start_time <= pt <= end_time:
             axes[3].axvline(x=pt, color='red', linestyle='--', alpha=0.6)
     axes[3].set_ylabel('zscore theta', fontsize=20)
-    axes[3].set_title('GEVI theta band', fontsize=20)
+    #axes[3].set_title('GEVI theta band', fontsize=20)
     axes[3].set_xlabel('Time (s)', fontsize=20)
+    
 
     plt.tight_layout()
     plt.show()
@@ -160,14 +163,69 @@ def plot_zscore_peaks_on_LFP_phase(theta_part, fs=10000, wrap_cycles=2):
     plt.figure(figsize=(4, 6))
     plt.scatter(np.arange(len(lfp_degrees)), lfp_degrees, color='purple', alpha=0.7)
     plt.ylim(0, 360 * wrap_cycles)
-    plt.xlabel('Optical Theta Peak Index', fontsize=14)
-    plt.ylabel('LFP Theta Phase (degrees)', fontsize=14)
-    plt.title('LFP Theta Phase at Optical Theta Peaks', fontsize=14)
+    plt.xlabel('Optical Theta Peak Index', fontsize=18)
+    plt.ylabel('LFP Theta Phase (degrees)', fontsize=18)
+    plt.title('LFP Theta Phase at GEVI Peaks', fontsize=18)
     plt.yticks(np.arange(0, 360 * wrap_cycles + 1, 90))
     plt.grid(True, linestyle='--', alpha=0.3)
     plt.tight_layout()
     plt.show()    
-    
+
+from scipy.signal import hilbert
+
+def cross_correlation_theta(lfp_theta, opt_theta, fs, max_lag_s=0.5):
+    """Cross-correlation between theta-band LFP and GEVI."""
+    max_lag = int(max_lag_s * fs)
+    corr = signal.correlate(lfp_theta, opt_theta, mode='full')
+    lags = signal.correlation_lags(len(lfp_theta), len(opt_theta), mode='full')
+    # normalise
+    corr = corr / (np.std(lfp_theta) * np.std(opt_theta) * len(lfp_theta))
+    lags_sec = lags / fs
+    # focus on ±max_lag
+    mask = (lags_sec >= -max_lag_s) & (lags_sec <= max_lag_s)
+    return lags_sec[mask], corr[mask]
+
+def phase_locking_value(lfp_theta, opt_theta):
+    """Phase-locking value (PLV) between LFP theta and GEVI theta."""
+    lfp_phase = np.angle(hilbert(lfp_theta))
+    opt_phase = np.angle(hilbert(opt_theta))
+    phase_diff = lfp_phase - opt_phase
+    plv = np.abs(np.mean(np.exp(1j * phase_diff)))
+    return plv
+
+def amplitude_correlation(lfp_theta, opt_theta):
+    """Correlation between theta amplitude envelopes."""
+    lfp_env = np.abs(hilbert(lfp_theta))
+    opt_env = np.abs(hilbert(opt_theta))
+    r = np.corrcoef(lfp_env, opt_env)[0,1]
+    return r
+
+def run_waveform_relationship(theta_part, LFP_channel, fs=10000):
+    """Compute waveform-level LFP–GEVI theta relationships."""
+    lfp_theta = bandpass_filter(theta_part[LFP_channel].values, fs)
+    opt_theta = bandpass_filter(theta_part['zscore_raw'].values, fs)
+
+    # Cross-correlation
+    lags, corr = cross_correlation_theta(lfp_theta, opt_theta, fs)
+    plt.figure(figsize=(6,4))
+    plt.plot(lags, corr, color='purple')
+    plt.axvline(0, color='k', linestyle='--')
+    plt.xlabel("Lag (s)")
+    plt.ylabel("Correlation")
+    plt.title("Cross-correlation (LFP vs GEVI theta)")
+    plt.tight_layout()
+    plt.show()
+
+    # Phase locking
+    plv = phase_locking_value(lfp_theta, opt_theta)
+    print(f"Phase-locking value (PLV): {plv:.3f}")
+
+    # Amplitude envelope correlation
+    r_env = amplitude_correlation(lfp_theta, opt_theta)
+    print(f"Envelope correlation (r): {r_env:.3f}")
+
+    return {"PLV": plv, "Envelope_r": r_env}
+
 def run_theta_cycle_plot (dpath,LFP_channel,recordingName,savename,theta_low_thres=0.5):
     save_path = os.path.join(dpath,savename)
     os.makedirs(save_path, exist_ok=True)
@@ -185,13 +243,15 @@ def run_theta_cycle_plot (dpath,LFP_channel,recordingName,savename,theta_low_thr
     theta_part=theta_part.reset_index(drop=True)
     theta_part['LFP_theta_angle']=OE.calculate_theta_phase_angle(theta_part[LFP_channel], theta_low=5, theta_high=12) 
     theta_part['optical_theta_angle']=OE.calculate_theta_phase_angle(theta_part['zscore_raw'], theta_low=5, theta_high=12) 
-    trough_index_LFP,peak_index_LFP = calculate_theta_trough_index(theta_part,LFP_channel,Fs=10000)
-    trough_index_optical,peak_index_optical = calculate_theta_trough_index(theta_part,'zscore_raw',Fs=10000)
+    # trough_index_LFP,peak_index_LFP = calculate_theta_trough_index(theta_part,LFP_channel,Fs=10000)
+    # trough_index_optical,peak_index_optical = calculate_theta_trough_index(theta_part,'zscore_raw',Fs=10000)
     
     # for i in range(7):
     #     plot_theta_traces(theta_part, LFP_channel, start_time=i*3, end_time=i*3+3, fs=10000)
-    plot_theta_traces(theta_part, LFP_channel, start_time=6, end_time=12, fs=10000)  
-    plot_zscore_peaks_on_LFP_phase(theta_part, fs=10000, wrap_cycles=2)
+    # plot_theta_traces(theta_part, LFP_channel, start_time=6, end_time=12, fs=10000)  
+    # plot_zscore_peaks_on_LFP_phase(theta_part, fs=10000, wrap_cycles=2)
+    results = run_waveform_relationship(theta_part, LFP_channel='LFP_1', fs=10000)
+
     return theta_part
 
 #%%

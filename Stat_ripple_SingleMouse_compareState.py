@@ -3,8 +3,10 @@ import matplotlib.pyplot as plt
 from scipy import stats
 
 # --- set your two state roots (NOT the RipplePooled folders) ---
-AWAKE_ROOT  = r'G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\AwakeStationary'
-NONREM_ROOT = r'G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ASleepNonREM'
+# AWAKE_ROOT  = r'G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\AwakeStationary'
+# NONREM_ROOT = r'G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ASleepNonREM'
+AWAKE_ROOT  = r'G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\AwakeStationary'
+NONREM_ROOT = r'G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\ASleepNonREM'
 
 OUT_DIR = os.path.join(os.path.dirname(AWAKE_ROOT), 'RMI_session_compare')
 os.makedirs(OUT_DIR, exist_ok=True)
@@ -114,6 +116,7 @@ def plot_session_scatter(a_vals, n_vals, out_png):
     plt.tight_layout()
     plt.savefig(out_png, dpi=300)
     plt.close()
+    print(txt)
 
     return {'mwu_p': float(p_mwu), 'perm_p_mean': float(p_perm_m),
             'perm_p_median': float(p_perm_s), 'delta_mean': float(dm),

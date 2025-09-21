@@ -4,7 +4,6 @@ Created on Thu Aug 14 20:27:38 2025
 
 @author: yifan
 """
-
 # ---------- NEW / UPDATED UTILITIES -----------------------------------------
 import os, glob, numpy as np, pandas as pd
 from pathlib import Path
@@ -48,6 +47,30 @@ def _safe_load_first(path_list):
 def _butter_bandpass(data, fs, low=130, high=250, order=4, axis=-1):
     b, a = butter(order, [low/(fs*0.5), high/(fs*0.5)], btype='band')
     return filtfilt(b, a, data, axis=axis)
+
+def detect_peaks_times(zscores_aligned, fs=10_000, detect_window=(-0.1, 0.1),
+                       peak_thr=3.0, distance=15):
+    """
+    Detect peaks ONCE per epoch within detect_window and return event times (s)
+    relative to the ripple peak (t=0). This matches 3a/3b detection.
+    """
+    from scipy.signal import find_peaks
+    from scipy.stats import median_abs_deviation
+
+    n_ep, n_samp = zscores_aligned.shape
+    mid = n_samp // 2
+    t_full = (np.arange(n_samp) - mid) / fs
+    mask_det = (t_full >= detect_window[0]) & (t_full <= detect_window[1])
+
+    times_per_epoch = []
+    for e in range(n_ep):
+        tr = zscores_aligned[e, mask_det]
+        thr = np.median(tr) + peak_thr * median_abs_deviation(tr)
+        idx, _ = find_peaks(tr, height=thr, distance=distance)
+        # Convert indices to times using the DETECTION window’s time axis
+        t_det = t_full[mask_det]
+        times_per_epoch.append(t_det[idx])
+    return times_per_epoch  # list of 1-D arrays of times (seconds)
 
 # ---------- PATCH your saver to use consistent filenames --------------------
 def plot_aligned_ripple_save_FIXED(save_path, LFP_channel, recordingName,
@@ -345,21 +368,17 @@ except Exception:
     from scipy.stats import binom_test
     def _binom_one_sided(k, n, p=0.5): return binom_test(k, n, p, alternative="greater")
 
-def pre_post_asymmetry_from_zscores(ripple_band_aligned,
-                                    zscores_aligned,
-                                    fs=10_000,
-                                    time_window=(-0.1, 0.1),
-                                    analysis_width=0.04,     # total width; e.g. ±20 ms
-                                    peak_thr=3.0,
-                                    distance=20,
-                                    n_perm=5000,
-                                    seed=0,
-                                    out_png=None,
-                                    # --- NEW: font sizes ---
-                                    label_fs=18, tick_fs=18, text_fs=18):
+def pre_post_asymmetry_from_zscores(ripple_band_aligned, zscores_aligned,
+                                    fs=10_000, time_window=(-0.1, 0.1),
+                                    analysis_width=0.04,
+                                    peak_thr=3.0, distance=20,
+                                    n_perm=5000, seed=0, out_png=None,
+                                    label_fs=18, tick_fs=18, text_fs=18,
+                                    event_times_per_epoch=None):   # NEW
     """
     Tests whether events are more frequent *before* than *after* the ripple peak
     inside a symmetric analysis window, and draws a 3-panel figure (ripple on top).
+    Also saves a paired violin/dot/line stats figure for pre vs post.
     """
 
     # --- time crop
@@ -377,33 +396,61 @@ def pre_post_asymmetry_from_zscores(ripple_band_aligned,
 
     # --- detect events and gather times + per-epoch counts in analysis window
     half = analysis_width / 2.0
-    peak_times, raster_y = [], []
-    pre_counts, post_counts = [], []
 
-    for e, tr in enumerate(zs):
-        thr = np.median(tr) + peak_thr * median_abs_deviation(tr)
-        idx, _ = find_peaks(tr, height=thr, distance=distance)
+    # We will fill these consistently in either branch:
+    per_epoch_times = []      # events (times in seconds) that pass the ±half selection
+    peak_times_list = []      # pooled for raster/hist
+    raster_rows   = []        # matching epoch indices for scatter
 
-        if idx.size:
-            times_e = t_win[idx]
-            peak_times.extend(times_e)
-            raster_y.extend([e]*len(idx))
-            sel = (times_e >= -half) & (times_e <= half) & (times_e != 0)
-            pre_counts.append(np.sum(times_e[sel] < 0))
-            post_counts.append(np.sum(times_e[sel] > 0))
-        else:
-            pre_counts.append(0); post_counts.append(0)
+    if event_times_per_epoch is None:
+        # Fallback: detect within the display time_window (original behaviour)
+        for e, tr in enumerate(zs):
+            thr = np.median(tr) + peak_thr * median_abs_deviation(tr)
+            idx, _ = find_peaks(tr, height=thr, distance=distance)
+            if idx.size:
+                times_e_full = t_win[idx]
+                # keep only within ±half and not exactly zero
+                sel = (times_e_full >= -half) & (times_e_full <= half) & (times_e_full != 0)
+                times_sel = times_e_full[sel]
+            else:
+                times_sel = np.array([], dtype=float)
 
-    peak_times = np.asarray(peak_times)
-    pre_counts = np.asarray(pre_counts)
-    post_counts= np.asarray(post_counts)
+            per_epoch_times.append(times_sel)
+            if times_sel.size:
+                peak_times_list.append(times_sel)
+                raster_rows.append(np.full(times_sel.size, e))
 
-    # pooled counts in analysis window
-    k_pre  = int(pre_counts.sum())
-    k_post = int(post_counts.sum())
+    else:
+        # Reuse shared detections and ONLY subset to ±half window here
+        for e, times_all in enumerate(event_times_per_epoch):
+            times_sel = times_all[(times_all >= -half) & (times_all <= half) & (times_all != 0)]
+            per_epoch_times.append(times_sel)
+            if times_sel.size:
+                peak_times_list.append(times_sel)
+                raster_rows.append(np.full(times_sel.size, e))
+
+    # Concatenate pooled arrays for plotting
+    if peak_times_list:
+        peak_times = np.concatenate(peak_times_list, axis=0)
+        raster_y   = np.concatenate(raster_rows,   axis=0)
+    else:
+        peak_times = np.array([], dtype=float)
+        raster_y   = np.array([], dtype=float)
+
+    # Per-epoch pre/post counts (paired)
+    pre_counts  = np.array([np.sum(t < 0) for t in per_epoch_times], dtype=float)
+    post_counts = np.array([np.sum(t > 0) for t in per_epoch_times], dtype=float)
+
+    # Pooled counts
+    k_pre  = int(np.sum(pre_counts))
+    k_post = int(np.sum(post_counts))
     N_c    = k_pre + k_post
 
-    # --- stats --------------------------------------------------------------
+    # Sanity: ensure x/y lengths match for scatter even when empty
+    assert peak_times.size == raster_y.size, \
+        f"Raster mismatch: x={peak_times.size}, y={raster_y.size}"
+
+    # --- stats (unchanged) ---------------------------------------------------
     p_binom = _binom_one_sided(k_pre, N_c, p=0.5) if N_c > 0 else 1.0
 
     diffs = pre_counts - post_counts
@@ -435,7 +482,7 @@ def pre_post_asymmetry_from_zscores(ripple_band_aligned,
         "per_epoch_pre": pre_counts, "per_epoch_post": post_counts
     }
 
-    # --- figure -------------------------------------------------------------
+    # --- figure (existing 3-panel) ------------------------------------------
     fig, axes = plt.subplots(3, 1, figsize=(8, 9),
                              gridspec_kw={'height_ratios':[1, 2, 1]},
                              sharex=True)
@@ -474,20 +521,65 @@ def pre_post_asymmetry_from_zscores(ripple_band_aligned,
     axes[-1].set_xticks(ticks)
     axes[-1].xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 
-    # annotation (bigger & boxed)
+    # annotation (print kept the same below)
     txt = (f"Analysis window = ±{half*1000:.0f} ms  (grey band)\n"
            f"Pre/Post = {k_pre}/{k_post}  (Δprop = {diff_prop*100:.1f}%)\n"
            f"Binomial p = {p_binom:.2e} | Wilcoxon p = {p_wil:.2e} | Perm p = {p_perm:.2e}")
-    # ax2.text(0.02, 0.98, txt, transform=ax2.transAxes, va='top', ha='left',
-    #          fontsize=text_fs, bbox=dict(boxstyle='round', facecolor='white', alpha=0.8, lw=0))
 
     plt.tight_layout()
     if out_png:
         os.makedirs(os.path.dirname(out_png), exist_ok=True)
         fig.savefig(out_png, dpi=300, transparent=True)
-    
-    print (txt)
+
+    # ---- keep the print EXACTLY as before ----------------------------------
+    print(txt)
+
+    # ---- NEW: paired violin + dots + lines for pre vs post -----------------
+    # (equal window widths on both sides ⇒ counts are comparable)
+    if out_png:
+        stats_path = os.path.join(os.path.dirname(out_png), "pre_vs_post_stats.png")
+    else:
+        # default to current working directory
+        stats_path = "pre_vs_post_stats.png"
+
+    fig2, ax = plt.subplots(figsize=(6.8, 5.2), dpi=150)
+
+    data_stack = [pre_counts.astype(float), post_counts.astype(float)]
+    parts = ax.violinplot(data_stack, positions=[1, 2], showmeans=False, showextrema=False, widths=0.8)
+    for pc in parts['bodies']:
+        pc.set_alpha(0.4)
+
+    # Paired dots + lines
+    x1 = np.full_like(pre_counts, 1.0, dtype=float)
+    x2 = np.full_like(post_counts, 2.0, dtype=float)
+    ax.plot(np.c_[x1, x2].T, np.c_[pre_counts, post_counts].T, alpha=0.3)
+    ax.scatter(x1, pre_counts, s=18, zorder=3)
+    ax.scatter(x2, post_counts, s=18, zorder=3)
+
+    # Means ± SEM as bars on top (optional)
+    m1, m2 = np.nanmean(pre_counts), np.nanmean(post_counts)
+    se1 = sem(pre_counts, nan_policy='omit')
+    se2 = sem(post_counts, nan_policy='omit')
+    ax.errorbar([1,2], [m1,m2], yerr=[se1,se2], fmt='s-', lw=2, capsize=4)
+
+    ax.set_xticks([1, 2])
+    ax.set_xticklabels([f"Pre\n(−{half*1000:.0f}→0 ms)",
+                        f"Post\n(0→+{half*1000:.0f} ms)"],
+                       fontsize=tick_fs)
+    ax.set_ylabel("Event count (per epoch)", fontsize=label_fs)
+    ax.tick_params(labelsize=tick_fs)
+    ax.spines[['top','right']].set_visible(False)
+
+    # p-values
+    ax.set_title(f"Pre vs post (per-epoch counts)\n"
+                 f"Wilcoxon p={p_wil:.2f}, Perm p={p_perm:.2f}",
+                 fontsize=label_fs, pad=8)
+
+    fig2.tight_layout()
+    fig2.savefig(stats_path, dpi=300, transparent=True)
+
     return stats, fig
+
 
 
 def _per_epoch_rmi_events(aligned_zscores,
@@ -616,53 +708,71 @@ def _annotate_pooled_rmi(ax_hist,
     return results
 
 
-def pooled_timing_hist(ripple_band_aligned,
-                       zscores_aligned,
-                       fs=10_000,
+def pooled_timing_hist(ripple_band_aligned, zscores_aligned, fs=10_000,
                        time_window=(-0.1, 0.1),
-                       center_width=0.02,            # inner band: e.g., ±10 ms
-                       outer_width=0.04,             # outer band: e.g., ±20 ms
-                       peak_thr=3.0,
-                       distance=20,
-                       n_bins=40,
-                       n_perm=2000,
-                       OUTPUT_DIR=None,
-                       out_png=None,
-                       # --- fonts ---
-                       label_fs=18, tick_fs=18, text_fs=18):
+                       center_width=0.02, outer_width=0.04,
+                       peak_thr=3.0, distance=20,
+                       n_bins=40, n_perm=2000,
+                       OUTPUT_DIR=None, out_png=None,
+                       label_fs=18, tick_fs=18, text_fs=18,
+                       event_times_per_epoch=None):    # optional shared detections
     """
     Pooled raster + histogram with filtered ripple (mean ±95% CI) on top.
-    Adds tests that the centre band (±center_width/2) has more optical events
+    Tests whether the centre band (±center_width/2) has more optical events
     than the two flanks within the outer band ([-outer/2,-center/2] ∪ [center/2,outer/2]).
+    If `event_times_per_epoch` is provided, those events are reused (subsetted to
+    `time_window`) so N will match other panels that use the same list.
     """
     from scipy.stats import wilcoxon, binomtest
 
-    # --- time crop
+    # --- time crop + data slices ------------------------------------------------
     n_ep, n_samp = zscores_aligned.shape
     mid = n_samp // 2
-    t = (np.arange(n_samp) - mid) / fs
-    mask = (t >= time_window[0]) & (t <= time_window[1])
-    t_win = t[mask]
+    t_full = (np.arange(n_samp) - mid) / fs
+    mask = (t_full >= time_window[0]) & (t_full <= time_window[1])
+    t_win = t_full[mask]
     zs    = zscores_aligned[:, mask]
+    rb    = ripple_band_aligned[:, mask]
 
-    # --- top: ripple-band mean ± CI
-    rb = ripple_band_aligned[:, mask]
+    # mean ripple ±95% CI
     rb_mean = rb.mean(0)
     rb_ci   = sem(rb, axis=0) * 1.96
 
-    # --- pooled peak times (and keep per-epoch times for tests)
-    peak_times, raster_y = [], []
-    per_epoch_times = []    # list of 1-D arrays (seconds) per epoch
-    for e, tr in enumerate(zs):
-        thr = np.median(tr) + peak_thr * median_abs_deviation(tr)
-        idx, _ = find_peaks(tr, height=thr, distance=distance)
-        times_e = t_win[idx]
-        per_epoch_times.append(times_e)
-        peak_times.extend(times_e)
-        raster_y.extend([e] * len(idx))
-    peak_times = np.asarray(peak_times)
+    # --- events per epoch (seconds, relative to t=0) ----------------------------
+    inner_h = center_width / 2.0
+    outer_h = outer_width  / 2.0
 
-    # --- figure -------------------------------------------------------------
+    per_epoch_times = []
+    peak_times_list, raster_rows = [], []
+
+    if event_times_per_epoch is None:
+        # Detect once within the display window (backward-compatible path)
+        for e, tr in enumerate(zs):
+            thr = np.median(tr) + median_abs_deviation(tr)
+            thr = np.median(tr) + peak_thr * median_abs_deviation(tr)
+            idx, _ = find_peaks(tr, height=thr, distance=distance)
+            times_e = t_win[idx] if idx.size else np.array([], dtype=float)
+            per_epoch_times.append(times_e)
+            if times_e.size:
+                peak_times_list.append(times_e)
+                raster_rows.append(np.full(times_e.size, e))
+    else:
+        # Reuse shared detections; keep only those within the displayed window
+        for e, times_all in enumerate(event_times_per_epoch):
+            times_e = times_all[(times_all >= time_window[0]) & (times_all <= time_window[1])]
+            per_epoch_times.append(times_e)
+            if times_e.size:
+                peak_times_list.append(times_e)
+                raster_rows.append(np.full(times_e.size, e))
+
+    if peak_times_list:
+        peak_times = np.concatenate(peak_times_list, axis=0)
+        raster_y   = np.concatenate(raster_rows,   axis=0)
+    else:
+        peak_times = np.array([], dtype=float)
+        raster_y   = np.array([], dtype=float)
+
+    # --- main pooled figure ------------------------------------------------------
     fig, axes = plt.subplots(3, 1, figsize=(8, 9),
                              gridspec_kw={'height_ratios':[1, 2, 1]},
                              sharex=True)
@@ -675,14 +785,10 @@ def pooled_timing_hist(ripple_band_aligned,
     ax0.tick_params(axis='both', labelsize=tick_fs)
     ax0.spines[['top','right']].set_visible(False)
 
-    # --- two shaded bands + zero line on all axes ---------------------------
-    inner_h = center_width / 2.0         # ±0.01 s if centre_width=0.02
-    outer_h = outer_width  / 2.0         # ±0.02 s if outer_width =0.04
+    # shaded bands + zero line
     for ax in axes:
-        # outer band (light gray)
-        ax.axvspan(-outer_h,  outer_h,  color='k', alpha=0.06, zorder=0)
-        # inner (centre) band (darker)
-        ax.axvspan(-inner_h,  inner_h,  color='k', alpha=0.12, zorder=1)
+        ax.axvspan(-outer_h,  outer_h,  color='k', alpha=0.06, zorder=0)  # outer
+        ax.axvspan(-inner_h,  inner_h,  color='k', alpha=0.12, zorder=1)  # inner
         ax.axvline(0.0, color='k', lw=1, alpha=0.6)
 
     # 2) raster
@@ -702,75 +808,103 @@ def pooled_timing_hist(ripple_band_aligned,
 
     for ax in axes:
         ax.set_xlim(time_window[0], time_window[1])
-    ticks = _five_ticks(time_window[0], time_window[1])
-    axes[-1].set_xticks(ticks)
+    axes[-1].set_xticks(_five_ticks(time_window[0], time_window[1]))
     axes[-1].xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-    plt.tight_layout()
 
+    plt.tight_layout()
     if out_png:
         os.makedirs(os.path.dirname(out_png), exist_ok=True)
         fig.savefig(out_png, dpi=300, transparent=True)
 
-    # -----------------------------------------------------------------------
-    #   Centre vs flank tests
-    #   windows:  centre = [-inner_h, +inner_h] (width = center_width)
-    #             flanks = [-outer_h,-inner_h] U [+inner_h,+outer_h] (total width = outer_width-center_width)
-    #             With the defaults, both total widths are 0.02 s ⇒ p0 = 0.5 for pooled binomial.
-    # -----------------------------------------------------------------------
-    width_c   = center_width
-    width_f   = outer_width - center_width                # 0.02 s with defaults
-
-    per_rate_c, per_rate_f = [], []
+    # --- centre vs flanks: per-epoch COUNTS + pooled counts ---------------------
+    per_count_c, per_count_f = [], []
     k_c = 0; k_f = 0
     for times_e in per_epoch_times:
         if times_e.size == 0:
-            per_rate_c.append(0.0); per_rate_f.append(0.0); continue
+            per_count_c.append(0.0); per_count_f.append(0.0); continue
         n_c = np.sum((times_e >= -inner_h) & (times_e <=  inner_h))
         n_l = np.sum((times_e >= -outer_h) & (times_e <  -inner_h))
         n_r = np.sum((times_e >   inner_h) & (times_e <=  outer_h))
         n_f = n_l + n_r
-
         k_c += int(n_c); k_f += int(n_f)
+        per_count_c.append(float(n_c)); per_count_f.append(float(n_f))
 
-        # rates (events/s) to account for different window widths
-        rate_c = n_c / max(width_c, 1e-12)
-        rate_f = n_f / max(width_f, 1e-12)
-        per_rate_c.append(rate_c); per_rate_f.append(rate_f)
+    per_count_c = np.asarray(per_count_c, float)
+    per_count_f = np.asarray(per_count_f, float)
 
-    per_rate_c = np.asarray(per_rate_c, float)
-    per_rate_f = np.asarray(per_rate_f, float)
-    diffs = per_rate_c - per_rate_f
-
-    # Wilcoxon (one-sided: centre > flanks)
+    # stats (one-sided: centre > flanks)
+    diffs = per_count_c - per_count_f
     if np.any(diffs != 0):
-        p_wil = wilcoxon(per_rate_c, per_rate_f, alternative='greater',
+        p_wil = wilcoxon(per_count_c, per_count_f, alternative='greater',
                          zero_method='wilcox').pvalue
     else:
         p_wil = 1.0
 
-    # Paired sign-flip permutation on the diffs
     rng = np.random.default_rng(0)
     null = np.empty(n_perm)
+    s_obs = np.sum(diffs)
     for i in range(n_perm):
-        signs = rng.choice([-1, 1], size=diffs.size)
-        null[i] = np.sum(diffs * signs)
-    p_perm_pair = float(np.mean(null >= np.sum(diffs)))
+        null[i] = np.sum(diffs * rng.choice([-1, 1], size=diffs.size))
+    p_perm_pair = float(np.mean(null >= s_obs))
 
-    # Pooled binomial within ±outer_h (equal total widths ⇒ p0=0.5)
-    N = int(k_c + k_f)
-    p_binom = binomtest(k_c, N, p=0.5, alternative='greater').pvalue if N > 0 else 1.0
+    N_cf = int(k_c + k_f)
+    p_binom = binomtest(k_c, N_cf, p=0.5, alternative='greater').pvalue if N_cf > 0 else 1.0
 
-    # ----- print (or annotate) ---------------------------------------------
-    msg = (f"Centre (±{inner_h*1000:.0f} ms) vs flanks (total {width_f*1000:.0f} ms): "
-           f"k_c={k_c}, k_f={k_f}, N={N}\n"
-           f"Wilcoxon p={p_wil:.2e}, Perm p={p_perm_pair:.3e}, Binomial p={p_binom:.2e}")
-    print(msg)
+    print(f"[3a] Centre (±{inner_h*1000:.0f} ms) vs flanks (total { (outer_width-center_width)*1000:.0f} ms): "
+          f"k_c={k_c}, k_f={k_f}, N={N_cf}")
+    print(f"[3a] Wilcoxon p={p_wil:.2e}, Perm p={p_perm_pair:.3e}, Binomial p={p_binom:.2e}")
 
-    # If you also want to show it on the figure, uncomment:
-    # ax2.text(0.02, 0.98, msg, transform=ax2.transAxes, va='top', ha='left',
-    #          fontsize=text_fs, bbox=dict(boxstyle='round', facecolor='white', alpha=0.85, lw=0))
+    # --- separate stats figures (counts violin + pooled bar) --------------------
+    if OUTPUT_DIR:
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    # --- existing enrichment + RMI parts (unchanged) ------------------------
+        # (A) Violin + paired dots/lines of per-epoch counts
+        fig_stat, ax = plt.subplots(figsize=(6.8, 5.2), dpi=150)
+        data_stack = [per_count_c, per_count_f]
+        parts = ax.violinplot(data_stack, positions=[1, 2],
+                              showmeans=False, showextrema=False, widths=0.8)
+        for pc in parts['bodies']:
+            pc.set_alpha(0.4)
+
+        x1 = np.full_like(per_count_c, 1.0, dtype=float)
+        x2 = np.full_like(per_count_f, 2.0, dtype=float)
+        ax.plot(np.c_[x1, x2].T, np.c_[per_count_c, per_count_f].T, alpha=0.3)
+        ax.scatter(x1, per_count_c, s=18, zorder=3)
+        ax.scatter(x2, per_count_f, s=18, zorder=3)
+
+        m1, m2 = np.nanmean(per_count_c), np.nanmean(per_count_f)
+        se1 = sem(per_count_c, nan_policy='omit')
+        se2 = sem(per_count_f, nan_policy='omit')
+        ax.errorbar([1, 2], [m1, m2], yerr=[se1, se2], fmt='s-', lw=2, capsize=4)
+
+        ax.set_xticks([1, 2])
+        ax.set_xticklabels([f"Centre\n(±{inner_h*1000:.0f} ms)",
+                            f"Flanks\n(total {(outer_width-center_width)*1000:.0f} ms)"],
+                           fontsize=tick_fs)
+        ax.set_ylabel("Event count (per epoch)", fontsize=label_fs)
+        ax.tick_params(labelsize=tick_fs)
+        ax.spines[['top','right']].set_visible(False)
+        ax.set_title(f"Centre vs flanks (per-epoch counts)\n"
+                     f"Wilcoxon p={p_wil:.2f}, Perm p={p_perm_pair:.2f}, Binom p={p_binom:.2f}",
+                     fontsize=label_fs, pad=8)
+
+        fig_stat.tight_layout()
+        fig_stat.savefig(os.path.join(OUTPUT_DIR, "centre_vs_flanks_stats.png"),
+                         dpi=300, transparent=True)
+
+        # (B) Pooled counts bar chart
+        fig_cnt, axc = plt.subplots(figsize=(4.4, 3.8), dpi=150)
+        axc.bar([0, 1], [k_c, k_f])
+        axc.set_xticks([0, 1]); axc.set_xticklabels(["Centre", "Flanks"])
+        axc.set_ylabel("Count", fontsize=label_fs)
+        axc.tick_params(labelsize=tick_fs)
+        axc.spines[['top','right']].set_visible(False)
+        axc.set_title("Pooled counts", fontsize=label_fs, pad=6)
+        fig_cnt.tight_layout()
+        fig_cnt.savefig(os.path.join(OUTPUT_DIR, "centre_vs_flanks_counts.png"),
+                        dpi=300, transparent=True)
+
+    # --- existing enrichment + RMI parts (kept as in your pipeline) --------------
     rmi_payload = _annotate_pooled_rmi(
         ax_hist=None,
         aligned_zscores=zscores_aligned,
@@ -799,78 +933,101 @@ def pooled_timing_hist(ripple_band_aligned,
     return all_times, stats, fig
 
 
+
 def pooled_phase_preference(ripple_band_aligned, zscores_aligned,
-                            fs=10_000, core_window=0.1, bins=18,
-                            peak_thr=3.0, distance=20, out_png=None,
-                            # --- NEW: font controls ---
-                            title_fs=20, tick_fs=18,
-                            bar_color="#1b9e77", edge_color="k"):
-    """
-    Map optical events to ripple phase (Hilbert 130–250 Hz) and test non-uniformity.
-    """
+                            fs=10_000,
+                            core_window=0.04,              # visual LFP core, e.g. ±20 ms
+                            bins=18, peak_thr=3.0, distance=15,
+                            out_png=None, title_fs=20, tick_fs=18,
+                            bar_color="#1b9e77", edge_color="k",
+                            event_times_per_epoch=None,     # REQUIRED for consistent n
+                            selection_window=(-0.02, 0.02)  # events to include in Rayleigh
+                            ):
+    from scipy.signal import hilbert
+
+    assert event_times_per_epoch is not None, \
+        "Pass event_times_per_epoch so 3a/3b/3c use the SAME events."
 
     n_ep, n_samp = ripple_band_aligned.shape
     mid = n_samp // 2
-    half = int(core_window*fs/2)*2  # ensure even sample count
-    core = slice(mid - half//2, mid + half//2)
+    t_full = (np.arange(n_samp) - mid) / fs
 
-    lfp_core = ripple_band_aligned[:, core]
-    zs_core  = zscores_aligned[:, core]
+    # --- Build LFP CORE for phase (visual context)
+    core_lo, core_hi = -core_window/2, core_window/2
+    core_mask = (t_full >= core_lo) & (t_full <= core_hi)
+    lfp_core = ripple_band_aligned[:, core_mask]
 
+    # bandpass + Hilbert on the core
     lfp_filt = _butter_bandpass(lfp_core, fs, 130, 250, order=4, axis=1)
     phase = np.angle(hilbert(lfp_filt, axis=1)) % (2*np.pi)
 
-    # shift so trough = 0
+    # align so trough = 0 phase
     trough_idx = np.argmin(lfp_filt, axis=1)
     trough_phase = phase[np.arange(phase.shape[0]), trough_idx]
     phase = (phase.T - trough_phase).T % (2*np.pi)
 
-    # events (peaks) & their phases
+    # --- Select EXACT events to analyse
+    sel_lo, sel_hi = selection_window
+    core_start_s = core_lo  # start of core in seconds
+    core_len = lfp_core.shape[1]
+
     peak_phases = []
-    for e, tr in enumerate(zs_core):
-        thr = np.median(tr) + peak_thr * median_abs_deviation(tr)
-        idx, _ = find_peaks(tr, height=thr, distance=distance)
-        if idx.size:
-            peak_phases.extend(phase[e, idx])
+    selected_count = 0
+    for e, times_all in enumerate(event_times_per_epoch):
+        # keep only the events inside the SELECTION window
+        sel_times = times_all[(times_all >= sel_lo) & (times_all <= sel_hi)]
+        if sel_times.size == 0:
+            continue
+        selected_count += sel_times.size
 
-    peak_phases = np.array(peak_phases)
-    if peak_phases.size == 0:
-        raise RuntimeError("No optical events detected in the core window.")
+        # map times (s) -> indices within the CORE array
+        idx_core = np.round((sel_times - core_start_s) * fs).astype(int)
+        # keep only indices that fall inside the core (safe guard)
+        keep = (idx_core >= 0) & (idx_core < core_len)
+        if np.any(keep):
+            peak_phases.extend(phase[e, idx_core[keep]])
 
-    # Rayleigh test
-    n = len(peak_phases)
-    R = np.sqrt(np.sum(np.cos(peak_phases))**2 + np.sum(np.sin(peak_phases))**2)
-    z = R**2 / n
-    p = np.exp(-z) * (1 + (2*z - z**2)/(4*n))
+    peak_phases = np.asarray(peak_phases)
+    print(f"[3c] Phase-mapped events within selection_window {selection_window}: {peak_phases.size}")
 
-    # polar histogram
+    # sanity: the Rayleigh n should equal the number of accepted phases
+    assert peak_phases.size == selected_count or peak_phases.size <= selected_count, \
+        f"Lost events after indexing: have phases={peak_phases.size}, selected={selected_count}"
+
+    # --- Rayleigh test
+    n = peak_phases.size
+    if n == 0:
+        raise RuntimeError("No events available in selection_window to compute phase.")
+
+    C = np.sum(np.cos(peak_phases))
+    S = np.sum(np.sin(peak_phases))
+    R = np.hypot(C, S)
+    z = (R**2) / n
+    p = np.exp(-z) * (1 + (2*z - z**2)/(4*n))  # small-angle approx
+
+    # --- Polar histogram
     bin_edges = np.linspace(0, 2*np.pi, bins+1)
     counts, _ = np.histogram(peak_phases, bins=bin_edges)
     centers = (bin_edges[:-1] + bin_edges[1:]) / 2
 
     fig = plt.figure(figsize=(7, 7))
     ax = fig.add_subplot(111, projection='polar')
-
     ax.bar(centers, counts, width=2*np.pi/bins, alpha=0.75,
            color=bar_color, edgecolor=edge_color)
-
-    ax.set_title(f"Optical event phase\nRayleigh z={z:.2f}, p={p:.3g}",
+    ax.set_title(f"Optical event phase (n={n})\nRayleigh z={z:.2f}, p={p:.3g}",
                  va="bottom", fontsize=title_fs, pad=12)
-
-    # --- bigger tick labels on both theta (x) and radius (y) ----------------
     ax.tick_params(axis='both', labelsize=tick_fs)
-    # make sure both theta and radial tick labels adopt the size across mpl versions
     for lab in ax.get_xticklabels() + ax.get_yticklabels():
         lab.set_fontsize(tick_fs)
-
-    # slightly thicker frame (optional)
     ax.spines['polar'].set_linewidth(2)
 
     plt.tight_layout()
     if out_png:
         fig.savefig(out_png, dpi=300, transparent=True)
+
     return {"z": float(z), "p": float(p), "n_events": int(n),
             "counts": counts, "centers": centers, "figure": fig}
+
 
 
 
@@ -881,12 +1038,12 @@ def main_batch():
     2) Pool all saved aligned epochs.
     3) Make pooled timing histogram & phase preference plot.
     """
-    parent_dir  = r"G:\2025_ATLAS_SPAD\PVCre\1842516_PV_Jedi2p\ASleepNonREM"   # <-- set your parent
-    LFP_channel = "LFP_4"
+    parent_dir  = r'G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\AwakeStationary'  # <-- set your parent
+    LFP_channel = "LFP_3"
     savename    = "RippleSave"
 
     '# Step 1: run all recordings'
-    process_parent_folder(parent_dir, LFP_channel=LFP_channel, savename=savename, theta_cutoff=0.3)
+    process_parent_folder(parent_dir, LFP_channel=LFP_channel, savename=savename, theta_cutoff=0.1)
 
     '# Step 2: pool'
     bp_all, bb_all, zs_all = load_all_aligned_epochs(parent_dir, savename_glob=savename, LFP_channel=LFP_channel)
@@ -894,41 +1051,52 @@ def main_batch():
     '# Step 3a: pooled timing preferences (relative to peak)'
     pooled_dir = os.path.join(parent_dir, "RipplePooled")
     os.makedirs(pooled_dir, exist_ok=True)
+    # Detect once on ±0.1 s (same for all)
+    evt_times = detect_peaks_times(zs_all, fs=10_000, detect_window=(-0.1, 0.1),
+                                   peak_thr=3.0, distance=15)
     
+    #3a: centre vs flanks (uses only |t|<=0.02 via centre+flanks union)
     peak_times, stats, fig = pooled_timing_hist(
-    ripple_band_aligned=bp_all,        # aligned ripple-band LFP
-    zscores_aligned=zs_all,            # aligned optical z-score
-    fs=10_000,
-    time_window=(-0.1, 0.1),
-    center_width=0.02,                 # tests ±10 ms around peak
-    peak_thr=3.0,
-    distance=15,
-    n_bins=40,
-    n_perm=2000,
-    OUTPUT_DIR=pooled_dir,
-    out_png=os.path.join(pooled_dir, "pooled_optical_timing_with_ripple.png"),
+        ripple_band_aligned=bp_all,
+        zscores_aligned=zs_all,
+        fs=10_000,
+        time_window=(-0.1, 0.1),
+        center_width=0.02,
+        peak_thr=3.0,
+        distance=15,
+        n_bins=40,
+        n_perm=2000,
+        OUTPUT_DIR=pooled_dir,
+        out_png=os.path.join(pooled_dir, "pooled_optical_timing_with_ripple.png"),
+        event_times_per_epoch=evt_times,            # NEW
     )
-   
-
-    '# Step 3b: compare Pre and Post'
-    stats_pp, fig_pp = pre_post_asymmetry_from_zscores(
-    ripple_band_aligned=bp_all,      # aligned ripple-band LFP
-    zscores_aligned=zs_all,          # aligned optical z-score
-    fs=10_000,
-    time_window=(-0.1, 0.1),
-    analysis_width=0.04,             # e.g. compare events in ±20 ms
-    peak_thr=3.0,
-    distance=15,
-    n_perm=5000,
-    out_png=os.path.join(pooled_dir, "pre_vs_post_events.png"),
-    )
-
-    '# Step 3b: pooled phase preferences (central ±50 ms default)'
-    stats = pooled_phase_preference(bp_all, zs_all, fs=10_000, core_window=0.04,
-                                    bins=18, peak_thr=3, distance=10,
-                                    out_png=os.path.join(pooled_dir, "pooled_optical_phase.png"))
-    print(f"Phase preference: Rayleigh z={stats['z']:.2f}, p={stats['p']:.3g}, n_events={stats['n_events']}")
     
+    # '# 3b: pre vs post within ±20 ms'
+    # stats_pp, fig_pp = pre_post_asymmetry_from_zscores(
+    #     ripple_band_aligned=bp_all,
+    #     zscores_aligned=zs_all,
+    #     fs=10_000,
+    #     time_window=(-0.1, 0.1),
+    #     analysis_width=0.04,   # ±20 ms
+    #     peak_thr=3.0,
+    #     distance=15,
+    #     n_perm=5000,
+    #     out_png=os.path.join(pooled_dir, "pre_vs_post_events.png"),
+    #     event_times_per_epoch=evt_times,            # NEW
+    # )
+    
+    
+    # '# 3c using EXACTLY the same ±20 ms events used in 3b'
+    # stats_phase = pooled_phase_preference(
+    #     bp_all, zs_all, fs=10_000,
+    #     core_window=0.06,                     # visual context (±30 ms) if you like
+    #     bins=18,
+    #     event_times_per_epoch=evt_times,      # reuse
+    #     selection_window=(-0.02, 0.02),       # SAME window as 3b
+    #     out_png=os.path.join(pooled_dir, "pooled_optical_phase.png")
+    # )
+    # print(f"Phase preference: Rayleigh z={stats_phase['z']:.2f}, "
+    #       f"p={stats_phase['p']:.3g}, n_events={stats_phase['n_events']}")
  
 if __name__ == "__main__":
     main_batch()

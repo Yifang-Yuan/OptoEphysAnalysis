@@ -30,18 +30,18 @@ from scipy.stats import linregress
 # =========================
 SAVE_ROOT = r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ALocomotion\same_direction_outputs"
 LFP_CHANNEL = "LFP_1"
-THETA_LOW, THETA_HIGH = 4, 9
+THETA_LOW, THETA_HIGH = 4, 12
 FS = 10_000
 
 # tracking columns for position
 SHOULDER_X, SHOULDER_Y = "shoulder_x", "shoulder_y"
-POS_SCALE_TO_CM = 1.0   # set e.g. 0.1 if your x/y are in mm (=0.1 cm) or pixels etc.
+POS_SCALE_TO_CM = 1   # set e.g. 0.1 if your x/y are in mm (=0.1 cm) or pixels etc.
 
 # Minimum number of optical peaks in a bout to analyse
 MIN_PEAKS = 5
 
 # How many example bouts to plot individually
-N_EXAMPLES = 8
+N_EXAMPLES = 20
 
 # =========================
 # FILTERS / PHASE UTILS

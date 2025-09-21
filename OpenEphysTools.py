@@ -155,10 +155,10 @@ def readEphysChannel_withSessionInput (session,recordingNum,Fs=30000):
     LFP_clean2= butter_filter(LFP2, btype='low', cutoff=2000, fs=Fs, order=5)
     LFP_clean3= butter_filter(LFP3, btype='low', cutoff=2000, fs=Fs, order=5)
     LFP_clean4= butter_filter(LFP4, btype='low', cutoff=2000, fs=Fs, order=5)
-    LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
-    LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
-    LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
-    LFP_clean4= notchfilter (LFP_clean4,f0=50,bw=5)
+    # LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
+    # LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
+    # LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
+    # LFP_clean4= notchfilter (LFP_clean4,f0=50,bw=5)
     
     EphysData = pd.DataFrame({
         'timestamps': timestamps,
@@ -540,7 +540,7 @@ def plot_trace_in_seconds_ax (ax,data, Fs, label='data',color='b',ylabel='z-scor
     num_samples = len(data)
     time_seconds = np.arange(num_samples) / Fs
     sns.lineplot(x=time_seconds, y=data.values, ax=ax, label=label, linewidth=2, color=color)
-    ax.set_ylabel(ylabel)
+    ax.set_ylabel(ylabel, fontsize=18)
     ax.spines['top'].set_visible(False)    # Hide the top spine
     ax.spines['right'].set_visible(False)  # Hide the right spine
     ax.spines['left'].set_visible(False)   # Hide the left spine
@@ -718,7 +718,7 @@ def plot_wavelet(ax, sst, frequency, power,
     # Optional colour bar
     if colorBar:
         fig = ax.get_figure()
-        cax = fig.add_axes([0.20, 0.02, 0.60, 0.03])       # x, y, w, h (figure coords)
+        cax = fig.add_axes([0.05, -0.1, 0.50, 0.03])       # x, y, w, h (figure coords)
         cbar = fig.colorbar(CS, cax=cax, orientation='horizontal')
         cbar.set_label('Power (mV$^2$)', fontsize=cbar_label_fs)
         cbar.ax.tick_params(labelsize=cbar_tick_fs, width=1.2)
@@ -2221,9 +2221,10 @@ def plot_gamma_power_on_theta(Fs, df, LFP_channel, theta_peak_index, half_window
     aligned_gamma_amp_spad = np.vstack(aligned_gamma_amp_spad)
 
     # 3. Compute mean + CI
+    'You can also use aligned_gamma_power_lfp here'
     mean_theta, _, _ = calculateStatisticNumpy(aligned_theta)
-    mean_gamma_power_lfp, _, CI_gamma_power_lfp = calculateStatisticNumpy(aligned_gamma_power_lfp)
-    mean_gamma_power_spad, _, CI_gamma_power_spad = calculateStatisticNumpy(aligned_gamma_power_spad)
+    mean_gamma_power_lfp, _, CI_gamma_power_lfp = calculateStatisticNumpy(aligned_gamma_amp_lfp)
+    mean_gamma_power_spad, _, CI_gamma_power_spad = calculateStatisticNumpy(aligned_gamma_amp_spad)
 
     # 4. Plot gamma power and theta (compact, frameless)
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 8))
@@ -2235,27 +2236,27 @@ def plot_gamma_power_on_theta(Fs, df, LFP_channel, theta_peak_index, half_window
     # --- LFP gamma power ---
     ax1.plot(time, mean_gamma_power_lfp, color=color_gamma)
     ax1.fill_between(time, CI_gamma_power_lfp[0], CI_gamma_power_lfp[1], color=color_gamma, alpha=0.3)
-    ax1.set_ylabel('Gamma Power (μV²)', fontsize=14, color=color_gamma)
+    ax1.set_ylabel('Gamma Power (μV²)', fontsize=18, color=color_gamma)
     ax1.axvline(x=0, color='k', linestyle='--')
     
     ax1b = ax1.twinx()
     ax1b.plot(time, mean_theta, color=color_theta, linewidth=2)
-    ax1b.set_ylabel('Theta-filtered LFP (μV)', fontsize=14, color=color_theta)
+    ax1b.set_ylabel('Theta-filtered LFP (μV)', fontsize=18, color=color_theta)
     
     # --- SPAD gamma power ---
     ax2.plot(time, mean_gamma_power_spad, color=color_gamma_spad)
     ax2.fill_between(time, CI_gamma_power_spad[0], CI_gamma_power_spad[1], color=color_gamma_spad, alpha=0.3)
-    ax2.set_ylabel('Gamma Power (a.u.)', fontsize=14, color=color_gamma_spad)
+    ax2.set_ylabel('Gamma Power (a.u.)', fontsize=18, color=color_gamma_spad)
     ax2.axvline(x=0, color='k', linestyle='--')
     
     ax2b = ax2.twinx()
     ax2b.plot(time, mean_theta, color=color_theta, linewidth=2)
-    ax2b.set_ylabel('Theta-filtered LFP (μV)', fontsize=14, color=color_theta)
-    ax2.set_xlabel('Time (s)', fontsize=14)
+    ax2b.set_ylabel('Theta-filtered LFP (μV)', fontsize=18, color=color_theta)
+    ax2.set_xlabel('Time (s)', fontsize=18)
 
     # --- Remove frames and enlarge tick labels ---
     for ax in [ax1, ax2, ax1b, ax2b]:
-        ax.tick_params(axis='both', labelsize=13)
+        ax.tick_params(axis='both', labelsize=16)
         for spine in ax.spines.values():
             spine.set_visible(False)
     
@@ -2265,8 +2266,8 @@ def plot_gamma_power_on_theta(Fs, df, LFP_channel, theta_peak_index, half_window
     # 5. Compute MI
     theta_phase = np.angle(hilbert(aligned_theta, axis=1))
 
-    mi_lfp, bin_centres, dist_lfp = compute_MI(theta_phase, aligned_gamma_power_lfp, bins)
-    mi_spad, _, dist_spad = compute_MI(theta_phase, aligned_gamma_power_spad, bins)
+    mi_lfp, bin_centres, dist_lfp = compute_MI(theta_phase, aligned_gamma_amp_lfp, bins)
+    mi_spad, _, dist_spad = compute_MI(theta_phase, aligned_gamma_amp_spad, bins)
 
     print(f"Modulation Index (LFP gamma): {mi_lfp:.4f}")
     print(f"Modulation Index (SPAD gamma): {mi_spad:.4f}")

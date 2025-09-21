@@ -19,10 +19,10 @@ import matplotlib.pyplot as plt
 # dpath='E:/ATLAS_SPAD/1825507_mCherry/Day1/'
 # recordingName='SavedMovingTrials'
 
-dpath=r'G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\Day2'
-recordingName='SyncRecording4_forPSD'
+dpath=r'G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\Day3'
+recordingName='SyncRecording1'
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-LFP_channel='LFP_2'
+LFP_channel='LFP_1'
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=True,
                                      read_aligned_data_from_file=False,
                                      recordingMode='Atlas',indicator='GEVI',
@@ -31,7 +31,7 @@ Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=True,
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined theta period.
 nonthetha_thres: the theta band power should be smaller than 50% to be defined as theta period.'''
-Recording1.pynacollada_label_theta (LFP_channel,Low_thres=0.3,High_thres=10,save=False,plot_theta=True)
+Recording1.pynacollada_label_theta (LFP_channel,Low_thres=-1,High_thres=10,save=False,plot_theta=True)
 #%%  
 'This is to calculate and plot the trace around theta trough'
 theta_part=Recording1.theta_part
@@ -61,7 +61,7 @@ rip_ep,rip_tsd=Recording1.pynappleGammaAnalysis (lfp_channel=LFP_channel,ep_star
 #%% Detect theta nested gamma event
 '''GAMMA- Theta nested Gamma plot
 For a rigid threshold to get larger amplitude Gamma events: Low_thres=1, for more ripple events, Low_thres=0'''
-rip_ep,rip_tsd=Recording1.PlotThetaNestedGamma (lfp_channel=LFP_channel,Low_thres=-0.7,High_thres=10,plot_segment=False, plot_ripple_ep=True)
+rip_ep,rip_tsd=Recording1.PlotThetaNestedGamma (lfp_channel=LFP_channel,Low_thres=-1,High_thres=10,plot_segment=False, plot_ripple_ep=True)
 
 #%%
 '''To plot the feature of a part of the signal'''

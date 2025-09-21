@@ -14,6 +14,7 @@ from scipy.signal import butter, sosfiltfilt, hilbert
 import os
 import OpenEphysTools as OE
 
+_TWO_PI = 2*np.pi
 def _butter_bandpass_sos(low, high, fs, order=4):
     return butter(order, [low, high], btype='band', fs=fs, output='sos')
 
@@ -29,6 +30,57 @@ def _normalised_contour(bin_centers, counts):
     theta_circ = np.append(bin_centers, bin_centers[0])
     r_circ     = np.append(r, r[0])
     return theta_circ, r_circ, r  # return open r as well for averaging
+
+
+def _cycle_ids(theta_phase):
+    """Return integer cycle ids from an unwrapped theta phase array."""
+    th_unw = np.unwrap(np.asarray(theta_phase))
+    return np.floor(th_unw / _TWO_PI).astype(int)
+
+def _cyclewise_power_pref_angles(theta_phase, power, min_samples_per_cycle=10):
+    """
+    For each theta cycle, compute a single power-weighted preferred phase angle.
+    Returns: angles (radians), n_cycles_used, per-cycle weights (sum power).
+    """
+    theta_phase = np.asarray(theta_phase) % _TWO_PI
+    power = np.asarray(power).astype(float)
+    cid = _cycle_ids(theta_phase)
+    angles = []
+    weights = []
+    for c in range(cid.min(), cid.max()+1):
+        sel = (cid == c)
+        if sel.sum() < min_samples_per_cycle:
+            continue
+        # Power-weighted complex vector
+        C = np.sum(power[sel] * np.cos(theta_phase[sel]))
+        S = np.sum(power[sel] * np.sin(theta_phase[sel]))
+        if C == 0 and S == 0:
+            continue
+        angles.append(np.arctan2(S, C) % _TWO_PI)
+        weights.append(np.sum(power[sel]))
+    return np.array(angles, dtype=float), len(angles), np.array(weights, dtype=float)
+
+def _rayleigh_test(angles):
+    """
+    Classic Rayleigh test for non-uniformity of circular data.
+    angles: array of radians (unweighted).
+    Returns dict with n, Rbar, Z, p.
+    Berens (2009) approximation for p with small-sample correction.
+    """
+    a = np.asarray(angles, dtype=float)
+    n = a.size
+    if n == 0:
+        return {'n': 0, 'Rbar': np.nan, 'Z': np.nan, 'p': np.nan}
+    C = np.sum(np.cos(a))
+    S = np.sum(np.sin(a))
+    R = np.sqrt(C*C + S*S)
+    Rbar = R / n
+    Z = n * (Rbar**2)
+    # small-sample corrected p (Berens, CircStat toolbox notes)
+    p = np.exp(-Z) * (1 + (2*Z - Z**2)/(4*n) - (24*Z - 132*Z**2 + 76*Z**3 - 9*Z**4)/(288*n**2))
+    p = float(np.clip(p, 0.0, 1.0))
+    return {'n': int(n), 'Rbar': float(Rbar), 'Z': float(Z), 'p': p}
+
 
 def save_trial_phase_metrics(theta_phase,
                              signal,
@@ -174,6 +226,9 @@ def compute_gamma_power_on_theta_phase(theta_phase,
         ax.set_title(ttl, va="bottom", pad=12, fontsize=12)
         plt.tight_layout()
     
+    # --- NEW: cycle-level preferred phases + Rayleigh test (n = # theta cycles)
+    angles_cyc, n_cyc, w_cyc = _cyclewise_power_pref_angles(theta_phase, Pg, min_samples_per_cycle=10)
+    ray = _rayleigh_test(angles_cyc)
 
     return {
         'bin_centers'          : ctr,
@@ -183,7 +238,10 @@ def compute_gamma_power_on_theta_phase(theta_phase,
         'modulation_depth_R'   : float(Rw),
         'gamma_band'           : tuple(gamma_band),
         'weights_sum'          : wsum,
-        'fig'                  : fig
+        'fig'                  : fig,
+        'cycle_pref_angles'    : angles_cyc,   # array (radians) per cycle
+        'n_cycles'             : int(n_cyc),   # sample size for significance test
+        'rayleigh'             : ray,          # {'n','Rbar','Z','p'}
     }
 
 def save_trial_gamma_power_phase(theta_phase,
@@ -224,7 +282,11 @@ def save_trial_gamma_power_phase(theta_phase,
             'preferred_phase_rad' : res_lfp['preferred_phase_rad'],
             'preferred_phase_deg' : res_lfp['preferred_phase_deg'],
             'R'                   : res_lfp['modulation_depth_R'],
-            'weights_sum'         : res_lfp['weights_sum']
+            'weights_sum'         : res_lfp['weights_sum'],
+            # NEW
+            'cycle_pref_angles'   : res_lfp['cycle_pref_angles'],
+            'n_cycles'            : res_lfp['n_cycles'],
+            'rayleigh'            : res_lfp['rayleigh'],
         },
         'opt' : {
             'gamma_band'          : res_opt['gamma_band'],
@@ -233,7 +295,11 @@ def save_trial_gamma_power_phase(theta_phase,
             'preferred_phase_rad' : res_opt['preferred_phase_rad'],
             'preferred_phase_deg' : res_opt['preferred_phase_deg'],
             'R'                   : res_opt['modulation_depth_R'],
-            'weights_sum'         : res_opt['weights_sum']
+            'weights_sum'         : res_opt['weights_sum'],
+            # NEW
+            'cycle_pref_angles'   : res_opt['cycle_pref_angles'],
+            'n_cycles'            : res_opt['n_cycles'],
+            'rayleigh'            : res_opt['rayleigh'],
         },
         'meta': meta or {}
     }
@@ -389,8 +455,14 @@ def plot_gamma_power_on_theta_cartesian_group(
     ax_left.tick_params(axis='both', labelsize=tick_fs)
     ax_right.spines['right'].set_linewidth(2)
 
+    # ttl = (f"{title_prefix}pref={agg_side['group_pref_phase_deg']:.1f}°, "
+    #        f"R={agg_side['group_R']:.3f} (n={agg_side['n_trials']})")
     ttl = (f"{title_prefix}pref={agg_side['group_pref_phase_deg']:.1f}°, "
-           f"R={agg_side['group_R']:.3f} (n={agg_side['n_trials']})")
+       f"R={agg_side['group_R']:.3f} \n  "
+       f"Rayleigh (cycles): n={agg_side.get('n_cycles', 0)}, p={agg_side.get('rayleigh',{}).get('p', np.nan):.3g}  "
+       f"(sweeps={agg_side.get('n_trials', 0)})")
+
+    
     ax_left.set_title(ttl, fontsize=title_fs, fontweight='bold', pad=12)
 
     ax_left.set_xticks(np.arange(0, 360*cycles+1, 180))
@@ -426,11 +498,14 @@ def aggregate_gamma_power_phase(paths, ci_method="bootstrap", n_boot=2000, ci_al
         weights  = np.array([r[side]['weights_sum'] for r in recs], dtype=float)
         phi      = np.array([r[side]['preferred_phase_rad'] for r in recs], dtype=float)
         R        = np.array([r[side]['R'] for r in recs], dtype=float)
-        return contours, weights, phi, R
+        # NEW: cycle-level arrays (ragged; we’ll concat)
+        cyc_lists = [np.asarray(r[side]['cycle_pref_angles'], dtype=float) for r in recs]
+        ncyc      = np.array([int(r[side]['n_cycles']) for r in recs], dtype=int)
+        return contours, weights, phi, R, cyc_lists, ncyc
 
     agg = {}
     for side in ['lfp', 'opt']:
-        contours, w, phi, R = _stack(side)
+        contours, w, phi, R, cyc_lists, ncyc = _stack(side)
         T, B = contours.shape
         mean_contour = contours.mean(axis=0)
         sem_contour  = contours.std(axis=0, ddof=1) / np.sqrt(T)
@@ -458,18 +533,25 @@ def aggregate_gamma_power_phase(paths, ci_method="bootstrap", n_boot=2000, ci_al
         Sy = np.sum(w * R * np.sin(phi))
         group_pref = (np.arctan2(Sy, Cx)) % (2*np.pi)
         group_R    = np.sqrt(Cx**2 + Sy**2) / (np.sum(w) + 1e-12)
+        # NEW: pooled cycle-level Rayleigh across all sweeps (n = total cycles)
+        all_cycle_angles = np.concatenate([c for c in cyc_lists if c.size > 0], axis=0) if len(cyc_lists) else np.array([])
+        ray_pool = _rayleigh_test(all_cycle_angles)
 
         agg[side] = {
-            'bin_centers' : (bc0_lfp if side=='lfp' else bc0_opt),
-            'mean_contour': mean_contour,
-            'sem_contour' : sem_contour,
-            'ci_lower'    : ci_lower,
-            'ci_upper'    : ci_upper,
-            'group_pref_phase_rad': float(group_pref),
-            'group_pref_phase_deg': float(np.degrees(group_pref) % 360.0),
-            'group_R'     : float(group_R),
-            'n_trials'    : int(T)
-        }
+        'bin_centers' : (bc0_lfp if side=='lfp' else bc0_opt),
+        'mean_contour': mean_contour,
+        'sem_contour' : sem_contour,
+        'ci_lower'    : ci_lower,
+        'ci_upper'    : ci_upper,
+        'group_pref_phase_rad': float(group_pref),
+        'group_pref_phase_deg': float(np.degrees(group_pref) % 360.0),
+        'group_R'     : float(group_R),
+        'n_trials'    : int(T),
+        # NEW
+        'n_cycles'    : int(ray_pool['n']),
+        'rayleigh'    : ray_pool,  # {'n','Rbar','Z','p'}
+    }
+
     return agg
 
 def plot_power_phase_agg(agg_side, title=None):
@@ -517,6 +599,12 @@ def plot_power_phase_agg(agg_side, title=None):
     if title is None:
         title = (f"pref={agg_side['group_pref_phase_deg']:.1f}°, "
                  f"R={agg_side['group_R']:.3f} (n={agg_side['n_trials']})")
+        # title = (f"pref={agg_side['group_pref_phase_deg']:.1f}°, "
+        #          f"R={agg_side['group_R']:.3f} \n  "
+        #          f"Rayleigh (cycles): n={agg_side.get('n_cycles',0)}, "
+        #          f"p={agg_side.get('rayleigh',{}).get('p', np.nan):.3g}  "
+        #          f"(sweeps={agg_side.get('n_trials',0)})")
+
     ax.set_title(title, va="bottom", pad=12, fontsize=12)
 
     plt.tight_layout()
@@ -695,10 +783,10 @@ def run_gamma_power_on_theta_batch(
     return results
 
 #%%
-dpath      = r'G:\2025_ATLAS_SPAD\PVCre\1842515_PV_mNeon\aLocomotion_day7'
+dpath      = r'G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\ASleepREM'
 savename   = 'GammaPowerOnTheta'
 LFP_channel= 'LFP_1'
-
+'Run all SyncRecording'
 results = run_gamma_power_on_theta_batch(
     dpath=dpath,
     savename=savename,
@@ -709,12 +797,11 @@ results = run_gamma_power_on_theta_batch(
     opt_gamma=(30, 80),
     overwrite=False,
     plot_theta=True,
-    behaviour='Moving'
+    behaviour='REM'
 )
-
 #%%
+dpath      = r'G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\ASleepREM'
 save_path=os.path.join(dpath,'GammaPowerOnTheta')
-from pathlib import Path
 pp_paths = sorted(Path(save_path).glob("GammaPowerOnTheta_trial*.pkl.gz"))
 agg = aggregate_gamma_power_phase(pp_paths, ci_method="bootstrap", n_boot=2000, ci_alpha=0.05)
 'Plot LFP gamma phase'
@@ -725,3 +812,8 @@ plot_gamma_power_on_theta_cartesian_group(agg['opt'], cycles=2, title_prefix="Op
 # Plot LFP and optical separately
 plot_power_phase_agg(agg['lfp'],  title="LFP γ power on θ phase (group)")
 plot_power_phase_agg(agg['opt'],  title="Optical γ power on θ phase (group)")
+
+print("\n=== Group γ-on-θ phase significance (cycle-level Rayleigh) ===")
+for side in ['lfp','opt']:
+    r = agg[side]['rayleigh']
+    print(f"{side.upper():>3}: n_cycles={r['n']}, Rbar={r['Rbar']:.3f}, Z={r['Z']:.3f}, p={r['p']:.3g}")

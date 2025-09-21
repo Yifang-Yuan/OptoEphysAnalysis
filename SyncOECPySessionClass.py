@@ -52,8 +52,8 @@ class SyncOEpyPhotometrySession:
         if self.recordingMode=='SPAD':
             self.Spad_fs = 9938.4
         if self.recordingMode=='Atlas':
-            #self.Spad_fs = 841.68
-            self.Spad_fs = 1682.92
+            self.Spad_fs = 841.68
+            #self.Spad_fs = 1682.92
             
         self.ephys_fs = 30000
         self.tracking_fs = 10
@@ -969,6 +969,25 @@ class SyncOEpyPhotometrySession:
         plt.show()
         return sig_smooth,ref_smooth,silced_recording['sig_raw']
     
+    def plot_band_power_feature (self,LFP_channel,start_time,end_time,LFP=True):
+        silced_recording=self.slicing_pd_data (self.Ephys_tracking_spad_aligned,start_time=start_time, end_time=end_time)
+        if LFP:
+            lfp_data=silced_recording[LFP_channel]/1000
+        else:
+            lfp_data=silced_recording[LFP_channel]
+        data=lfp_data.to_numpy()
+        lfp_thetaband=OE.band_pass_filter(data,5,9,Fs=self.fs)
+        #lfp_thetaband = lfp_thetaband - np.mean(lfp_thetaband)
+        sst,frequency,power,global_ws=OE.Calculate_wavelet(data,lowpassCutoff=500,Fs=self.fs)
+        time = np.arange(len(sst)) *(1/self.fs)
+        OE.plot_wavelet_feature(sst,frequency,power,global_ws,time,lfp_thetaband,powerband='(5-9Hz)')
+        
+        lfp_rippleband=OE.band_pass_filter(data,150,250,Fs=self.fs)
+        #lfp_thetaband = lfp_thetaband - np.mean(lfp_thetaband)
+        sst,frequency,power,global_ws=OE.Calculate_wavelet(lfp_rippleband,lowpassCutoff=500,Fs=self.fs,scale=20)
+        time = np.arange(len(sst)) *(1/self.fs)
+        OE.plot_wavelet_feature(data,frequency,power,global_ws,time,lfp_rippleband,powerband='(150-250Hz)')     
+        return -1
     
     def plot_segment_feature (self,LFP_channel,start_time,end_time,SPAD_cutoff,lfp_cutoff):
         silced_recording=self.slicing_pd_data (self.Ephys_tracking_spad_aligned,start_time=start_time, end_time=end_time)
@@ -994,26 +1013,6 @@ class SyncOEpyPhotometrySession:
         spad_low = pd.Series(SPAD_smooth, index=data['zscore_raw'].index)
         lfp_low = pd.Series(lfp_lowpass, index=data[LFP_channel].index)
         self.plot_two_traces (spad_low,lfp_low,Spectro_ylim=20,AddColorbar=True)
-        return -1
-    
-    def plot_band_power_feature (self,LFP_channel,start_time,end_time,LFP=True):
-        silced_recording=self.slicing_pd_data (self.Ephys_tracking_spad_aligned,start_time=start_time, end_time=end_time)
-        if LFP:
-            lfp_data=silced_recording[LFP_channel]/1000
-        else:
-            lfp_data=silced_recording[LFP_channel]
-        data=lfp_data.to_numpy()
-        lfp_thetaband=OE.band_pass_filter(data,5,9,Fs=self.fs)
-        #lfp_thetaband = lfp_thetaband - np.mean(lfp_thetaband)
-        sst,frequency,power,global_ws=OE.Calculate_wavelet(data,lowpassCutoff=500,Fs=self.fs)
-        time = np.arange(len(sst)) *(1/self.fs)
-        OE.plot_wavelet_feature(sst,frequency,power,global_ws,time,lfp_thetaband,powerband='(5-9Hz)')
-        
-        lfp_rippleband=OE.band_pass_filter(data,150,250,Fs=self.fs)
-        #lfp_thetaband = lfp_thetaband - np.mean(lfp_thetaband)
-        sst,frequency,power,global_ws=OE.Calculate_wavelet(lfp_rippleband,lowpassCutoff=500,Fs=self.fs,scale=20)
-        time = np.arange(len(sst)) *(1/self.fs)
-        OE.plot_wavelet_feature(data,frequency,power,global_ws,time,lfp_rippleband,powerband='(150-250Hz)')     
         return -1
 
     def plot_two_traces(self, spad_data, lfp_data,
@@ -1828,6 +1827,11 @@ class SyncOEpyPhotometrySession:
             OE.plot_wavelet(ax[4],sst,frequency,power,Fs=self.fs,colorBar=False)
             #OE.plot_ripple_spectrum (ax[4], LFP, ex_ep,y_lim=30,Fs=self.fs,vmax_percentile=100)
             plt.subplots_adjust(hspace=0.5)
+            for axi in ax:
+                axi.set_xlabel(axi.get_xlabel(), fontsize=16)
+                axi.set_ylabel(axi.get_ylabel(), fontsize=16)
+                axi.title.set_fontsize(18)
+                axi.tick_params(axis='both', labelsize=14)
             
         self.ripple_std_values=[]
         self.ripple_duration_values=[]
@@ -2007,13 +2011,13 @@ class SyncOEpyPhotometrySession:
                                                                               Low_thres=Low_thres,High_thres=High_thres)
         gamma_band_filtered_spad,_,_,_,_ = OE.getRippleEvents (SPAD,self.fs,windowlen=1000,
                                                                             Low_thres=0,High_thres=8,
-                                                                            low_freq=20,high_freq=50)
+                                                                            low_freq=30,high_freq=80)
         'To detect theta by LFP'
         theta_band_filtered,_,_,rip_ep,rip_tsd = OE.getThetaEvents (LFP,self.fs,windowlen=2000,
                                                                          Low_thres=Low_thres,High_thres=High_thres)  
         gamma_band_filtered,_,_,_,_ = OE.getRippleEvents (LFP,self.fs,windowlen=1000,
                                                                             Low_thres=0,High_thres=8,
-                                                                            low_freq=20,high_freq=50)
+                                                                            low_freq=30,high_freq=80)
 
         '''To calculate cross-correlation'''
         event_peak_times=rip_tsd.index.to_numpy()
@@ -2055,10 +2059,18 @@ class SyncOEpyPhotometrySession:
                     OE.plot_ripple_trace(ax[4],time,gamma_band_filtered_ep,color='red')
                     OE.plot_theta_nested_gamma_overlay (ax[5],gamma_band_filtered_ep,gamma_band_filtered_ep,frequency,power,time,
                                            theta_band_filtered_ep,100,plot_title,plotLFP=False,plotSPAD=False,plotTheta=True)
+                    for axi in ax:
+                        axi.set_xlabel(axi.get_xlabel(), fontsize=16)
+                        axi.set_ylabel(axi.get_ylabel(), fontsize=16)
+                        axi.title.set_fontsize(18)
+                        axi.tick_params(axis='both', labelsize=14)
 
                     # Optionally remove ticks
                     ax[0].tick_params(left=True, bottom=False, labelleft=True, labelbottom=False)
                     ax[1].tick_params(left=True, bottom=False, labelleft=True, labelbottom=False)
+                    ax[2].tick_params(left=True, bottom=False, labelleft=True, labelbottom=False)
+                    ax[3].tick_params(left=True, bottom=False, labelleft=True, labelbottom=False)
+                    ax[4].tick_params(left=True, bottom=False, labelleft=True, labelbottom=False)
                     
                     plt.tight_layout()
                     figName=self.recordingName+'ThetaNestedGamma'+str(i)+'.png'
@@ -2083,7 +2095,7 @@ class SyncOEpyPhotometrySession:
         #OE.compute_and_plot_gamma_power_correlation(zscore, silced_recording[LFP_channel],gamma_band, self.fs)
         #OE.compute_and_plot_gamma_power_crosscorr(zscore, silced_recording[LFP_channel],gamma_band, self.fs)
         OE.plot_gamma_amplitude_on_theta_phase(silced_recording[LFP_channel], silced_recording['zscore_raw'], 
-                                             self.fs, theta_band=(5, 12), gamma_band=gamma_band, bins=30)
+                                             self.fs, theta_band=(4, 12), gamma_band=gamma_band, bins=30)
         # Save the figure with a transparent background
         fig_path = os.path.join(self.savepath, 'Gamma Power on Theta Phase.png')
         fig.savefig(fig_path, transparent=True, bbox_inches='tight')

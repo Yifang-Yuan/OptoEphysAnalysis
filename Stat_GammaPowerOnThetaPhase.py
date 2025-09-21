@@ -24,9 +24,17 @@ from scipy.stats import kruskal, mannwhitneyu
 
 # ======================== USER PATHS =========================
 # Point each to the folder containing GammaPowerOnTheta_trial*.pkl.gz
-LOCOMOTION_DIR = Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\OpenField_DLCtracking\GammaPowerOnTheta")
+LOCOMOTION_DIR = Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ALocomotion\GammaPowerOnTheta")
 AWAKE_DIR      = Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\AwakeStationary\GammaPowerOnTheta")
-REM_DIR        = Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ASleep\GammaPowerOnTheta")
+REM_DIR        = Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ASleepREM\GammaPowerOnTheta")
+
+# LOCOMOTION_DIR = Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\ALocomotion\GammaPowerOnTheta")
+# AWAKE_DIR      = Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\AwakeStationaryTheta\GammaPowerOnTheta")
+# REM_DIR        = Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1844609_WT_Jedi2p\ASleepREM\GammaPowerOnTheta")
+
+# LOCOMOTION_DIR = Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\ALocomotion\GammaPowerOnTheta")
+# AWAKE_DIR      = Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\AwakeStationaryTheta\GammaPowerOnTheta")
+# REM_DIR        = Path(r"G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\ASleepREM\GammaPowerOnTheta")
 
 OUT_DIR        = Path(r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\GammaPhase_Group_Stats")  # where to save the four PNGs
 OUT_DIR.mkdir(parents=True, exist_ok=True)

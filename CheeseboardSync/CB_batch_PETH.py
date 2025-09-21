@@ -334,7 +334,7 @@ def average_across_trials(animal_root: str,
     lfp_mean_spec   = _mean(lfp_sum,   lfp_cnt)
     zspec_mean      = _mean(zspec_sum, zspec_cnt)
 
-    def _mean_ci90(sum_, sumsq_, cnt_):
+    def _mean_ci95(sum_, sumsq_, cnt_):
         m = np.divide(sum_, cnt_, out=np.full_like(sum_, np.nan), where=cnt_ > 0)
         var = np.divide(sumsq_ - (sum_**2)/np.maximum(cnt_, 1.0),
                         np.maximum(cnt_ - 1.0, 1.0),
@@ -343,15 +343,15 @@ def average_across_trials(animal_root: str,
         sem = np.divide(np.sqrt(var), np.sqrt(cnt_),
                         out=np.full_like(sum_, np.nan),
                         where=cnt_ > 1)
-        z90 = 1.645
-        ci = z90 * sem
+        z95 = 1.96
+        ci = z95 * sem
         return m, ci
 
     # NEW: LFP trace stats
-    lfp_tr_mean, lfp_tr_ci = _mean_ci90(lfp_tr_sum, lfp_tr_sumsq, lfp_tr_cnt)
+    lfp_tr_mean, lfp_tr_ci = _mean_ci95(lfp_tr_sum, lfp_tr_sumsq, lfp_tr_cnt)
     # existing traces
-    z_mean,  z_ci  = _mean_ci90(z_sum,  z_sumsq,  z_cnt)
-    sp_mean, sp_ci = _mean_ci90(sp_sum, sp_sumsq, sp_cnt)
+    z_mean,  z_ci  = _mean_ci95(z_sum,  z_sumsq,  z_cnt)
+    sp_mean, sp_ci = _mean_ci95(sp_sum, sp_sumsq, sp_cnt)
 
     # ===== figure with an extra TOP row for LFP trace =====
     LABEL_FS=20; TICK_FS=18
@@ -427,15 +427,21 @@ def average_across_trials_pctl95(animal_root: str,
     nT = time_grid.size
     z_val_to_plot = -1.0/100.0  # negate & scale for plotting
 
-    # accumulators
+    # --- spectrogram accumulators ---
     lfp_sum = None; lfp_cnt = None
     zspec_sum = None; zspec_cnt = None
-    z_sum = np.zeros(nT, float); z_sumsq = np.zeros(nT, float); z_cnt = np.zeros(nT, float)
-    sp_sum = np.zeros(nT, float); sp_sumsq = np.zeros(nT, float); sp_cnt = np.zeros(nT, float)
-    n_trials = 0
 
-    # NEW: store per-trial optical (z-scored) traces for percentile band
-    z_trials = []
+    # --- traces accumulators ---
+    # LFP trace (NEW): mean ± 90% CI
+    lfp_tr_sum = np.zeros(nT, float); lfp_tr_sumsq = np.zeros(nT, float); lfp_tr_cnt = np.zeros(nT, float)
+
+    # optical (keep raw per-trial for percentile band; also keep sum/sumsq if you want mean/SEM)
+    z_trials: List[np.ndarray] = []
+
+    # speed (95% CI via SEM)
+    sp_sum = np.zeros(nT, float); sp_sumsq = np.zeros(nT, float); sp_cnt = np.zeros(nT, float)
+
+    n_trials = 0
 
     def _accum_spec(sum_, cnt_, M):
         if M is None: return sum_, cnt_
@@ -455,6 +461,7 @@ def average_across_trials_pctl95(animal_root: str,
             pkl = os.path.join(sync, "aligned_cheeseboard.pkl")
             if not os.path.isfile(pkl):
                 continue
+
             T = extract_trial_around_approach(
                 pkl, landmarks, lfp_channel,
                 window_s=window_s,
@@ -468,29 +475,51 @@ def average_across_trials_pctl95(animal_root: str,
                 continue
             n_trials += 1
 
-            lfp_sum, lfp_cnt     = _accum_spec(lfp_sum,   lfp_cnt,   T.get("lfp_spec"))
+            # spectrograms (power-first)
+            lfp_sum,   lfp_cnt   = _accum_spec(lfp_sum,   lfp_cnt,   T.get("lfp_spec"))
             zspec_sum, zspec_cnt = _accum_spec(zspec_sum, zspec_cnt, T.get("z_spec"))
 
-            z_bin = T.get("z_bin", None)   # (already per-trial z-scored by extractor)
-            sp    = T.get("speed", None)
-
+            # optical (for percentile band)
+            z_bin = T.get("z_bin", None)
             if z_bin is not None and z_bin.size == nT:
-                z_trials.append(z_bin)  # keep for percentile band
-                good = np.isfinite(z_bin)
-                z_sum[good]   += z_bin[good]
-                z_sumsq[good] += (z_bin[good] ** 2)
-                z_cnt[good]   += 1
+                z_trials.append(z_bin)
 
+            # speed accumulators (95% CI)
+            sp = T.get("speed", None)
             if sp is not None and sp.size == nT:
                 good = np.isfinite(sp)
                 sp_sum[good]   += sp[good]
                 sp_sumsq[good] += (sp[good] ** 2)
                 sp_cnt[good]   += 1
 
+            # ---- NEW: LFP trace at 100 Hz for CI band ----
+            lfp_100 = T.get("lfp_100Hz", None)
+            if (lfp_100 is None) or (lfp_100.size != nT):
+                # derive from the same pickle if not provided
+                with open(pkl, "rb") as f:
+                    Dloc = pickle.load(f)
+                e = Dloc["ephys"]; b = Dloc["beh"]
+                t_e = np.asarray(e["t"], float)
+                lfp_raw = np.asarray(e[lfp_channel], float)
+                appr = b.get("approach_time", None)
+                if appr is not None and np.isfinite(appr):
+                    t0 = appr + window_s[0]; t1 = appr + window_s[1]
+                    m = (t_e >= t0) & (t_e <= t1)
+                    if m.any():
+                        t_e_w = t_e[m] - appr
+                        lfp_w = lfp_raw[m]
+                        lfp_100 = np.interp(time_grid, t_e_w, lfp_w, left=np.nan, right=np.nan)
+            if lfp_100 is not None and lfp_100.size == nT:
+                good = np.isfinite(lfp_100)
+                lfp_tr_sum[good]   += lfp_100[good]
+                lfp_tr_sumsq[good] += (lfp_100[good] ** 2)
+                lfp_tr_cnt[good]   += 1
+
     if n_trials == 0:
         print("No usable trials found.")
         return
 
+    # means for spectrograms
     def _mean(sum_, cnt_):
         if sum_ is None: return None
         return np.divide(sum_, cnt_, out=np.full_like(sum_, np.nan), where=cnt_ > 0)
@@ -498,8 +527,8 @@ def average_across_trials_pctl95(animal_root: str,
     lfp_mean   = _mean(lfp_sum,   lfp_cnt)
     zspec_mean = _mean(zspec_sum, zspec_cnt)
 
-    # speed: keep SEM-based 95% CI (unchanged logic, just 95% instead of 90%)
-    def _mean_ci95(sum_, sumsq_, cnt_):
+    # CI helpers
+    def _mean_ci(sum_, sumsq_, cnt_, z_mult: float):
         m = np.divide(sum_, cnt_, out=np.full_like(sum_, np.nan), where=cnt_ > 0)
         var = np.divide(sumsq_ - (sum_**2)/np.maximum(cnt_, 1.0),
                         np.maximum(cnt_ - 1.0, 1.0),
@@ -508,14 +537,18 @@ def average_across_trials_pctl95(animal_root: str,
         sem = np.divide(np.sqrt(var), np.sqrt(cnt_),
                         out=np.full_like(sum_, np.nan),
                         where=cnt_ > 1)
-        ci = 1.96 * sem
-        return m, ci, cnt_
+        ci = z_mult * sem
+        return m, ci
 
-    sp_mean, sp_ci, _ = _mean_ci95(sp_sum, sp_sumsq, sp_cnt)
+    # LFP trace: 90% CI (z ≈ 1.645)
+    lfp_tr_mean, lfp_tr_ci = _mean_ci(lfp_tr_sum, lfp_tr_sumsq, lfp_tr_cnt, z_mult=1.96)
 
-    # --- OPTICAL: percentile band across trials (2.5–97.5%)
+    # Speed: 95% CI (z ≈ 1.96)
+    sp_mean, sp_ci = _mean_ci(sp_sum, sp_sumsq, sp_cnt, z_mult=1.96)
+
+    # Optical: percentile band 2.5–97.5%
     if len(z_trials):
-        Z = np.vstack(z_trials)                      # shape: n_kept x nT
+        Z = np.vstack(z_trials)           # n_trials_kept x nT
         z_mean = np.nanmean(Z, axis=0)
         z_lo   = np.nanpercentile(Z,  2.5, axis=0)
         z_hi   = np.nanpercentile(Z, 97.5, axis=0)
@@ -525,37 +558,51 @@ def average_across_trials_pctl95(animal_root: str,
         z_lo = z_hi = z_mean
         n_opt = 0
 
-    # ===== fig: averaged plots =====
+    # ===== figure with EXTRA TOP row for LFP trace =====
     LABEL_FS=20; TICK_FS=18
+    LFP_TRACE_COLOR = "#1f77b4"
     PHOT_COLOR="#2ca02c"; SPEED_COLOR="k"
-    fig, axes = plt.subplots(4, 1, figsize=(12, 10), sharex=True)
-    ax1, ax2, ax3, ax4 = axes
 
+    fig, axes = plt.subplots(5, 1, figsize=(12, 12), sharex=True)
+    ax0, ax1, ax2, ax3, ax4 = axes
+
+    # 0) LFP trace mean ± 90% CI
+    if np.any(np.isfinite(lfp_tr_mean)):
+        lo = lfp_tr_mean - lfp_tr_ci
+        hi = lfp_tr_mean + lfp_tr_ci
+        ax0.fill_between(time_grid, lo, hi, color=LFP_TRACE_COLOR, alpha=0.20, linewidth=0)
+        ax0.plot(time_grid, lfp_tr_mean, color=LFP_TRACE_COLOR, linewidth=1.8)
+    ax0.set_ylabel("LFP (μV)", fontsize=LABEL_FS)
+    ax0.tick_params(labelsize=TICK_FS)
+
+    # 1) LFP spectrogram (avg power)
     if lfp_mean is not None:
         ax1.contourf(time_grid, freq_grid, lfp_mean, levels=40)
     ax1.set_ylabel("Freq (Hz)", fontsize=LABEL_FS)
     ax1.set_ylim(0, 20); ax1.tick_params(labelsize=TICK_FS)
 
-    # Optical: mean + 2.5–97.5% percentile band (still negated for plotting)
+    # 2) Optical trace: mean + 2.5–97.5% band (negated for plotting)
     if np.any(np.isfinite(z_mean)):
         ax2.fill_between(time_grid, z_val_to_plot*z_lo, z_val_to_plot*z_hi,
                          color=PHOT_COLOR, alpha=0.25, linewidth=0)
         ax2.plot(time_grid, z_val_to_plot*z_mean, color=PHOT_COLOR, linewidth=2)
     ax2.set_ylabel("−ΔF/F (V)", fontsize=LABEL_FS); ax2.tick_params(labelsize=TICK_FS)
 
+    # 3) Optical spectrogram (avg power)
     if zspec_mean is not None:
         ax3.contourf(time_grid, freq_grid, zspec_mean, levels=40)
         ax3.set_ylim(0, 20)
     ax3.set_ylabel("Freq (Hz)", fontsize=LABEL_FS); ax3.tick_params(labelsize=TICK_FS)
 
+    # 4) Speed mean ± 95% CI
     if np.any(np.isfinite(sp_mean)):
         sp_lo = sp_mean - sp_ci; sp_hi = sp_mean + sp_ci
         ax4.fill_between(time_grid, sp_lo, sp_hi, color=SPEED_COLOR, alpha=0.20, linewidth=0)
         ax4.plot(time_grid, sp_mean, color=SPEED_COLOR, linewidth=2)
     ax4.set_ylabel("Speed (cm/s)", fontsize=LABEL_FS); ax4.tick_params(labelsize=TICK_FS)
-    ax4.set_ylim(0, 30)
     ax4.set_xlabel("Time (s, approach = 0)", fontsize=LABEL_FS)
 
+    # cosmetics & event line
     for ax in axes:
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
@@ -563,11 +610,12 @@ def average_across_trials_pctl95(animal_root: str,
         ax.axvline(0.0, color='r', linewidth=2)
 
     title_animal = os.path.basename(os.path.normpath(animal_root))
-    fig.suptitle(f"Peri-Event Average — {title_animal}  (n={n_opt} trials)",
-                 fontsize=25)
+    fig.suptitle(f"Peri-Event Average — {title_animal}  (n={n_trials} trials)", fontsize=26)
     fig.tight_layout(rect=[0,0,1,0.96])
-    if show: plt.show()
+    if show:
+        plt.show()
     plt.close(fig)
+
 
 # ================== run ==================
 if __name__ == "__main__":
@@ -578,24 +626,32 @@ if __name__ == "__main__":
         "reward_zone_radius": 10.0,
     }
     
-    animal_parent = r"G:\2025_ATLAS_SPAD\CB_Jedi2P\1881363\Success"
-    average_across_trials(animal_root=animal_parent, landmarks=landmarks,
-                          lfp_channel="LFP_4", days=["Day1","Day2","Day3","Day4"],
-                          window_s=(-2.0, 2), show=True)
+    # animal_parent = r"G:\2025_ATLAS_SPAD\CB_Jedi2P\1881363\Success"
+    # average_across_trials(animal_root=animal_parent, landmarks=landmarks,
+    #                       lfp_channel="LFP_4", days=["Day1","Day2","Day3","Day4"],
+    #                       window_s=(-2.0, 2), show=True)
 
-    animal_parent = r"G:\2025_ATLAS_SPAD\CB_Jedi2P\1907336\Success"
-    average_across_trials(animal_root=animal_parent, landmarks=landmarks,
-                          lfp_channel="LFP_4", days=["Day1","Day2","Day3","Day4"],
-                          window_s=(-2.0, 2), show=True)
-    
-    # animal_parent = r"G:\2025_ATLAS_SPAD\CB_Jedi2P\1881365\Success"
+    # animal_parent = r"G:\2025_ATLAS_SPAD\CB_Jedi2P\1907336\Success"
     # average_across_trials(animal_root=animal_parent, landmarks=landmarks,
     #                       lfp_channel="LFP_4", days=["Day1","Day2","Day3","Day4"],
     #                       window_s=(-2.0, 2), show=True)
     
-    # animal_parent = r"G:\2025_ATLAS_SPAD\CB_Jedi2P\1910567\Success"
-    # average_across_trials(animal_root=animal_parent, landmarks=landmarks,
-    #                       lfp_channel="LFP_3", days=["Day1","Day2","Day3","Day4"],
-    #                       window_s=(-2.0, 2), show=True)
+    animal_parent = r"G:\2025_ATLAS_SPAD\CB_Jedi2P\1881365\Success"
+    average_across_trials(animal_root=animal_parent, landmarks=landmarks,
+                          lfp_channel="LFP_4", days=["Day1","Day2","Day3","Day4"],
+                          window_s=(-2.0, 2), show=True)
     
+    animal_parent = r"G:\2025_ATLAS_SPAD\CB_Jedi2P\1910567\Success"
+    average_across_trials(animal_root=animal_parent, landmarks=landmarks,
+                          lfp_channel="LFP_3", days=["Day1","Day2","Day3","Day4"],
+                          window_s=(-2.0, 2), show=True)
     
+    animal_parent = r"G:\2025_ATLAS_SPAD\CB_Jedi2P\1881365\Success"
+    average_across_trials_pctl95(animal_root=animal_parent, landmarks=landmarks,
+                          lfp_channel="LFP_4", days=["Day1","Day2","Day3","Day4"],
+                          window_s=(-2.0, 2), show=True)
+    
+    animal_parent = r"G:\2025_ATLAS_SPAD\CB_Jedi2P\1910567\Success"
+    average_across_trials_pctl95(animal_root=animal_parent, landmarks=landmarks,
+                          lfp_channel="LFP_3", days=["Day1","Day2","Day3","Day4"],
+                          window_s=(-2.0, 2), show=True)
