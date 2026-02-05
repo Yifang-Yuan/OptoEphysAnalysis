@@ -31,7 +31,7 @@ invert_signal  = True
 
 # Filtering
 APPLY_HIGHPASS_REAL  = True   # 100 Hz on optical signal (requested)
-APPLY_HIGHPASS_NOISE = False  # set True to also HP the noise surrogate
+APPLY_HIGHPASS_NOISE = True  # set True to also HP the noise surrogate
 HP_CUTOFF_HZ         = 100.0
 HP_ORDER             = 3
 
@@ -62,13 +62,25 @@ RNG_SEED   = 0
 out_dir = Path(csv_path).parent / "stats_HP100_vs_whitenoise"
 # ------------------------------------------------------
 
+import matplotlib as mpl
 
-# ============ helpers ============
+mpl.rcParams.update({
+    "figure.dpi": 170,
+    "figure.figsize": (7.5, 6.0),
+    "axes.titlesize": 22,   # ≥18
+    "axes.labelsize": 18,   # ≥18
+    "xtick.labelsize": 18,  # ≥18
+    "ytick.labelsize": 18,  # ≥18
+    "legend.fontsize": 18,  # ≥18
+})
 def _clean_axes(ax):
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    ax.tick_params(direction="out", length=5, width=1.2)
+    ax.tick_params(direction="out", length=6, width=1.4)  # slightly beefier ticks
     ax.grid(False)
+
+# ============ helpers ============
+
 
 def load_signal_csv(csv_file, preferred="zscore_raw"):
     df = pd.read_csv(csv_file)
@@ -154,29 +166,42 @@ def welch_band_ratio(x, fs, band, full_band=(1.0, 100.0)):
 
 # ---- plotting helpers ----
 def plot_hist(data, thresh, title, out_path, xlabel="Sample amplitude (a.u.)"):
-    fig, ax = plt.subplots(figsize=(8,5), dpi=160)
+    fig, ax = plt.subplots(figsize=(6.5,5), dpi=160)
     ax.hist(data, bins=200, alpha=0.85, color="steelblue")
     if thresh is not None:
         ax.axvline(thresh, ls="--", lw=2, color="red", label="median + 3×MAD")
         ax.legend(frameon=False)
-    ax.set_xlabel(xlabel); ax.set_ylabel("Count"); ax.set_title(title)
-    _clean_axes(ax); fig.tight_layout(); fig.savefig(out_path, bbox_inches="tight"); plt.close(fig)
+    ax.set_xlabel(xlabel, fontsize=18)
+    ax.set_ylabel("Count", fontsize=18)
+    ax.set_title(title, fontsize=22)
+    _clean_axes(ax)
+    ax.tick_params(labelsize=18)
+    fig.tight_layout(); fig.savefig(out_path, bbox_inches="tight"); plt.close(fig)
+
 
 def plot_spike_hist(spike_times_s, duration_s, bin_s, out_path, title):
     edges = np.arange(0, duration_s + bin_s, bin_s)
     counts, _ = np.histogram(spike_times_s, bins=edges)
-    fig, ax = plt.subplots(figsize=(8,5), dpi=160)
+    fig, ax = plt.subplots(figsize=(6.5,5), dpi=160)
     ax.bar(edges[:-1], counts, width=bin_s, align="edge")
-    ax.set_xlabel("Time (s)"); ax.set_ylabel("Number of events"); ax.set_title(title)
+    ax.set_xlabel("Time (s)", fontsize=18)
+    ax.set_ylabel("Number of events", fontsize=18)
+    ax.set_title(title, fontsize=22)
     _clean_axes(ax); ax.set_xlim(0, duration_s); ax.margins(x=0)
+    ax.tick_params(labelsize=18)
     fig.tight_layout(); fig.savefig(out_path, bbox_inches="tight"); plt.close(fig)
 
+
 def plot_acg_bar(centers, acg, title, out_path, ylabel="Density (Hz)"):
-    fig, ax = plt.subplots(figsize=(8,5), dpi=160)
+    fig, ax = plt.subplots(figsize=(6.5,5), dpi=160)
     ax.bar(centers, acg, width=(centers[1]-centers[0]), align="center")
-    ax.set_xlabel("Lag (s)"); ax.set_ylabel(ylabel); ax.set_title(title)
+    ax.set_xlabel("Lag (s)", fontsize=18)
+    ax.set_ylabel(ylabel, fontsize=18)
+    ax.set_title(title, fontsize=22)
     _clean_axes(ax); ax.margins(x=0)
+    ax.tick_params(labelsize=18)
     fig.tight_layout(); fig.savefig(out_path, bbox_inches="tight"); plt.close(fig)
+
 
 def make_rate_series(spike_idx, fs_signal, bin_ms=1.0, smooth_ms=3.0):
     if len(spike_idx) == 0:
@@ -215,26 +240,51 @@ def plot_rate_acfs(spike_idx, fs_signal, out_small, out_large,
         sel    = (lags_s >= -win_ms/1000.0) & (lags_s <= win_ms/1000.0)
         lags_ms = lags_s[sel] * 1000.0
         vals    = acf[sel]
-        fig, ax = plt.subplots(figsize=(5.0, 3.6), dpi=170)
+        fig, ax = plt.subplots(figsize=(6.0, 4.2), dpi=170)  # a bit larger
         ax.bar(lags_ms, vals, width=bin_ms, align="center")
-        ax.set_xlabel("time lag (ms)"); ax.set_ylabel("autocorr (a.u.)"); ax.set_title(title)
+        ax.set_xlabel("time lag (ms)", fontsize=18)
+        ax.set_ylabel("autocorr (a.u.)", fontsize=18)
+        ax.set_title(title, fontsize=22)
         _clean_axes(ax); ax.margins(x=0)
+        ax.tick_params(labelsize=18)
         fig.tight_layout(); fig.savefig(out_path, bbox_inches="tight"); plt.close(fig)
     _plot(small_win_ms, out_small, f"Rate ACF (±{small_win_ms:.0f} ms)")
     _plot(large_win_ms, out_large, f"Rate ACF (±{large_win_ms:.0f} ms)")
 
-def plot_psd_comparison(f_real, Pxx_real, f_noise, Pxx_noise,
-                        title, out_path, theta=None, fmax=200):
-    fig, ax = plt.subplots(figsize=(6,5), dpi=160)
-    ax.semilogy(f_real,  Pxx_real,  color="C0", label="HP optical")
-    ax.semilogy(f_noise, Pxx_noise, color="0.5", label="White noise")
+def plot_psd_comparison(
+    f_real, Pxx_real, f_noise, Pxx_noise,
+    title, out_path, theta=None, fmin=0, fmax=200,
+    title_fs=20, label_fs=18, tick_fs=16, legend_fs=16
+):
+    fig, ax = plt.subplots(figsize=(7.5, 6.0), dpi=170)
+
+    ax.semilogy(f_real,  Pxx_real,  color="C0", label="HP optical", lw=2.0)
+    ax.semilogy(f_noise, Pxx_noise, color="0.5", label="White noise", lw=2.0)
+
     if theta is not None:
-        ax.axvspan(theta[0], theta[1], color="orange", alpha=0.2, label="Theta band")
-    ax.set_xlim(100, fmax)
-    ax.set_ylim(10e-7, 10e-1)
-    ax.set_xlabel("Frequency (Hz)"); ax.set_ylabel("PSD"); ax.set_title(title)
-    ax.legend(frameon=False); _clean_axes(ax)
-    fig.tight_layout(); fig.savefig(out_path, bbox_inches="tight"); plt.close(fig)
+        ax.axvspan(theta[0], theta[1], color="orange", alpha=0.25, label="Theta band")
+
+    ax.set_xlim(fmin, fmax)
+    ax.set_ylim(1e-6, 1e-1)
+
+    ax.set_xlabel("Frequency (Hz)", fontsize=label_fs)
+    ax.set_ylabel("PSD", fontsize=label_fs)
+    ax.set_title(title, fontsize=title_fs)
+
+    # tick label size
+    ax.tick_params(axis="both", which="both", labelsize=tick_fs, length=6, width=1.4)
+
+    # clean up axes styling (keeps your original helper)
+    _clean_axes(ax)
+
+    # legend font size
+    ax.legend(frameon=False, fontsize=legend_fs)
+
+    fig.tight_layout()
+    fig.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+
+    
 # --- NEW: peak-shape extraction (width in seconds, prominence, height) ---
 def peak_shape_stats(signal_hp, idx, fs):
     # Re-run peaks to fetch properties aligned to idx
@@ -438,6 +488,12 @@ def plot_mean_peak_shapes(x_real_hp, idx_real, x_noise_proc, idx_noise, fs,
         "noise_nrm_mean": mu_n_nrm, "noise_nrm_sem": sem_n_nrm, "n_noise_nrm": sn_n_nrm.shape[0] if sn_n_nrm.size else 0,
     }
 
+from numpy.linalg import norm
+
+def _cosine_similarity(x, y):
+    x = np.asarray(x, float); y = np.asarray(y, float)
+    nx, ny = norm(x), norm(y)
+    return float(np.dot(x, y) / (nx * ny + 1e-12)) if nx > 0 and ny > 0 else np.nan
 
 # ============ main ============
 def main():
@@ -452,6 +508,12 @@ def main():
     rng = np.random.default_rng(RNG_SEED)
     x_noise = rng.normal(0.0, 1.0, size=x_real.size)
     x_noise_proc = highpass(x_noise, Fs, HP_CUTOFF_HZ, HP_ORDER) if APPLY_HIGHPASS_NOISE else x_noise
+    
+    #Match RMS after HP so amplitude KS is not driven by scale
+    def rms(a): 
+        a = np.asarray(a, float); return np.sqrt(np.mean(a*a))
+    x_noise_proc *= (rms(x_real_hp) / (rms(x_noise_proc) + 1e-12))
+
 
     duration_s = x_real.size / Fs
 
@@ -481,7 +543,16 @@ def main():
     plot_acg_bar(cS_r, aS_r, f"ACG HP optical (±{acg_small_window_s}s, {acg_small_bin_s*1e3:.0f} ms bins)", out_dir/"acg_small_hp_optical.png")
     plot_acg_bar(cL_n, aL_n, f"ACG white noise (±{acg_large_window_s}s, {acg_large_bin_s*1e3:.0f} ms bins)", out_dir/"acg_large_noise.png")
     plot_acg_bar(cS_n, aS_n, f"ACG white noise (±{acg_small_window_s}s, {acg_small_bin_s*1e3:.0f} ms bins)", out_dir/"acg_small_noise.png")
-
+    
+    # --- ACG comparison stats (real vs noise) ---
+    # KS on the distributions of ACG values:
+    ks_acg_large_D, ks_acg_large_p = ks_2samp(aL_r, aL_n)
+    ks_acg_small_D, ks_acg_small_p = ks_2samp(aS_r, aS_n)
+    
+    # L2 difference (per-sample RMS) and cosine similarity for the large-window ACG:
+    acg_large_l2   = norm(aL_r - aL_n) / np.sqrt(aL_r.size)
+    acg_large_cos  = _cosine_similarity(aL_r, aL_n)
+    
     # --- Rate ACFs (small/large) ---
     plot_rate_acfs(idx_real,  Fs, out_dir/"rate_acf_small_hp_optical.png", out_dir/"rate_acf_large_hp_optical.png",
                    small_win_ms=rate_small_win_ms, large_win_ms=rate_large_win_ms,
@@ -516,10 +587,17 @@ def main():
     # --- PSD (0–200 Hz), noise in grey ---
     ratio_real,  f_r, Pxx_r = welch_band_ratio(x_real_hp,  Fs, theta_band)
     ratio_noise, f_n, Pxx_n = welch_band_ratio(x_noise_proc, Fs, theta_band)
+    # full band view
     plot_psd_comparison(f_r, Pxx_r, f_n, Pxx_n,
-                        "PSD Comparison (HP optical vs white noise)",
+                        "PSD Comparison (0–200 Hz)",
                         out_dir / "psd_comparison_0_200Hz.png",
-                        theta=theta_band, fmax=200)
+                        theta=theta_band, fmin=0, fmax=200)
+    
+    # high-frequency view
+    plot_psd_comparison(f_r, Pxx_r, f_n, Pxx_n,
+                        "PSD Comparison (50–400 Hz)",
+                        out_dir / "psd_comparison_50_400Hz.png",
+                        theta=None, fmin=50, fmax=400)
 
     # ---- summary ----
     
@@ -551,7 +629,7 @@ def main():
     slope_real, (f_r, Pxx_r)   = psd_slope_loglog(x_real_hp,  Fs, 100.0, 200.0)
     slope_noise, (f_n, Pxx_n)  = psd_slope_loglog(x_noise_proc, Fs, 100.0, 200.0)
     plot_psd_comparison(f_r, Pxx_r, f_n, Pxx_n,
-                        "PSD Comparison (100–400 Hz)", out_dir/"psd_comparison_100_200Hz.png",
+                        "PSD Comparison (0–400 Hz)", out_dir/"psd_comparison_0_400Hz.png",
                         theta=None, fmax=400)  # theta=None because we’re in HP domain
     
     print("\n=== HP(100 Hz) Optical vs White Noise (HP-appropriate metrics) ===")
@@ -562,7 +640,12 @@ def main():
     print(f"[ACG small-lag area 1–10 ms]     obs={stat_acg:.3e}, perm μ≈{acg_mu:.3e}±{acg_sd:.3e}, p={p_acg_small:.4f}")
     print(f"[PSD slope 100–200 Hz]           real={slope_real:.3f}, noise={slope_noise:.3f}  (more negative = steeper drop)")
     print(f"Figures saved to: {out_dir}")
-    
+    print(f"[ACG large (±{acg_large_window_s}s) KS]  D={ks_acg_large_D:.4f}, p={ks_acg_large_p:.3e}")
+    print(f"[ACG small (±{acg_small_window_s}s) KS]  D={ks_acg_small_D:.4f}, p={ks_acg_small_p:.3e}")
+    print(f"[ACG large L2 (RMS per bin)]            {acg_large_l2:.3e}")
+    print(f"[ACG large cosine similarity]          {acg_large_cos:.4f}")
+
+
     # --- Average peak shapes: raw & normalised ---
     plot_mean_peak_shapes(
         x_real_hp, idx_real,

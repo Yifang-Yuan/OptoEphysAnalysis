@@ -264,8 +264,8 @@ def plot_segment_feature_multiROI_twoLFP(
             raise ValueError(f"df_aligned must contain LFP channel '{lfp_col}'.")
     lfp1_f = OE.butter_filter(data[lfp1], btype='low',  cutoff=lfp_cutoff, fs=fs, order=5)
     lfp1_f = OE.butter_filter(lfp1_f,     btype='high', cutoff=2.5,        fs=fs, order=3)
-    lfp2_f = OE.butter_filter(data[lfp2], btype='low',  cutoff=lfp_cutoff, fs=fs, order=5)
-    lfp2_f = OE.butter_filter(lfp2_f,     btype='high', cutoff=2.5,        fs=fs, order=3)
+    lfp2_f = OE.butter_filter(data[lfp2], btype='low',  cutoff=200, fs=fs, order=5)
+    lfp2_f = OE.butter_filter(lfp2_f,     btype='high', cutoff=3.5,        fs=fs, order=3)
 
     # Wrap as Series (preserve index)
     sig_s  = pd.Series(sig_smooth, index=data['sig_raw'].index)

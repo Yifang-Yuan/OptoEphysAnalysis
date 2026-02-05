@@ -290,15 +290,14 @@ def main():
     
     'READ SINGLE ROI CODES--SMALL FOV'
 
-    center_x, center_y,radius=52, 24, 12
+    #center_x, center_y,radius=53, 38, 16
 
-    # day_folder=r'G:\2025_ATLAS_SPAD\1881365_Jedi2p_CB\Day4'
+    # day_folder=r'G:\2025_ATLAS_SPAD\1955300_Jedi2p_OEC\Day1'
     # atlas_folder=os.path.join(day_folder,'Atlas')
     # read_multiple_Atlas_bin_folder_smallFOV(
     #     atlas_folder,day_folder,hotpixel_path,center_x, center_y,radius,
     #     new_folder_name='SyncRecording',photoncount_thre=50000)
     
-
     'READ TWO ROIs CODES ---FULL FOV'
     # ROI_info = {
     # 'center_x_sig': 44,
@@ -338,11 +337,11 @@ def main():
     
     ROI_info = {
     'center_x_z': 67,
-    'center_y_z': 26,
+    'center_y_z': 25,
     'radius_z': 10,
     
     'center_x_sig': 54,
-    'center_y_sig': 39,
+    'center_y_sig': 40,
     'radius_sig': 10,
     
     'center_x_ref': 48,
@@ -350,17 +349,13 @@ def main():
     'radius_ref': 10
     }
     
-    day_folder=r'G:\2025_ATLAS_SPAD\MultiFibre\1887932_Jedi2p_Multi_ephysbad\Day4'
+    day_folder=r'G:\2025_ATLAS_SPAD\MultiFibre2\1955299_Jedi2p_Multi\Day3'
     atlas_folder=os.path.join(day_folder,'Atlas')
-    read_multiple_Atlas_folder_threeROI_small (atlas_folder,day_folder,hotpixel_path,ROI_info,new_folder_name='SyncRecording',photoncount_thre=45000)
+    read_multiple_Atlas_folder_threeROI_small (atlas_folder,day_folder,hotpixel_path,ROI_info,new_folder_name='SyncRecording',photoncount_thre=50000)
     
-    day_folder=r'G:\2025_ATLAS_SPAD\MultiFibre\1887932_Jedi2p_Multi_ephysbad\Day3'
+    day_folder=r'G:\2025_ATLAS_SPAD\MultiFibre2\1966293_Jedi2p_Multi\Day3'
     atlas_folder=os.path.join(day_folder,'Atlas')
-    read_multiple_Atlas_folder_threeROI_small (atlas_folder,day_folder,hotpixel_path,ROI_info,new_folder_name='SyncRecording',photoncount_thre=45000)
-    
-    day_folder=r'G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\Day8_newROI'
-    atlas_folder=os.path.join(day_folder,'Atlas')
-    read_multiple_Atlas_folder_threeROI_small (atlas_folder,day_folder,hotpixel_path,ROI_info,new_folder_name='SyncRecording',photoncount_thre=45000)
+    read_multiple_Atlas_folder_threeROI_small (atlas_folder,day_folder,hotpixel_path,ROI_info,new_folder_name='SyncRecording',photoncount_thre=50000)
     
     '''
     CALCULATE DFF

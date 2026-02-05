@@ -675,7 +675,7 @@ def run_gamma_power_on_theta_batch(
         print(f"\n=== Processing {recordingName}  →  Trial {idx:02d} ===")
 
         # File names
-        trial_phase_fname   = f"Asleep_trial{idx:02d}.pkl.gz"           # your original naming
+        trial_phase_fname   = f"TrialPhase_trial{idx:02d}.pkl.gz"           # your original naming
         trial_phase_path    = save_root / trial_phase_fname
         gp_on_theta_fname   = f"GammaPowerOnTheta_trial{idx:02d}.pkl.gz"
         gp_on_theta_path    = save_root / gp_on_theta_fname
@@ -783,7 +783,8 @@ def run_gamma_power_on_theta_batch(
     return results
 
 #%%
-dpath      = r'G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\ASleepREM'
+#dpath      = r'G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ALocomotion'
+dpath      = r'G:\2025_ATLAS_SPAD\PVCre\1842515_PV_mNeon\ALocomotion'
 savename   = 'GammaPowerOnTheta'
 LFP_channel= 'LFP_1'
 'Run all SyncRecording'
@@ -791,16 +792,16 @@ results = run_gamma_power_on_theta_batch(
     dpath=dpath,
     savename=savename,
     LFP_channel=LFP_channel,
-    theta_low_thres=-0.5,         # your usual threshold
-    theta_band_for_phase=(5, 12), # theta band for phase
-    lfp_gamma=(30, 80),
-    opt_gamma=(30, 80),
-    overwrite=False,
+    theta_low_thres=-0.3,         # your usual threshold
+    theta_band_for_phase=(4, 12), # theta band for phase
+    lfp_gamma=(65, 100),
+    opt_gamma=(65, 100),
+    overwrite=True,
     plot_theta=True,
-    behaviour='REM'
+    behaviour='Moving'
 )
 #%%
-dpath      = r'G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\ASleepREM'
+dpath      = r'G:\2025_ATLAS_SPAD\PVCre\1842515_PV_mNeon\ALocomotion'
 save_path=os.path.join(dpath,'GammaPowerOnTheta')
 pp_paths = sorted(Path(save_path).glob("GammaPowerOnTheta_trial*.pkl.gz"))
 agg = aggregate_gamma_power_phase(pp_paths, ci_method="bootstrap", n_boot=2000, ci_alpha=0.05)

@@ -329,13 +329,13 @@ def run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low
 def run_theta_plot_main():
     'This is to process a single or concatenated trial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
    
-    dpath=r'G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\Day2'
-    recordingName='SyncRecording4'
+    dpath=r'G:\2025_ATLAS_SPAD\1955301_Jedi2p_OEC\Alocomotion\Day3'
+    recordingName='SyncRecording8'
     theta_low_thres=-0.3
 
     savename='ThetaSave_Move'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-    LFP_channel='LFP_2'
+    LFP_channel='LFP_3'
     run_theta_plot_all_cycle (dpath,LFP_channel,recordingName,savename,theta_low_thres) #-0.3
 
 def main():    

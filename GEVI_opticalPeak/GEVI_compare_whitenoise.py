@@ -24,7 +24,7 @@ csv_path       = r"G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\FiringRateExample
 preferred_col  = "zscore_raw"          # fallback to first numeric column if missing
 Fs             = 841.68                # Hz
 invert_signal  = True                  # your GEVI polarity
-APPLY_HIGHPASS = False                 # keep False for this script (no HP)
+APPLY_HIGHPASS = True                 # keep False for this script (no HP)
 HP_CUTOFF_HZ   = 100.0
 HP_ORDER       = 3
 
@@ -235,6 +235,10 @@ def acg_perm_pvalue(rate_hz, duration_s, lo_ms=1.0, hi_ms=10.0,
     p = (np.sum(vals >= obs_stat) + 1) / (n_perm + 1)
     return p, (vals.mean(), vals.std())
 
+def rms(a):
+    a = np.asarray(a, float)
+    return np.sqrt(np.mean(a * a))
+
 # ------------------ main pipeline ------------------
 def main():
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -248,20 +252,39 @@ def main():
     # White noise surrogate of the SAME length
     rng = np.random.default_rng(RNG_SEED)
     x_noise = rng.normal(0.0, 1.0, size=x_real.size)
+    
+    # --- RMS-match RAW noise to RAW real (always do this first) ---
+    x_noise *= (rms(x_real) / (rms(x_noise) + 1e-12))
+    
+    # If you ever set APPLY_HIGHPASS=True, also HP both and re-match on the HP path
+    if APPLY_HIGHPASS:
+        x_real_hp  = highpass(x_real,  Fs, HP_CUTOFF_HZ, HP_ORDER)
+        x_noise_hp = highpass(x_noise, Fs, HP_CUTOFF_HZ, HP_ORDER)
+        x_noise_hp *= (rms(x_real_hp) / (rms(x_noise_hp) + 1e-12))
+        # use HP signals for detection & any HP-based comparisons
+        x_for_detect = x_real_hp
+        x_noise_for_detect = x_noise_hp
+    else:
+        # no HP path (this script’s default)
+        x_for_detect = x_real
+        x_noise_for_detect = x_noise
+
 
     # --- 1) Amplitude KS test (real vs noise) ---
     ks_stat, ks_p = ks_2samp(x_real, x_noise)
 
     # --- detect peaks for both ---
-    idx_real, props_real, stats_real = detect_peaks(x_for_detect, Fs, height_factor, prominence_mul, min_distance_ms)
-    idx_noise, props_noise, stats_noise = detect_peaks(x_noise, Fs, height_factor, prominence_mul, min_distance_ms)
+    idx_real,  props_real,  stats_real  = detect_peaks(x_for_detect,        Fs, height_factor, prominence_mul, min_distance_ms)
+    idx_noise, props_noise, stats_noise = detect_peaks(x_noise_for_detect,  Fs, height_factor, prominence_mul, min_distance_ms)
+
     t_real  = idx_real / Fs
     t_noise = idx_noise / Fs
     duration_s = len(x_real) / Fs
 
     # Histograms (amplitude)
-    plot_hist(x_real,  stats_real["height_thresh"], "Amplitude (real signal)", out_dir/"amp_hist_real.png")
-    plot_hist(x_noise, stats_noise["height_thresh"], "Amplitude (white noise)", out_dir/"amp_hist_noise.png")
+    plot_hist(x_real,              stats_real["height_thresh"],  "Amplitude (real signal)",  out_dir/"amp_hist_real.png")
+    plot_hist(x_noise_for_detect,  stats_noise["height_thresh"], "Amplitude (white noise, RMS-matched)", out_dir/"amp_hist_noise.png")
+
 
     # --- 2) IEI ~ exponential? (one-sample KS) ---
     def iei_ks(spike_idx):
@@ -348,7 +371,8 @@ def main():
     print(f"\nFigures saved to: {out_dir}\n")
 
     # Optional: average peak shapes (raw amplitude & peak-normalised), using the detection signal
-    _ = plot_mean_peak_shapes_for_nohp(x_for_detect, idx_real, x_noise, idx_noise, Fs, out_dir)
+    _ = plot_mean_peak_shapes_for_nohp(x_for_detect, idx_real, x_noise_for_detect, idx_noise, Fs, out_dir)
+
 
 # (optional) quick plotting of average peak shapes for the no-HP case
 def plot_mean_peak_shapes_for_nohp(x_real_det, idx_real, x_noise, idx_noise, fs, out_dir, pre_ms=6.0, post_ms=6.0):

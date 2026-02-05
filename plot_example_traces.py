@@ -9,8 +9,8 @@ import OpenEphysTools as OE
 '''recordingMode: use py, Atlas, SPAD for different systems
 '''
 #dpath= 'F:/2025_ATLAS_SPAD/1887930_PV_mNeon_mCherry/Day4/'
-dpath= r'G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ALocomotion'
-recordingName='SyncRecording7'
+dpath=r'G:\2025_ATLAS_SPAD\PyramidalWT\1881363_Jedi2p_mCherry\Day1'
+recordingName='SyncRecording5'
 LFP_channel='LFP_1'
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,
                                      recordingMode='Atlas',indicator='GEVI') 

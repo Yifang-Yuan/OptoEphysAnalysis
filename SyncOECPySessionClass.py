@@ -199,7 +199,7 @@ class SyncOEpyPhotometrySession:
         self.Ephys_tracking_spad_aligned.reset_index(drop=True, inplace=True)  
         
         OE.plot_two_traces_in_seconds (self.Ephys_tracking_spad_aligned['zscore_raw'],self.fs, 
-                                       self.Ephys_tracking_spad_aligned['LFP_2'], self.fs, label1='zscore_raw',label2='LFP_2')
+                                       self.Ephys_tracking_spad_aligned['LFP_4'], self.fs, label1='zscore_raw',label2='LFP_2')
         
         while True: #remove noise by cutting part of the synchronised the data
             start_time = input("Enter the start time to move noise (or 'q' to quit): ")
@@ -212,7 +212,7 @@ class SyncOEpyPhotometrySession:
             self.remove_noise(start_time=int(start_time),end_time=int(end_time))
         
             OE.plot_two_traces_in_seconds (self.Ephys_tracking_spad_aligned['zscore_raw'],self.fs, 
-                                       self.Ephys_tracking_spad_aligned['LFP_2'], self.fs, label1='zscore_raw',label2='LFP_2')
+                                       self.Ephys_tracking_spad_aligned['LFP_4'], self.fs, label1='zscore_raw',label2='LFP_4')
         return -1
     
     def read_open_ephys_data (self):
@@ -1277,7 +1277,7 @@ class SyncOEpyPhotometrySession:
             time = np.arange(len(sst)) *(1/self.fs)
             OE.plot_wavelet_feature(sst,frequency,power,global_ws,time,self.non_theta_part[LFP_channel])
             #self.plot_lowpass_two_trace (self.non_theta_part, LFP_channel,SPAD_cutoff=20,lfp_cutoff=20)
-        return -1
+        return self.theta_part,self.non_theta_part
     
     def plot_theta_correlation(self,theta_part,LFP_channel,save_path=None,optical_channel='zscore_raw'):
         silced_recording=theta_part
@@ -1335,7 +1335,7 @@ class SyncOEpyPhotometrySession:
         OE.plot_trace_in_seconds(silced_recording['gamma_angle'],Fs=10000,title='gamma angle')
         trough_index,peak_index = OE.calculate_gamma_trough_index(silced_recording,Fs=10000)
         #print (trough_index)
-        fig=OE.plot_theta_cycle (silced_recording, LFP_channel,peak_index,half_window=0.15,fs=10000,plotmode='two')
+        fig=OE.plot_theta_cycle (silced_recording, LFP_channel,peak_index,half_window=0.15,fs=10000)
         fig1,fig2=OE.plot_zscore_to_theta_phase (silced_recording['gamma_angle'],silced_recording['zscore_raw'])
         fig4,MI, bin_centers, norm_amp=OE.compute_optical_event_on_phase(silced_recording['gamma_angle'], silced_recording['zscore_raw'], bins=12, plot=True)
         OE.compute_optical_phase_preference(silced_recording['gamma_angle'],

@@ -263,8 +263,8 @@ def plot_boutwise_theta_peaks(df, fs, lfp_a='LFP_2', lfp_b='LFP_3',
 from SyncOECPySessionClass import SyncOEpyPhotometrySession
 import MakePlots
 # Your loading code
-dpath = r'G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\Day8_newROI'
-recordingName = 'SyncRecording4'
+dpath = r'G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\Day8'
+recordingName = 'SyncRecording3'
 Recording1 = SyncOEpyPhotometrySession(
     dpath, recordingName,
     IsTracking=False,
@@ -284,7 +284,7 @@ results_theta, lfp_table_theta, opt_df_theta = theta_compare_single_df(
     df_theta, Recording1.fs,
     lfp_a='LFP_2', lfp_b='LFP_3',
     optical_cols=('sig_raw','ref_raw','zscore_raw'),
-    theta_band=(4,12),
+    theta_band=(4,11),
     make_plot=True
 )
 print(lfp_table_theta.to_string(index=False))

@@ -4,7 +4,6 @@ Created on Mon Aug 11 14:32:12 2025
 
 @author: yifan
 """
-
 import numpy as np
 import pandas as pd
 import gzip, pickle
@@ -27,7 +26,6 @@ pattern        = "*.pkl.gz"  # leave as-is unless your filenames differ
 n_perm         = 5000         # permutation iterations for circular tests
 alpha          = 0.05
 # ================================================================
-
 def _load_pickle(path: Path):
     with gzip.open(path, "rb") as f:
         return pickle.load(f)

@@ -29,7 +29,7 @@ from scipy import stats
 # ==========================
 # === USER CONFIGURATION ===
 # ==========================
-PARENT_DIR = r'G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\ALocomotion'
+PARENT_DIR = r"G:\2025_ATLAS_SPAD\PVCre\1842515_PV_mNeon\ALocomotion"
 OUTPUT_DIR = os.path.join(PARENT_DIR, "theta_speed_analysis_outputs")
 Fs_raw = 10_000
 TARGET_FS = 100

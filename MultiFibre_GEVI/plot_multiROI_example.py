@@ -688,22 +688,23 @@ def plot_theta_peaks_twoLFP(
     return fig, axes, {'peaks_t': peaks_t}
 
 #%%
-dpath= r'G:\2025_ATLAS_SPAD\MultiFibre\1887932_Jedi2p_Multi_ephysbad\Day1'
-recordingName='SyncRecording1'
+dpath= r'G:\2025_ATLAS_SPAD\MultiFibreOEC\1887932_Jedi2p_Multi_ephysbad\MovingTrialsDLC'
+
+recordingName='SyncRecording2'
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,
                                      recordingMode='Atlas',indicator='GEVI') 
 
 # Grab once from your session
 df = Recording1.Ephys_tracking_spad_aligned
 fs = Recording1.fs
-LFP = 'LFP_2'
-optical_channel='ref_raw'
+LFP = 'LFP_3'
+optical_channel='zscore_raw'
 savename='ThetaSave'
 save_path = os.path.join(dpath,savename)
 save_dir  = os.path.join(dpath, "theta_figs_events")
 os.makedirs(save_dir, exist_ok=True)
 # 1) You already labelled theta + troughs:
-Recording1.pynacollada_label_theta(LFP, Low_thres=-0.5, High_thres=10, save=False, plot_theta=True)
+Recording1.pynacollada_label_theta(LFP, Low_thres=-0.3, High_thres=10, save=False, plot_theta=True)
 df_theta  = Recording1.theta_part
 
 trough_idx, peak_idx = Recording1.plot_theta_correlation(df_theta, LFP, save_path,optical_channel)
@@ -712,7 +713,7 @@ trough_idx, peak_idx = Recording1.plot_theta_correlation(df_theta, LFP, save_pat
 ev_all = preferred_phase_events_multi(
     df, fs, lfp_col='LFP_3',
     chan_map={'sig_raw':'CA1_L','ref_raw':'CA1_R','zscore_raw':'CA3_L'},
-    theta_band=(5,11),
+    theta_band=(4,12),
     height_factor=3.0, distance_samples=20, prominence=None,
     plot_each=False
 )
@@ -724,9 +725,9 @@ for region, res in ev_all.items():
 theta_res_ev = compare_regions_theta_events_on_subset(
     df_theta=df,
     fs=fs,
-    lfp_col='LFP_3',
+    lfp_col='LFP_2',
     chan_map={'sig_raw':'CA1_L','ref_raw':'CA1_R','zscore_raw':'CA3_L'},
-    theta_band=(5,11),
+    theta_band=(4,12),
     height_factor=3.0,
     distance_samples=20,
     prominence=None,
@@ -767,7 +768,15 @@ plot_phase_roses_events(
 )
 #%%
 '''Plot example traces to select best one'''
-LFP = 'LFP_2'
+dpath= r'G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\Day2'
+recordingName='SyncRecording4'
+
+# dpath= r'G:\2025_ATLAS_SPAD\MultiFibre\1887932_Jedi2p_Multi_ephysbad\MovingTrialsDLC'
+# recordingName='SyncRecording1'
+Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,
+                                     recordingMode='Atlas',indicator='GEVI') 
+
+LFP = 'LFP_3'
 # Grab what you need from the class instance once
 df = Recording1.Ephys_tracking_spad_aligned
 fs = Recording1.fs
@@ -793,6 +802,8 @@ for i in range(viewNum):
 '''Plot example traces with power spectrogram'''
 start = 15.1
 end   = 18.1
+# start = 14
+# end   = 19
 fig, ax, out = MakePlots.plot_segment_feature_multiROI_twoLFP(
     df_aligned=df, fs=Recording1.fs, savepath=Recording1.savepath,
     LFP_channels=('LFP_2','LFP_3'),

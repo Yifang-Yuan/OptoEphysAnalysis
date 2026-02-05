@@ -131,15 +131,22 @@ def main():
     Ephys_fs=30000 #Ephys sampling rate
     '''IF ATLAS, change the sampling rate and frame num according to the experiments'''
     
-    Frame_num=25200
-    Fs_atlas=841.68
+    # Frame_num=25200
+    # Fs_atlas=841.68
     
-    # Frame_num=51510
-    # Fs_atlas=1682.92
+    Frame_num=51510
+    Fs_atlas=1682.92
     recordingTime=Frame_num/Fs_atlas
     
-    save_parent_folder=r'G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\Day3'
+    save_parent_folder=r'G:\2025_ATLAS_SPAD\1955300_Jedi2p_OEC\Day1'
     read_multiple_Ephys_data_in_folder(save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
+    
+    save_parent_folder=r'G:\2025_ATLAS_SPAD\1955300_Jedi2p_OEC\Day2'
+    read_multiple_Ephys_data_in_folder(save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
+    
+    save_parent_folder=r'G:\2025_ATLAS_SPAD\1955300_Jedi2p_OEC\Day3'
+    read_multiple_Ephys_data_in_folder(save_parent_folder,mode='Atlas',Ephys_fs=Ephys_fs,new_folder_name='SyncRecording',recordingTime=recordingTime)
+    
 
     
 if __name__ == "__main__":

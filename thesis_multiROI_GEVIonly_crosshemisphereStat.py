@@ -475,7 +475,7 @@ for pair in [('CA1_R','CA1_L'), ('CA1_R','CA3_L'), ('CA1_L','CA3_L')]:
 )
 #%%
 # Choose a state to analyse; run once for 'moving' and again for 'notmoving' if you want two figures
-state_to_analyse = 'notmoving'   # or 'notmoving'
+state_to_analyse = 'moving'   # or 'notmoving'
 
 # Compute tidy table across recordings for the three pairs
 df_three = batch_theta_coherence_three_pairs(

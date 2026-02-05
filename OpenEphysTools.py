@@ -108,10 +108,10 @@ def readEphysChannel (Directory,recordingNum,Fs=30000):
     Sync3=samples[:,18]
     Sync4=samples[:,19]
     
-    # LFP1= butter_filter(LFP1, btype='low', cutoff=2000, fs=Fs, order=5)
-    # LFP2= butter_filter(LFP2, btype='low', cutoff=2000, fs=Fs, order=5)
-    # LFP3= butter_filter(LFP3, btype='low', cutoff=2000, fs=Fs, order=5)
-    # LFP4= butter_filter(LFP4, btype='low', cutoff=2000, fs=Fs, order=5)
+    LFP1= butter_filter(LFP1, btype='low', cutoff=2000, fs=Fs, order=5)
+    LFP2= butter_filter(LFP2, btype='low', cutoff=2000, fs=Fs, order=5)
+    LFP3= butter_filter(LFP3, btype='low', cutoff=2000, fs=Fs, order=5)
+    LFP4= butter_filter(LFP4, btype='low', cutoff=2000, fs=Fs, order=5)
     # LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
     # LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
     # LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
@@ -155,10 +155,10 @@ def readEphysChannel_withSessionInput (session,recordingNum,Fs=30000):
     LFP_clean2= butter_filter(LFP2, btype='low', cutoff=2000, fs=Fs, order=5)
     LFP_clean3= butter_filter(LFP3, btype='low', cutoff=2000, fs=Fs, order=5)
     LFP_clean4= butter_filter(LFP4, btype='low', cutoff=2000, fs=Fs, order=5)
-    # LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
-    # LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
-    # LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
-    # LFP_clean4= notchfilter (LFP_clean4,f0=50,bw=5)
+    LFP_clean1= notchfilter (LFP_clean1,f0=50,bw=5)
+    LFP_clean2= notchfilter (LFP_clean2,f0=50,bw=5)
+    LFP_clean3= notchfilter (LFP_clean3,f0=50,bw=5)
+    LFP_clean4= notchfilter (LFP_clean4,f0=50,bw=5)
     
     EphysData = pd.DataFrame({
         'timestamps': timestamps,
@@ -1108,55 +1108,107 @@ def plot_zscore_to_theta_phase(theta_angle, zscore_data):
     bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
 
     zscore_means, ci_lowers, ci_uppers = [], [], []
-    
+    bin_counts = []
 
     for i in range(len(bin_edges) - 1):
         mask = (theta_angle >= bin_edges[i]) & (theta_angle < bin_edges[i + 1])
         bin_data = zscore_data[mask]
+        bin_counts.append(np.sum(mask))
+
+        if bin_data.size < 2:
+            # Avoid bootstrap issues for empty/tiny bins
+            zscore_means.append(np.nan)
+            ci_lowers.append(np.nan)
+            ci_uppers.append(np.nan)
+            continue
+
         mean, lower, upper = bootstrap_ci(bin_data)
         zscore_means.append(mean)
         ci_lowers.append(lower)
         ci_uppers.append(upper)
-    print ('CI_LOWER:',ci_lowers)
 
     # Close the loop
     bin_centers = np.append(bin_centers, bin_centers[0])
-    zscore_means.append(zscore_means[0])
-    ci_lowers.append(ci_lowers[0])
-    ci_uppers.append(ci_uppers[0])
+    zscore_means = np.append(np.array(zscore_means, dtype=float), zscore_means[0])
+    ci_lowers = np.append(np.array(ci_lowers, dtype=float), ci_lowers[0])
+    ci_uppers = np.append(np.array(ci_uppers, dtype=float), ci_uppers[0])
 
-    # --- FIGURE 2: Line plot with CI ---
+        # --- FIGURE 2: Line plot with CI (0-aware polar mapping) ---
     fig2, ax2 = plt.subplots(figsize=(6, 6), subplot_kw={'projection': 'polar'})
 
-    ax2.plot(bin_centers, zscore_means, color="#1b9e77", linewidth=3)
-    #ax2.plot(bin_centers, zscore_means, color="tomato", linewidth=3)
-    ax2.plot(0.5, 0.5, marker='o', markersize=6, color='black', transform=ax2.transAxes, zorder=10)
-    theta_fill = np.concatenate([bin_centers, bin_centers[::-1]])
-    radius_fill = np.concatenate([ci_uppers, ci_lowers[::-1]])
+    zscore_means_arr = np.asarray(zscore_means, dtype=float)
+    ci_lowers_arr    = np.asarray(ci_lowers, dtype=float)
+    ci_uppers_arr    = np.asarray(ci_uppers, dtype=float)
+
+    # Robust bounds from CI
+    zmin = np.nanmin(ci_lowers_arr)
+    zmax = np.nanmax(ci_uppers_arr)
+
+    # Decide mapping
+    if np.isfinite(zmin) and np.isfinite(zmax) and (zmin >= 0):
+        # Case 1: all positive -> z=0 at centre
+        offset = 0.0
+        rlim_min, rlim_max = 0.0, float(zmax)
+
+        # ticks: include 0..zmax
+        n_ticks = 5
+        z_ticks = np.linspace(0.0, float(zmax), n_ticks)
+
+    elif np.isfinite(zmin) and np.isfinite(zmax) and (zmax <= 0):
+        # Case 2: all negative -> z=0 at outer edge
+        # Shift so that zmin maps to r=0, and z=0 maps to r=offset (outer edge)
+        offset = -float(zmin)  # positive
+        rlim_min, rlim_max = 0.0, offset
+
+        # ticks: zmin..0 (so 0 tick is at the outer edge)
+        n_ticks = 5
+        z_ticks = np.linspace(float(zmin), 0.0, n_ticks)
+
+    else:
+        # Case 3: mixed sign -> symmetric around 0, so z=0 at mid ring
+        absmax = np.nanmax(np.abs([zmin, zmax]))
+        if (not np.isfinite(absmax)) or (absmax == 0):
+            absmax = 1.0
+        offset = float(absmax)
+        rlim_min, rlim_max = 0.0, 2.0 * float(absmax)
+
+        n_ticks = 5
+        z_ticks = np.linspace(-float(absmax), float(absmax), n_ticks)
+
+        # draw z=0 mid-ring for mixed case
+        ax2.plot(bin_centers, np.full_like(bin_centers, offset),
+                 color="grey", linewidth=1.5, alpha=0.7)
+
+    # Shift radii (translation only)
+    r_means  = zscore_means_arr + offset
+    r_lowers = ci_lowers_arr + offset
+    r_uppers = ci_uppers_arr + offset
+
+    # Plot
+    ax2.plot(bin_centers, r_means, color="#1b9e77", linewidth=3) #  #1b9e77
+    theta_fill  = np.concatenate([bin_centers, bin_centers[::-1]])
+    radius_fill = np.concatenate([r_uppers, r_lowers[::-1]])
     ax2.fill(theta_fill, radius_fill, color="#1b9e77", alpha=0.3)
-    #ax2.fill(theta_fill, radius_fill, color="tomato", alpha=0.3)
-    
-    # Define radius limits
-    r_min = np.min(ci_lowers)
-    r_max = np.max(ci_uppers)
-    n_ticks = 4  # number of radius ticks
-    
-    r_ticks = np.linspace(r_min, r_max, n_ticks)
-    ax2.set_yticks(r_ticks)
-    ax2.set_yticklabels([f"{t:.2f}" for t in r_ticks], fontsize=14, color='darkred')  # <- change label colour here
-    ax2.set_rlim(r_min, r_max)
-    
-    # Set angular tick label size and colour
-    ax2.tick_params(axis='x', labelsize=18, colors='black')  # for angular (theta) labels
-    
-    ax2.set_title("-ZScore vs Phase", va="bottom", fontsize=14, fontweight="bold")
+
+    # Radial limits + tick labels in z-score units
+    ax2.set_rlim(rlim_min, rlim_max)
+    ax2.set_yticks(z_ticks + offset)
+    ax2.set_yticklabels([f"{t:.2f}" for t in z_ticks], fontsize=14, color='darkred')
+
+    # Your existing styling
+    ax2.plot(0.5, 0.5, marker='o', markersize=6, color='black', transform=ax2.transAxes, zorder=10)
+    ax2.tick_params(axis='x', labelsize=18, colors='black')
+    ax2.set_title("ZScore vs Phase", va="bottom", fontsize=14, fontweight="bold")
     ax2.grid(False)
-    
-    set_polar_labels_vertical(ax2)  # Assuming this sets angular label orientation
+    set_polar_labels_vertical(ax2)
     ax2.spines['polar'].set_linewidth(4)
     ax2.spines['polar'].set_alpha(0.5)
 
+
+
     return fig1, fig2
+
+
 
 def compute_phase_modulation_index(theta_phase,
                                    signal,
@@ -1342,7 +1394,7 @@ def compute_optical_event_on_phase(theta_phase,
         #bar histogram
         ax.bar(bin_centers, counts,
                width=(2*np.pi/bins), color="#1b9e77",
-               alpha=0.7, edgecolor='black', align='center')
+               alpha=0.7, edgecolor='black', align='center') #"#1b9e77",
         
         # ax.bar(bin_centers, counts,
         #        width=(2*np.pi/bins), color="tomato",

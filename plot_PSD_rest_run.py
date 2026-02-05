@@ -65,15 +65,6 @@ theta_part,non_theta_part=Recording2.pynacollada_label_theta (LFP_channel,Low_th
 LFP_nontheta=Recording2.non_theta_part[LFP_channel]
 optical_nontheta=Recording2.non_theta_part['zscore_raw']
 
-# dpath='F:/2024_OEC_Atlas_main/1765508_Jedi2p_Atlas/Day3/'
-# recordingName='SavedPostSleepTrials'
-# Recording3=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,recordingMode='Atlas',indicator='GEVI') 
-# LFP_channel='LFP_1'
-# theta_part,non_theta_part=Recording3.pynacollada_label_theta (LFP_channel,Low_thres=-0.5,High_thres=8,save=False,plot_theta=True)
-# LFP_sleep=Recording3.non_theta_part[LFP_channel]
-#optical_sleep=Recording3.non_theta_part['zscore_raw']
-
-
 
 fig, ax = plt.subplots(1, 1, figsize=(3, 6))
 #OpticalAnlaysis.PSD_plot (LFP_sleep/1000,fs=Fs,method="welch",color='black', xlim=[0,100],linewidth=2,linestyle=':',label='LFP-sleep',ax=ax)

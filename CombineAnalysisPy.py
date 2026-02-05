@@ -19,14 +19,14 @@ import matplotlib.pyplot as plt
 # dpath='E:/ATLAS_SPAD/1825507_mCherry/Day1/'
 # recordingName='SavedMovingTrials'
 
-dpath=r'G:\2024_OEC_Atlas_main\1765508_Jedi2p_Atlas\Day3'
+dpath=r'G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\Day1and2DLC'
 recordingName='SyncRecording1'
 '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
-LFP_channel='LFP_1'
-Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=True,
+LFP_channel='LFP_2'
+Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,
                                      read_aligned_data_from_file=False,
                                      recordingMode='Atlas',indicator='GEVI',
-                                     tracking_source='Bonsai') 
+                                     tracking_source='DLC') 
 #%%
 '''separate the theta and non-theta parts.
 theta_thres: the theta band power should be bigger than 80% to be defined theta period.

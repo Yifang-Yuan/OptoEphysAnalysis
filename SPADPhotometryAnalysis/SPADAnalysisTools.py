@@ -164,7 +164,8 @@ def butter_filter(data, btype='low', cutoff=10, fs=9938.4, order=5):
 
 '''Use python Scipy to plot PSD'''
 # Function to compute and plot PSD
-def PSD_plot(data, fs=9938.4, method="welch", color='tab:blue', xlim=[0,100], linewidth=1, linestyle='-',label='PSD',ax=None):
+def PSD_plot(data, fs=9938.4, method="welch", color='tab:blue', 
+             xlim=[0,100], linewidth=1, linestyle='-',label='PSD',ax=None,nperseg=16384):
     '''Three methods to plot PSD: welch, periodogram, plotlib based on a given ax'''
     if ax is None:
         fig, ax = plt.subplots()  # Create a new figure and axis if none provided
@@ -172,9 +173,9 @@ def PSD_plot(data, fs=9938.4, method="welch", color='tab:blue', xlim=[0,100], li
         fig = ax.figure  # Reference the figure from the provided ax
     
     if method == "welch":
-        f, Pxx_den = signal.welch(data, fs=fs, nperseg=16384)
+        f, Pxx_den = signal.welch(data, fs=fs, nperseg=nperseg) #16384
     elif method == "periodogram":
-        f, Pxx_den = signal.periodogram(data, fs=fs, nfft=16384, window='hann')
+        f, Pxx_den = signal.periodogram(data, fs=fs, nfft=nperseg, window='hann')
     # Convert to dB/Hz
     Pxx_den_dB = 10 * np.log10(Pxx_den)
     

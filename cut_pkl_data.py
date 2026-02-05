@@ -9,7 +9,7 @@ import pandas as pd
 import os
 
 # Set the folder path and filename
-folder_path = r'G:\2024_OEC_Atlas_main\1765508_Jedi2p_pyPhotometry\Day2\SyncRecording4'
+folder_path = r'G:\2024_OEC_Atlas_main\1765508_Jedi2p_pyPhotometry\Day2\SyncRecording3'
 file_name = "Ephys_tracking_photometry_aligned.pkl"
 file_path = os.path.join(folder_path, file_name)
 
@@ -20,7 +20,7 @@ df = pd.read_pickle(file_path)
 sampling_rate = 10000
 duration_sec = 30
 num_samples = sampling_rate * duration_sec
-df_30s = df.iloc[300000:300000+num_samples]
+df_30s = df.iloc[0:300000+num_samples]
 
 # Save to new .pkl file
 output_name = "Ephys_tracking_photometry_30s.pkl"

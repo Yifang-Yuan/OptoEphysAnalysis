@@ -261,13 +261,242 @@ def plot_env_xcorr_optical(
             'movement_col': movement_col, 'states': states}
     return (fig_r, ax_r), (fig_l, ax_l), data
 
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import coherence, medfilt, savgol_filter
+from scipy.ndimage import gaussian_filter
+
+def _interp_speed_over_threshold(spd: np.ndarray, thr: float = 100.0) -> np.ndarray:
+    y = np.asarray(spd, dtype=float).copy()
+    bad = y > float(thr)
+    y[bad] = np.nan
+    idx = np.arange(y.size)
+    good = np.isfinite(y)
+    if not np.any(good):
+        return np.zeros_like(y)
+    # edge fill
+    first = np.argmax(good); last = y.size - 1 - np.argmax(good[::-1])
+    if not good[0]:  y[:first] = y[first]; good[:first] = True
+    if not good[-1]: y[last+1:] = y[last]; good[last+1:] = True
+    # linear interp
+    y[~good] = np.interp(idx[~good], idx[good], y[good])
+    return y
+
+def _smooth_speed(spd: np.ndarray, fs: float, med_kernel_s=0.15, sg_win_s=0.35, sg_poly=3):
+    # median kernel size must be odd and >=1
+    k_med = max(1, int(round(med_kernel_s * fs)) | 1)
+    s_med = medfilt(spd, kernel_size=k_med)
+    # Savitzky–Golay window must be odd and > poly
+    k_sg = max(5, int(round(sg_win_s * fs)) | 1)
+    if k_sg <= sg_poly: k_sg = sg_poly + 2 + (sg_poly % 2 == 0)
+    s_sg = savgol_filter(s_med, window_length=k_sg, polyorder=sg_poly, mode='mirror')
+    return s_sg
+
+def plot_timefreq_coherence_with_speed_pretty(
+        df, fs,
+        col_a, col_b, pair_label=('A','B'),
+        speed_col='speed',
+        fmax=20.0,
+        # outer time windowing
+        win_sec=3.0, step_sec=0.15,
+        # inner Welch segmentation
+        welch_sec=0.5, welch_overlap=0.5,
+        # theta band for optional time-course
+        theta_band=(4,12),
+        # visuals
+        vmin=0.0, vmax=1.0, cmap='viridis',
+        blur_sigma=0.6,                 # Gaussian blur (visual only); set 0 to disable
+        # behaviour/state filter
+        movement_col=None, states=None,
+        # speed cleaning
+        speed_max=100.0,
+        speed_med_kernel_s=0.15,
+        speed_sg_win_s=0.35,
+        savepath=None, prefix='pair_tfr'
+    ):
+    # --------- masks and data
+    mask = _build_state_mask(df, movement_col, states) if (movement_col and states is not None) else np.ones(len(df), bool)
+    xa = df[col_a].to_numpy(float)[mask]
+    xb = df[col_b].to_numpy(float)[mask]
+
+    if 'time' in df.columns:
+        t_full = df['time'].to_numpy(float)[mask]
+    elif 'timestamp' in df.columns:
+        t_full = df['timestamp'].to_numpy(float)[mask]
+    else:
+        t_full = np.arange(mask.sum()) / fs
+
+    if speed_col in df.columns:
+        spd = df[speed_col].to_numpy(float)[mask]
+    else:
+        spd = np.zeros_like(t_full)
+
+    finite = np.isfinite(xa) & np.isfinite(xb) & np.isfinite(t_full) & np.isfinite(spd)
+    xa, xb, t, spd = xa[finite], xb[finite], t_full[finite], spd[finite]
+
+    # clean speed
+    if speed_max is not None:
+        spd = _interp_speed_over_threshold(spd, thr=float(speed_max))
+    spd = _smooth_speed(spd, fs, med_kernel_s=speed_med_kernel_s, sg_win_s=speed_sg_win_s)
+
+    # --------- window params
+    win  = int(round(win_sec  * fs))
+    hop  = int(round(step_sec * fs));  hop = max(1, hop)
+    nper = int(round(welch_sec * fs)); nper = max(16, nper)
+    novl = int(round(nper * np.clip(welch_overlap, 0.0, 0.95)))
+    if nper > win:
+        nper = max(16, win // 3); novl = nper // 2
+
+    # frequency grid
+    f_ref, _ = coherence(xa[:win], xb[:win], fs=fs, nperseg=nper, noverlap=novl, window='hann')
+    sel = f_ref <= float(fmax); f = f_ref[sel]
+    if f.size == 0: raise ValueError("fmax too low.")
+
+    starts = np.arange(0, xa.size - win + 1, hop, dtype=int)
+    T = np.empty(starts.size, float)
+    C = np.full((f.size, starts.size), np.nan, float)
+
+    theta_sel = (f >= theta_band[0]) & (f <= theta_band[1])
+    theta_t = np.empty(starts.size, float); theta_t[:] = np.nan
+    theta_val = np.empty(starts.size, float); theta_val[:] = np.nan
+
+    for k, s in enumerate(starts):
+        e = s + win
+        xi = xa[s:e]; xj = xb[s:e]
+        T[k] = 0.5 * (t[s] + t[e-1])
+        ff, Cxy = coherence(xi, xj, fs=fs, nperseg=nper, noverlap=novl, window='hann')
+        C[:, k] = Cxy[sel]
+        theta_t[k] = T[k]
+        theta_val[k] = np.nanmean(C[theta_sel, k]) if np.any(theta_sel) else np.nan
+
+    # visual smoothing (heatmap only)
+    C_plot = gaussian_filter(C, sigma=blur_sigma) if (blur_sigma and blur_sigma > 0) else C
+
+    # --------- plot
+    fig, (ax_top, ax_bot) = plt.subplots(2, 1, figsize=(12, 6.5), sharex=True, constrained_layout=True)
+
+    im = ax_top.pcolormesh(T, f, C_plot, shading='auto', vmin=vmin, vmax=vmax, cmap=cmap)
+    pair = f"{pair_label[0]}–{pair_label[1]}"
+    scope = "all states" if (movement_col is None or states is None) else (f"state: {states}" if isinstance(states, str) else f"states: {tuple(states)}")
+    ax_top.set_ylabel("Frequency (Hz)")
+    ax_top.set_title(f"Coherence over time (0–{int(fmax)} Hz) | {pair} | {scope}")
+    ax_top.set_ylim(0, fmax)
+    cbar = fig.colorbar(im, ax=ax_top, pad=0.02); cbar.set_label("Coherence")
+
+    ax_bot.plot(t, spd, lw=1.0,color='k')
+    # Optional: overlay theta time-course on a twin y-axis
+    ax_theta = ax_bot.twinx()
+    ax_theta.plot(theta_t, theta_val, lw=1.2, alpha=0.8)
+    ax_theta.set_ylabel("θ-coherence", rotation=90)
+    ax_theta.set_ylim(0, 1)
+
+    ax_bot.set_ylabel("Speed")
+    ax_bot.set_xlabel("Time (s)")
+    subtitle = f"Speed over time (>{int(speed_max)} interpolated)" if speed_max is not None else "Speed over time"
+    ax_bot.set_title(subtitle)
+
+    if savepath:
+        import os
+        os.makedirs(savepath, exist_ok=True)
+        fig.savefig(os.path.join(savepath, f"{prefix}_TFR_{pair.replace(' ','')}.png"), dpi=300, bbox_inches='tight')
+
+    return fig, (ax_top, ax_bot), {"T":T, "f":f, "C":C, "theta_t":theta_t, "theta":theta_val}
+
+import numpy as np
+
+def plot_coherence_spectrum(
+        df, fs,
+        col_a, col_b,
+        pair_label=('A','B'),
+        fmax=20.0,
+        nperseg_sec=2.0,
+        overlap=0.5,
+        window='hann',
+        detrend='constant',
+        movement_col=None, states=None,
+        smooth_hz=0.0,
+        theta_band=(4,12),
+        savepath=None, prefix='coh_spectrum',
+        # --- NEW: typography / style ---
+        label_fs=18,          # x/y-axis label size
+        tick_fs=16,           # tick label size
+        title_fs=20,          # title size
+        legend_fs=14,         # legend size
+        line_w=2.0,           # smoothed line width
+        raw_line_w=1.4        # raw line width
+    ):
+    """Plot coherence spectrum Cxy(f) between col_a and col_b with larger fonts."""
+    # Behaviour-state mask
+    mask = _build_state_mask(df, movement_col, states) if (movement_col and states is not None) \
+           else np.ones(len(df), bool)
+
+    # Extract & clean
+    x = df[col_a].to_numpy(float)[mask]
+    y = df[col_b].to_numpy(float)[mask]
+    finite = np.isfinite(x) & np.isfinite(y)
+    x, y = x[finite], y[finite]
+    if min(len(x), len(y)) < 64:
+        raise ValueError("Not enough valid samples for coherence.")
+
+    # Welch params
+    nperseg = max(32, int(round(nperseg_sec * fs)))
+    N = min(len(x), len(y))
+    if nperseg > N:
+        nperseg = max(32, N // 4)
+    noverlap = int(round(np.clip(overlap, 0, 0.95) * nperseg))
+
+    # Coherence
+    f, Cxy = coherence(x, y, fs=fs, nperseg=nperseg, noverlap=noverlap,
+                       window=window, detrend=detrend)
+    sel = f <= float(fmax)
+    f, Cxy = f[sel], Cxy[sel]
+
+    # Optional smoothing
+    Cxy_smooth = None
+    if smooth_hz and smooth_hz > 0:
+        dfreq = np.median(np.diff(f))
+        k = max(5, int(round(smooth_hz / dfreq)) | 1)   # odd length ≥5
+        poly = 2 if k > 3 else 1
+        Cxy_smooth = savgol_filter(Cxy, window_length=k, polyorder=poly, mode='interp')
+
+    # Plot
+    fig, ax = plt.subplots(figsize=(5, 5), constrained_layout=True)
+    ax.plot(f, Cxy, lw=raw_line_w, alpha=0.6, label='raw')
+    if Cxy_smooth is not None:
+        ax.plot(f, Cxy_smooth, lw=line_w, label=f'smoothed (~{smooth_hz:g} Hz)')
+
+    ax.set_xlim(0, fmax); ax.set_ylim(0, 1.0)
+    ax.set_xlabel('Frequency (Hz)', fontsize=label_fs)
+    ax.set_ylabel('Coherence', fontsize=label_fs)
+
+    pair = f"{pair_label[0]}–{pair_label[1]}"
+    scope = "all states" if (movement_col is None or states is None) else (f"{states}" if isinstance(states, str) else f"{tuple(states)}")
+    ax.set_title(f'{pair} | {scope}', fontsize=title_fs, pad=8)
+
+    # Theta shading
+    th_lo, th_hi = theta_band
+    ax.axvspan(th_lo, th_hi, color='grey', alpha=0.15, label='theta band')
+
+    # Ticks, grid, legend
+    ax.tick_params(axis='both', which='both', labelsize=tick_fs)
+    ax.grid(alpha=0.25, linewidth=0.8)
+    ax.legend(frameon=False, fontsize=legend_fs)
+
+    if savepath:
+        os.makedirs(savepath, exist_ok=True)
+        fig.savefig(os.path.join(savepath, f"{prefix}_{pair.replace(' ','')}_coh_spectrum.png"),
+                    dpi=300, bbox_inches='tight')
+    return fig, ax, (f, Cxy if Cxy_smooth is None else Cxy_smooth)
+
 #%%
-dpath= r'G:\2025_ATLAS_SPAD\MultiFibre\1887932_Jedi2p_Multi_ephysbad\MovingTrialsDLC'
-recordingName='SyncRecording6'
+# dpath=r'G:\2025_ATLAS_SPAD\MultiFibre\1887932_Jedi2p_Multi_ephysbad\MovingTrialsDLC'
+# recordingName='SyncRecording2'
+
+dpath=r'G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\Day1and2DLC'
+recordingName='SyncRecording2'
 
 Recording1=SyncOEpyPhotometrySession(dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,
                                      recordingMode='Atlas',indicator='GEVI') 
-
 # Grab once from your session
 df = Recording1.Ephys_tracking_spad_aligned
 fs = Recording1.fs
@@ -276,8 +505,58 @@ savename='ThetaSave'
 save_path = os.path.join(dpath,savename)
 save_dir  = os.path.join(dpath, "theta_figs_events")
 os.makedirs(save_dir, exist_ok=True)
+# Choose the raw columns that correspond to CA1_L and CA3_L in your df
+col_CA1_L = 'sig_raw'     # maps to CA1_L in your chan_map
+col_CA3_L = 'zscore_raw'  # maps to CA3_L in your chan_map
+col_CA1_R = 'ref_raw'  # maps to CA3_L in your chan_map
 
+# fig_pair, axes_pair, out = plot_timefreq_coherence_with_speed_pretty(
+#     df=Recording1.Ephys_tracking_spad_aligned, fs=Recording1.fs,
+#     col_a='sig_raw', col_b='ref_raw', pair_label=('CA1_L','CA1_R'),
+#     fmax=20, win_sec=3.0, step_sec=0.15, welch_sec=0.5, welch_overlap=0.5,
+#     movement_col='movement', states=None,
+#     speed_max=60.0,           # interpolate spikes >100
+#     speed_med_kernel_s=0.15,   # ~150 ms median
+#     speed_sg_win_s=0.35,       # ~350 ms Savitzky–Golay
+#     blur_sigma=0.6,            # light visual smoothing of the heatmap
+#     savepath=save_dir, prefix=recordingName
+# )
 
+# CA1_L vs CA1_R
+plot_coherence_spectrum(
+    df=Recording1.Ephys_tracking_spad_aligned, fs=Recording1.fs,
+    col_a='sig_raw', col_b='ref_raw',
+    pair_label=('CA1_L','CA1_R'),
+    fmax=20, nperseg_sec=2.0, overlap=0.5,
+    movement_col='movement', states='moving',
+    smooth_hz=0.5,
+    savepath=save_dir, prefix=recordingName,
+    label_fs=20, tick_fs=18, title_fs=22, legend_fs=16, line_w=2.4
+)
+# CA1_L vs CA1_R
+plot_coherence_spectrum(
+    df=Recording1.Ephys_tracking_spad_aligned, fs=Recording1.fs,
+    col_a='ref_raw', col_b='zscore_raw',
+    pair_label=('CA1_R','CA3_L'),
+    fmax=20, nperseg_sec=2.0, overlap=0.5,
+    movement_col='movement', states='moving',
+    smooth_hz=0.5,
+    savepath=save_dir, prefix=recordingName,
+    label_fs=20, tick_fs=18, title_fs=22, legend_fs=16, line_w=2.4
+)
+
+# CA1_L vs CA3_L
+plot_coherence_spectrum(
+    df=Recording1.Ephys_tracking_spad_aligned, fs=Recording1.fs,
+    col_a='sig_raw', col_b='zscore_raw',
+    pair_label=('CA1_L','CA3_L'),
+    fmax=20, nperseg_sec=2.0, overlap=0.5,
+    movement_col='movement', states='moving',
+    smooth_hz=0.5,
+    savepath=save_dir, prefix=recordingName,
+    label_fs=20, tick_fs=18, title_fs=22, legend_fs=16, line_w=2.4
+)
+#%%
 # Reuse your existing plotters for coherence/xcorr using theta_res_ev:
 'This is to plot theta coherence among optical signals'
 # Coherence among optical signals, theta-rich only by CA1_R:

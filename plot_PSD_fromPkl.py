@@ -9,51 +9,66 @@ from SyncOECPySessionClass import SyncOEpyPhotometrySession
 from SPADPhotometryAnalysis import SPADAnalysisTools as OpticalAnlaysis
 import matplotlib.pyplot as plt
 from SPADPhotometryAnalysis import photometry_functions as fp
+import seaborn as sns
 Fs=10000
 #%%
-'For thesis--multifibre'
+# dpath=r'G:\2025_ATLAS_SPAD\CB_Jedi2P\1881365\Success\Day3'
+# recordingName='SyncRecording5'
+# dpath=r'G:\2025_ATLAS_SPAD\CB_Jedi2P\1910567\Success\Day2'
+# recordingName='SyncRecording2'
+# dpath= r'G:\2025_ATLAS_SPAD\MultiFibre\1887932_Jedi2p_Multi_ephysbad\MovingTrialsDLC'
+# recordingName='SyncRecording1'
+dpath= 'G:/2024_OEC_Atlas_main/1732333_pyPhotometry/Day1/'
+recordingName='SyncRecording7'
 
-dpath= r'G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\Day2'
-recordingName='SyncRecording4_forPSD'
-LFP_channel='LFP_2'
+LFP_channel='LFP_1'
 Recording1=SyncOEpyPhotometrySession(
     dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,
     recordingMode='Atlas',indicator='GEVI') 
-
-# Recording1.pynacollada_label_theta (
-#     LFP_channel,Low_thres=-1,High_thres=8,save=False,plot_theta=True)
-# LFP_theta=Recording1.theta_part[LFP_channel]
-# sig_theta=Recording1.theta_part['sig_raw']
-# ref_theta=Recording1.theta_part['ref_raw']
-
 LFP_theta=Recording1.Ephys_tracking_spad_aligned[LFP_channel]
-sig_theta=Recording1.Ephys_tracking_spad_aligned['sig_raw']
-ref_theta=Recording1.Ephys_tracking_spad_aligned['ref_raw']
-z_theta=Recording1.Ephys_tracking_spad_aligned['zscore_raw']
-
-# from scipy.stats import zscore
+# sig_theta=Recording1.Ephys_tracking_spad_aligned['sig_raw']
+# ref_theta=Recording1.Ephys_tracking_spad_aligned['ref_raw']
+# z_theta=Recording1.Ephys_tracking_spad_aligned['zscore_raw']
+import os
+'Read green and red traces'
+recording_path=file_path_optical=os.path.join(dpath,recordingName)
+file_path_optical=os.path.join(dpath,recordingName, "Green_traceAll.csv")
+sig_theta = pd.read_csv(file_path_optical, header=None)  # Adjust if there's a header
+file_path_optical=os.path.join(dpath,recordingName, "Red_traceAll.csv")
+ref_theta = pd.read_csv(file_path_optical, header=None)  # Adjust if there's a header
+file_path_optical=os.path.join(dpath,recordingName, "Zscore_traceAll.csv")
+z_theta = pd.read_csv(file_path_optical, header=None)  # Adjust if there's a header
+sig_theta = sig_theta.iloc[:, 0].values
+ref_theta=ref_theta.iloc[:, 0].values
+z_theta=z_theta.iloc[:, 0].values
+from scipy.stats import zscore
 # sig_theta = zscore(sig_theta, ddof=0, nan_policy='omit')
 # ref_theta = zscore(ref_theta, ddof=0, nan_policy='omit')
+# z_theta = zscore(z_theta, ddof=0, nan_policy='omit')
 
 fig, ax1 = plt.subplots(1, 1, figsize=(4, 6))  # Fixed figure size
-
+Fs=841.68
+Fs=130
 # Plot optical signal
-OpticalAnlaysis.PSD_plot(ref_theta, Fs, method="welch", color='red', xlim=[0.1, 40],
-                         linewidth=2, linestyle='-', label='Ref', ax=ax1)
-OpticalAnlaysis.PSD_plot(sig_theta, Fs, method="welch", color='green', xlim=[0.1, 40],
-                         linewidth=2, linestyle='-', label='GEVI', ax=ax1)
-OpticalAnlaysis.PSD_plot(z_theta, Fs, method="welch", color='blue', xlim=[0.1, 40],
-                         linewidth=2, linestyle='-', label='CA3', ax=ax1)
+# OpticalAnlaysis.PSD_plot(ref_theta, Fs, method="welch", color='red', xlim=[1, 40],
+#                          linewidth=2, linestyle='-', label='CA1_R', ax=ax1,nperseg=4096)
+OpticalAnlaysis.PSD_plot(sig_theta, Fs, method="welch", color='green', xlim=[1, 40],
+                         linewidth=2, linestyle='-', label='GEVI', ax=ax1,nperseg=4096)
+# OpticalAnlaysis.PSD_plot(z_theta, Fs, method="welch", color='blue', xlim=[1, 40],
+#                          linewidth=2, linestyle='-', label='CA3_L', ax=ax1,nperseg=4096)
 
 ax1.set_ylabel('Optical PSD [dB/Hz]', color='green', fontsize=14)
 ax1.tick_params(axis='y', labelcolor='green', labelsize=14)
 ax1.tick_params(axis='x', labelsize=14)
-#ax1.set_ylim(-40, -10)
+#ax1.set_ylim(-45, -28)
 
 # Create second y-axis for LFP
+Fs=10000
 ax2 = ax1.twinx()
-OpticalAnlaysis.PSD_plot(LFP_theta, Fs, method="welch", color='black', xlim=[0.1, 40],
+OpticalAnlaysis.PSD_plot(LFP_theta, Fs, method="welch", color='black', xlim=[1, 40],
                          linewidth=2, linestyle='-', label='LFP', ax=ax2)
+# OpticalAnlaysis.PSD_plot(LFP_theta2, Fs, method="welch", color='black', xlim=[0.1, 40],
+#                          linewidth=2, linestyle='-', label='LFP', ax=ax2)
 ax2.set_ylabel('LFP PSD [dB/Hz]', color='black', fontsize=14)
 ax2.tick_params(axis='y', labelcolor='black', labelsize=14)
 
@@ -64,7 +79,6 @@ ax1.set_title('', fontsize=16)
 # Legends
 legend1 = ax1.legend(loc='upper right', frameon=False, fontsize=12)
 legend2 = ax2.legend(loc='upper right', frameon=False, bbox_to_anchor=(1, 0.93), fontsize=12)
-
 # Manually adjust layout (instead of tight_layout)
 fig.subplots_adjust(left=0.18, right=0.82, top=0.90, bottom=0.12)
 
@@ -72,7 +86,8 @@ plt.show()
 #%%
 'For thesis, plot multiROI PSD'
 dpath= r'G:\2025_ATLAS_SPAD\MultiFibre\1887933_Jedi2P_Multi\Day2'
-recordingName='SyncRecording4_forPSD'
+recordingName='forPSD_SyncRecording4'
+# recordingName='SyncRecording1'
 LFP_channel='LFP_2'
 Recording1=SyncOEpyPhotometrySession(
     dpath,recordingName,IsTracking=False,read_aligned_data_from_file=True,
@@ -83,30 +98,47 @@ LFP_theta2=Recording1.Ephys_tracking_spad_aligned['LFP_3']
 sig_theta=Recording1.Ephys_tracking_spad_aligned['sig_raw']
 ref_theta=Recording1.Ephys_tracking_spad_aligned['ref_raw']
 z_theta=Recording1.Ephys_tracking_spad_aligned['zscore_raw']
+
+import os
+'Read green and red traces'
+recording_path=file_path_optical=os.path.join(dpath,recordingName)
+file_path_optical=os.path.join(dpath,recordingName, "Green_traceAll.csv")
+sig_theta = pd.read_csv(file_path_optical, header=None)  # Adjust if there's a header
+file_path_optical=os.path.join(dpath,recordingName, "Red_traceAll.csv")
+ref_theta = pd.read_csv(file_path_optical, header=None)  # Adjust if there's a header
+file_path_optical=os.path.join(dpath,recordingName, "Zscore_traceAll.csv")
+z_theta = pd.read_csv(file_path_optical, header=None)  # Adjust if there's a header
+sig_theta = sig_theta.iloc[:, 0].values
+ref_theta=ref_theta.iloc[:, 0].values
+z_theta=z_theta.iloc[:, 0].values
 from scipy.stats import zscore
 sig_theta = zscore(sig_theta, ddof=0, nan_policy='omit')
 ref_theta = zscore(ref_theta, ddof=0, nan_policy='omit')
 z_theta = zscore(z_theta, ddof=0, nan_policy='omit')
 
 fig, ax1 = plt.subplots(1, 1, figsize=(4, 6))  # Fixed figure size
-
-# Plot optical signal
-OpticalAnlaysis.PSD_plot(ref_theta, Fs, method="welch", color='hotpink', xlim=[0.1, 45],
-                         linewidth=2, linestyle='-', label='R-CA1', ax=ax1)
-OpticalAnlaysis.PSD_plot(sig_theta, Fs, method="welch", color='limegreen', xlim=[0.1, 45],
-                         linewidth=2, linestyle='-', label='L-CA1', ax=ax1)
-OpticalAnlaysis.PSD_plot(z_theta, Fs, method="welch", color='royalblue', xlim=[0.1, 45],
-                         linewidth=2, linestyle='-', label='L-CA3', ax=ax1)
+pal = sns.color_palette("husl", 8)
+color_map = {'CA1_R': pal[0], 'CA1_L': pal[3], 'CA3_L': pal[2],
+             'LFP_2': pal[5], 'LFP_3': pal[6]}
+#Plot optical signal
+Fs=1682.92
+OpticalAnlaysis.PSD_plot(ref_theta, Fs, method="welch", color=color_map['CA1_R'], xlim=[0.1, 40],
+                         linewidth=2, linestyle='-', label='R-CA1', ax=ax1,nperseg=4096)
+OpticalAnlaysis.PSD_plot(sig_theta, Fs, method="welch", color=color_map['CA1_L'], xlim=[0.1, 40],
+                         linewidth=2, linestyle='-', label='L-CA1', ax=ax1,nperseg=4096)
+OpticalAnlaysis.PSD_plot(z_theta, Fs, method="welch", color=color_map['CA3_L'], xlim=[0.1, 40],
+                         linewidth=2, linestyle='-', label='L-CA3', ax=ax1,nperseg=4096)
 ax1.set_ylabel('Optical PSD [dB/Hz]', color='green', fontsize=14)
 ax1.tick_params(axis='y', labelcolor='green', labelsize=14)
 ax1.tick_params(axis='x', labelsize=14)
-ax1.set_ylim(-45, -10)
+ax1.set_ylim(-55, -10)
 
 # Create second y-axis for LFP
+Fs=10000
 ax2 = ax1.twinx()
-OpticalAnlaysis.PSD_plot(LFP_theta, Fs, method="welch", color='red', xlim=[0.1, 45],
+OpticalAnlaysis.PSD_plot(LFP_theta, Fs, method="welch", color=color_map['LFP_2'], xlim=[0.1, 40],
                          linewidth=2, linestyle='-', label='LFP2', ax=ax2)
-OpticalAnlaysis.PSD_plot(LFP_theta2, Fs, method="welch", color='black', xlim=[0.1, 45],
+OpticalAnlaysis.PSD_plot(LFP_theta2, Fs, method="welch", color=color_map['LFP_3'], xlim=[0.1, 40],
                          linewidth=2, linestyle='-', label='LFP3', ax=ax2)
 ax2.set_ylabel('LFP PSD [dB/Hz]', color='black', fontsize=14)
 ax2.tick_params(axis='y', labelcolor='black', labelsize=14)

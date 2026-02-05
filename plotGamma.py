@@ -116,7 +116,7 @@ def plot_ripple_heatmap(ripple_band_lfps, lfps, zscores, Fs=10000):
     axs[1].set_ylabel('LFP (μV)', fontsize=16)
     
     # Plot z-score
-    axs[2].plot(time, zscores_mean, color='tomato')
+    axs[2].plot(time, zscores_mean, color='tomato') # tomato, limegreen
     axs[2].fill_between(time, zscores_CI[0], zscores_CI[1], color='tomato', alpha=0.2)
     axs[2].set_ylabel('ΔF/F', fontsize=16)
 
@@ -306,8 +306,8 @@ def run_Gamma_plot (dpath,LFP_channel,recordingName,savename,theta_thre=0):
     else:
         ripple_triggered_LFP_values=Recording1.ripple_triggered_LFP_values_4
     
-    ripple_triggered_zscore_values=Recording1.ripple_triggered_zscore_values
-    aligned_ripple_band_lfps,aligned_zscores=plot_aligned_ripple_save (save_path,LFP_channel,recordingName,ripple_triggered_LFP_values,ripple_triggered_zscore_values,Fs=10000)
+    #ripple_triggered_zscore_values=Recording1.ripple_triggered_zscore_values
+    #aligned_ripple_band_lfps,aligned_zscores=plot_aligned_ripple_save (save_path,LFP_channel,recordingName,ripple_triggered_LFP_values,ripple_triggered_zscore_values,Fs=10000)
     # plot_ripple_zscore(save_path, aligned_ripple_band_lfps, aligned_zscores)
 
     trough_index,peak_index =Recording1.plot_gamma_correlation(LFP_channel,save_path)
@@ -317,12 +317,12 @@ def run_Gamma_plot (dpath,LFP_channel,recordingName,savename,theta_thre=0):
 def run_ripple_plot_main():
     'This is to process a single or concatenated rial, with a Ephys_tracking_photometry_aligned.pkl in the recording folder'
     dpath=r'G:\2024_OEC_Atlas_main\1825507_mCherry\Day1'
-    recordingName='SyncRecording3'
+    recordingName='Saved2to4Trials'
     LFP_channel='LFP_3'
     savename='GammaSave'
     '''You can try LFP1,2,3,4 and plot theta to find the best channel'''
     
-    run_Gamma_plot (dpath,LFP_channel,recordingName,savename,theta_thre=-0.5)
+    run_Gamma_plot (dpath,LFP_channel,recordingName,savename,theta_thre=-0.3)
 
 def main():    
     run_ripple_plot_main()

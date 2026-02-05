@@ -384,35 +384,35 @@ if __name__ == "__main__":
     }
 
     
-    # animal_root = r"G:\2025_ATLAS_SPAD\CB_Jedi2P\1881365\Success"
+    animal_root = r"G:\2025_ATLAS_SPAD\CB_Jedi2P\1881365\Success"
+    averaged_psd(animal_root=animal_root, landmarks=landmarks,
+                      lfp_channel="LFP_4",
+                      days=["Day1","Day2","Day3","Day4"],
+                      window_s=(-5.0, 5.0),
+                      speed_thresh_cm_s=4.0,
+                      show=True)   #top_pct=97
+    
+    animal_root = r"G:\2025_ATLAS_SPAD\CB_Jedi2P\1910567\Success"
+    averaged_psd(animal_root=animal_root, landmarks=landmarks,
+                      lfp_channel="LFP_4",
+                      days=["Day1","Day2","Day3","Day4"],
+                      window_s=(-5.0, 5.0),
+                      speed_thresh_cm_s=3,
+                      show=True)  #top_pct=90
+    
+    # animal_root = r"G:\2025_ATLAS_SPAD\CB_Jedi2P\1881363\Success"
     # averaged_psd(animal_root=animal_root, landmarks=landmarks,
     #                   lfp_channel="LFP_4",
     #                   days=["Day1","Day2","Day3","Day4"],
-    #                   window_s=(-5.0, 5.0),
+    #                   window_s=(-2.0, 2.0),
     #                   speed_thresh_cm_s=4.0,
-    #                   show=True)   #top_pct=97
+    #                   show=True)
     
-    # animal_root = r"G:\2025_ATLAS_SPAD\CB_Jedi2P\1910567\Success"
+    # animal_root = r"G:\2025_ATLAS_SPAD\CB_Jedi2P\1907336\Success"
     # averaged_psd(animal_root=animal_root, landmarks=landmarks,
     #                   lfp_channel="LFP_4",
     #                   days=["Day1","Day2","Day3","Day4"],
-    #                   window_s=(-5.0, 5.0),
-    #                   speed_thresh_cm_s=3,
-    #                   show=True)  #top_pct=90
-    
-    animal_root = r"G:\2025_ATLAS_SPAD\CB_Jedi2P\1881363\Success"
-    averaged_psd(animal_root=animal_root, landmarks=landmarks,
-                      lfp_channel="LFP_4",
-                      days=["Day1","Day2","Day3","Day4"],
-                      window_s=(-2.0, 2.0),
-                      speed_thresh_cm_s=4.0,
-                      show=True)
-    
-    animal_root = r"G:\2025_ATLAS_SPAD\CB_Jedi2P\1907336\Success"
-    averaged_psd(animal_root=animal_root, landmarks=landmarks,
-                      lfp_channel="LFP_4",
-                      days=["Day1","Day2","Day3","Day4"],
-                      window_s=(-2.0, 2.0),
-                      speed_thresh_cm_s=4.0,
-                      show=True)
+    #                   window_s=(-2.0, 2.0),
+    #                   speed_thresh_cm_s=4.0,
+    #                   show=True)
     
